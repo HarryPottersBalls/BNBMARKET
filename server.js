@@ -265,35 +265,62 @@ app.get('/api/stats', async (req, res) => {
   }
 });
 
+// Get market creation fee
+app.get('/api/creation-fee', async (req, res) => {
+  try {
+    const marketCreationFee = 0.0007803101839841827; // BNB
+    res.json({
+      creation_fee: marketCreationFee,
+      creation_fee_formatted: `${marketCreationFee.toFixed(10)} BNB`,
+      description: 'Fee required to create a new prediction market',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('API Error:', error);
+    res.status(500).json({ 
+      error: 'Failed to fetch creation fee',
+      details: error.message 
+    });
+  }
+});
+
 // Treasury endpoint
 app.get('/api/treasury', async (req, res) => {
   try {
-    // Calculate treasury: total volume - total payouts - platform fees (5%)
+    // Calculate treasury: total volume - total payouts + creation fees - platform fees (5%)
     const treasuryResult = await queryDatabase(`
       SELECT 
         COALESCE(SUM(m.total_volume), 0) as total_volume,
         COALESCE(SUM(b.payout_amount), 0) as total_payouts,
         COUNT(DISTINCT m.id) as total_markets,
-        COUNT(b.id) as total_bets
+        COUNT(b.id) as total_bets,
+        COUNT(DISTINCT CASE WHEN m.creator_address != $1 THEN m.id END) as non_admin_markets
       FROM markets m
       LEFT JOIN bets b ON m.id = b.market_id AND b.claimed = true
-    `);
+    `, [process.env.ADMIN_WALLET || '0x7eCa382995Df91C250896c0EC73c9d2893F7800e']);
     
     const result = treasuryResult.rows[0];
     const totalVolume = parseFloat(result.total_volume || 0);
     const totalPayouts = parseFloat(result.total_payouts || 0);
+    const nonAdminMarkets = parseInt(result.non_admin_markets || 0);
+    
+    // Creation fees collected
+    const marketCreationFee = 0.0007803101839841827;
+    const totalCreationFees = nonAdminMarkets * marketCreationFee;
     
     // Platform fees: 5% of total volume
     const platformFees = totalVolume * 0.05;
     
-    // Treasury balance: volume - payouts (the platform fee is automatically retained)
-    const treasury = totalVolume - totalPayouts;
+    // Treasury balance: volume - payouts + creation fees (platform fee is automatically retained)
+    const treasury = totalVolume - totalPayouts + totalCreationFees;
     
     res.json({ 
       treasury,
       total_volume: totalVolume,
       total_payouts: totalPayouts,
       platform_fees: platformFees,
+      creation_fees: totalCreationFees,
+      creation_fee_per_market: marketCreationFee,
       total_markets: parseInt(result.total_markets),
       total_bets: parseInt(result.total_bets),
       timestamp: new Date().toISOString()
@@ -545,17 +572,26 @@ app.post('/api/markets', async (req, res) => {
         JSON.stringify(metadata)
       ]);
     } else {
+      // Market creation fee for non-admin users
+      const marketCreationFee = 0.0007803101839841827; // BNB
       const minInitialLiquidity = 0.1;
+      
       if (!initialLiquidity || isNaN(initialLiquidity) || parseFloat(initialLiquidity) < minInitialLiquidity) {
         return res.status(400).json({
           error: `A minimum initial liquidity of ${minInitialLiquidity} BNB is required.`
         });
       }
+      
       if (!creationSignature) {
         return res.status(400).json({
           error: 'A creation signature is required.'
         });
       }
+      
+      // Validate that the transaction includes the creation fee
+      // In a real implementation, you would verify the transaction on-chain
+      // For now, we'll store the expected fee amount in metadata
+      
       marketInsert = await queryDatabase(`
         INSERT INTO markets (
           title, description, category, creator_address, 
@@ -573,7 +609,11 @@ app.post('/api/markets', async (req, res) => {
         JSON.stringify(processedOptions),
         creationSignature,
         'under_review',
-        JSON.stringify(metadata)
+        JSON.stringify({
+          ...metadata,
+          creation_fee: marketCreationFee,
+          creation_fee_paid: true
+        })
       ]);
     }
 

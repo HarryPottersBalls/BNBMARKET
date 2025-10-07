@@ -940,7 +940,7 @@
         const transaction = {
           from: walletAddress.toString(),
           to: TREASURY_WALLET.toString(),
-          value: '0x' + web3.utils.toBN(amountInWei).toString(16), // Convert to hex string
+          value: '0x' + BigInt(amountInWei).toString(16), // Convert to hex string using BigInt
           gas: '0x5208', // 21000 in hex
         };
         

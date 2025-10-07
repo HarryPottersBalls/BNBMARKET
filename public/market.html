@@ -199,6 +199,26 @@
       color: #9aff00;
     }
 
+    /* Language Switcher Styles */
+    .language-switcher {
+      position: relative;
+      display: inline-block;
+    }
+
+    .lang-btn:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(154, 255, 0, 0.3);
+    }
+
+    .lang-dropdown {
+      min-width: 120px;
+    }
+
+    .lang-option:hover {
+      background: rgba(154, 255, 0, 0.1);
+      color: #9aff00;
+    }
+
     /* Chart Tab Styles */
     .chart-tab {
       background: transparent;
@@ -233,16 +253,26 @@
       </a>
       <nav class="nav">
         <a href="index.html" class="nav-link">Markets</a>
-        <a href="index.html" class="nav-link" id="myBetsNavLink">My Bets</a>
-        <a href="index.html" class="nav-link">Treasury</a>
-        <a href="index.html" class="nav-link">How It Works</a>
-        <a href="index.html" id="adminTab" class="nav-link admin" style="display:none">Admin Panel</a>
+        <a href="index.html" class="nav-link" id="myBetsNavLink" data-i18n="myBets">My Bets</a>
+        <a href="index.html" class="nav-link" data-i18n="treasury">Treasury</a>
+        <a href="index.html" class="nav-link" data-i18n="howItWorks">How It Works</a>
+        <a href="index.html" id="adminTab" class="nav-link admin" style="display:none" data-i18n="adminPanel">Admin Panel</a>
       </nav>
       <div class="wallet-group">
+        <!-- Language Switcher -->
+        <div class="language-switcher" style="margin-right:12px;">
+          <button id="langBtn" class="lang-btn" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#e6eef8;padding:8px 12px;border-radius:6px;font-size:13px;cursor:pointer;transition:all 0.2s;">
+            🌍 EN
+          </button>
+          <div id="langDropdown" class="lang-dropdown" style="display:none;position:absolute;top:100%;right:0;background:#23263a;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:4px;margin-top:4px;box-shadow:0 4px 12px rgba(0,0,0,0.3);z-index:1000;">
+            <button class="lang-option" data-lang="en" style="display:block;width:100%;text-align:left;background:none;border:none;color:#e6eef8;padding:8px 12px;border-radius:4px;cursor:pointer;font-size:13px;transition:background 0.2s;">🇺🇸 English</button>
+            <button class="lang-option" data-lang="zh-CN" style="display:block;width:100%;text-align:left;background:none;border:none;color:#e6eef8;padding:8px 12px;border-radius:4px;cursor:pointer;font-size:13px;transition:background 0.2s;">🇨🇳 中文</button>
+          </div>
+        </div>
         <div class="balance" id="balanceDisplay" style="display:none;">
           BNB: <span id="bnbBalance">0.000</span>
         </div>
-        <button id="walletBtn" class="btn wallet-btn">Connect Wallet</button>
+        <button id="walletBtn" class="btn wallet-btn" data-i18n="connectWallet">Connect Wallet</button>
       </div>
     </div>
   </header>
@@ -262,8 +292,8 @@
           <div style="flex: 2.5; min-width: 420px; background: #181e29; border-radius: 18px; padding: 32px 24px 32px 24px; box-shadow: 0 2px 24px rgba(16,185,129,0.09);">
             <!-- Chart Tabs -->
             <div style="display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 1px solid #23263a; padding-bottom: 12px;">
-              <button id="probabilityTab" class="chart-tab active" onclick="switchChart('probability')">Market Confidence Over Time</button>
-              <button id="distributionTab" class="chart-tab" onclick="switchChart('distribution')">Current Market Distribution</button>
+              <button id="probabilityTab" class="chart-tab active" onclick="switchChart('probability')" data-i18n="marketConfidenceOverTime">Market Confidence Over Time</button>
+              <button id="distributionTab" class="chart-tab" onclick="switchChart('distribution')" data-i18n="currentMarketDistribution">Current Market Distribution</button>
             </div>
             
             <!-- Chart Containers -->
@@ -286,16 +316,16 @@
               <button class="btn quick-btn" type="button" data-amount="1" style="flex:1;min-width:0;background:#23263a;color:#9aff00;border:1.5px solid #9aff00;">1</button>
               <button class="btn quick-btn-max" type="button" style="flex:1;min-width:0;background:#23263a;color:#7acc00;border:1.5px solid #7acc00;" title="Max">Max</button>
             </div>
-            <input id="tradeAmount" type="number" min="0.01" step="0.01" placeholder="Amount (BNB)" style="width:100%;padding:16px 14px;border-radius:10px;border:2px solid #7acc00;background:#181e29;color:#f3f4f6;font-size:1.2rem;margin-bottom:10px;outline:none;box-shadow:none;">
+            <input id="tradeAmount" type="number" min="0.01" step="0.01" placeholder="Amount (BNB)" data-i18n-placeholder="amount" style="width:100%;padding:16px 14px;border-radius:10px;border:2px solid #7acc00;background:#181e29;color:#f3f4f6;font-size:1.2rem;margin-bottom:10px;outline:none;box-shadow:none;">
             <div id="feeBreakdown" style="color:#f59e0b;font-size:0.95rem;margin-bottom:10px;font-weight:500;background:rgba(245,158,11,0.08);padding:6px 8px;border-radius:6px;display:none;">
-              Platform Fee (1%): <span id="platformFeeAmount">0.000 BNB</span> | Net Investment: <span id="netBetAmount">0.000 BNB</span>
+              <span data-i18n="platformFee">Platform Fee</span> (1%): <span id="platformFeeAmount">0.000 BNB</span> | <span data-i18n="netInvestment">Net Investment</span>: <span id="netBetAmount">0.000 BNB</span>
             </div>
             <div id="profitCalc" style="color:#10b981;font-size:1.08rem;margin-bottom:14px;font-weight:600;background:rgba(16,185,129,0.07);padding:8px 10px;border-radius:8px;"></div>
             <div style="display:flex;gap:10px;margin-bottom:10px;align-items:flex-start;">
-              <button id="buyBtn" class="btn" style="flex:1;width:100%;font-size:1.08rem;padding:13px 0;box-shadow:0 2px 8px rgba(154,255,0,0.07);">Purchase Shares</button>
+              <button id="buyBtn" class="btn" style="flex:1;width:100%;font-size:1.08rem;padding:13px 0;box-shadow:0 2px 8px rgba(154,255,0,0.07);" data-i18n="purchaseShares">Purchase Shares</button>
             </div>
             <div style="display:flex;gap:10px;margin-bottom:10px;align-items:flex-start;">
-              <button id="cancelBtn" class="btn" style="flex:1;width:100%;background:#ef4444;color:#fff;font-size:1.08rem;padding:13px 0;box-shadow:0 2px 8px rgba(239,68,68,0.13);border:1.5px solid #ef4444;">Request Refund</button>
+              <button id="cancelBtn" class="btn" style="flex:1;width:100%;background:#ef4444;color:#fff;font-size:1.08rem;padding:13px 0;box-shadow:0 2px 8px rgba(239,68,68,0.13);border:1.5px solid #ef4444;" data-i18n="requestRefund">Request Refund</button>
             </div>
             <hr style="border:none;border-top:1px solid #23263a;margin:12px 0 10px 0;">
             <div id="tradeMsg" style="margin-top:0;color:#10b981;font-size:1.05rem;min-height:22px;"></div>
@@ -306,13 +336,13 @@
       
       <!-- Comment Section -->
       <section id="commentSection" style="margin-top:40px;background:#181e29;border-radius:16px;padding:28px 24px 18px 24px;box-shadow:0 2px 16px rgba(16,185,129,0.07);max-width:700px;margin-left:auto;margin-right:auto;">
-        <h3 style="color:#9aff00;margin-bottom:10px;font-size:1.25rem;font-weight:700;">Comments</h3>
+        <h3 style="color:#9aff00;margin-bottom:10px;font-size:1.25rem;font-weight:700;" data-i18n="comments">Comments</h3>
         <div id="commentsList" style="margin-bottom:18px;"></div>
         <div id="commentBoxContainer" style="display:none;">
-          <textarea id="commentInput" rows="3" maxlength="300" placeholder="Write a comment..." style="width:100%;padding:12px 10px;border-radius:8px;border:1.5px solid #7acc00;background:#151926;color:#e6eef8;font-size:1.08rem;resize:vertical;margin-bottom:8px;"></textarea>
+          <textarea id="commentInput" rows="3" maxlength="300" placeholder="Write a comment..." data-i18n-placeholder="writeComment" style="width:100%;padding:12px 10px;border-radius:8px;border:1.5px solid #7acc00;background:#151926;color:#e6eef8;font-size:1.08rem;resize:vertical;margin-bottom:8px;"></textarea>
           <div style="display:flex;align-items:center;justify-content:space-between;">
-            <span id="commentWarning" style="color:#f59e0b;font-size:0.98rem;">Do not click any links beware of scammers.</span>
-            <button id="postCommentBtn" class="btn" style="padding:8px 18px;font-size:1rem;">Post</button>
+            <span id="commentWarning" style="color:#f59e0b;font-size:0.98rem;" data-i18n="warningScammers">Do not click any links beware of scammers.</span>
+            <button id="postCommentBtn" class="btn" style="padding:8px 18px;font-size:1rem;" data-i18n="postComment">Post</button>
           </div>
           <div id="commentMsg" style="color:#ff6b6b;font-size:0.98rem;margin-top:6px;min-height:18px;"></div>
         </div>
@@ -323,15 +353,15 @@
     <!-- My Bets Section -->
     <section id="mybetsSection" style="display:none;max-width:900px;margin:40px auto 0 auto;padding:32px 24px 40px 24px;background:linear-gradient(180deg, rgba(55,65,81,0.4), rgba(31,41,55,0.6));border-radius:18px;box-shadow:0 4px 32px rgba(0,0,0,0.10);">
       <div class="section-header" style="margin-bottom:24px;">
-        <h2 class="section-title" style="color:#9aff00;font-size:2rem;font-weight:800;margin-bottom:12px;">My Betting Portfolio</h2>
+        <h2 class="section-title" style="color:#9aff00;font-size:2rem;font-weight:800;margin-bottom:12px;" data-i18n="myBettingPortfolio">My Betting Portfolio</h2>
         <div id="portfolioSummary" style="display:flex;gap:20px;flex-wrap:wrap;margin-bottom:16px;">
           <!-- Portfolio summary will be populated by JavaScript -->
         </div>
       </div>
       <div id="betsContainer">
         <div class="empty-state">
-          <h3>Connect Wallet</h3>
-          <p>Connect your wallet to view your betting history.</p>
+          <h3 data-i18n="connectWalletToBets">Connect Wallet</h3>
+          <p data-i18n="connectWalletToView">Connect your wallet to view your betting history.</p>
         </div>
       </div>
     </section>
@@ -342,6 +372,372 @@
   <script src="odds-engine.js" onerror="console.warn('Failed to load odds-engine.js')"></script>
   <!-- <script src="lmsr-charts.js" onerror="console.warn('Failed to load lmsr-charts.js - using fallback')"></script> -->
   <script>
+    // ========================================
+    // INTERNATIONALIZATION SYSTEM
+    // ========================================
+    
+    /**
+     * Translation data for BNBmarket
+     * Supporting English (en) and Simplified Chinese (zh-CN)
+     */
+    const translations = {
+      en: {
+        // Navigation
+        markets: "Markets",
+        myBets: "My Bets",
+        treasury: "Treasury",
+        howItWorks: "How It Works",
+        adminPanel: "Admin Panel",
+        connectWallet: "Connect Wallet",
+        disconnect: "Disconnect",
+        
+        // Market Info
+        category: "Category",
+        created: "Created",
+        totalVolume: "Total Volume",
+        totalBuys: "Total Buys",
+        
+        // Trading
+        purchaseShares: "Purchase Shares",
+        requestRefund: "Request Refund",
+        amount: "Amount",
+        platformFee: "Platform Fee",
+        netInvestment: "Net Investment",
+        shares: "Shares",
+        maxReturn: "Max Return",
+        expectedReturn: "Expected Return",
+        currentConfidence: "Current Confidence",
+        finalConfidence: "final confidence",
+        priceImpact: "Price impact",
+        largeTradeWarning: "Large trade",
+        ifWins: "if wins",
+        payoutFeeApplies: "payout fee applies",
+        
+        // Portfolio
+        portfolioPosition: "Portfolio Position",
+        myBettingPortfolio: "My Betting Portfolio",
+        totalInvested: "Total Invested",
+        currentValue: "Current Value",
+        totalPnL: "Total P&L",
+        portfolioStats: "Portfolio Stats",
+        activeBets: "Active Bets",
+        originalPurchase: "Original Purchase",
+        marketConfidence: "Market Confidence",
+        liveMarket: "Live Market",
+        marketResolved: "Market Resolved",
+        
+        // Status Messages
+        connectWalletFirst: "Please connect your wallet first",
+        enterValidAmount: "Enter a valid amount",
+        processingPurchase: "Processing purchase...",
+        purchaseCompleted: "Purchase completed!",
+        purchaseFailed: "Purchase failed",
+        received: "Received",
+        cancellationRequested: "Cancellation request sent. Refunds are processed within 24 hours.",
+        cancellationFailed: "Cancellation failed",
+        
+        // My Bets Section
+        connectWalletToBets: "Connect Wallet",
+        connectWalletToView: "Connect your wallet to view your betting history.",
+        noBetsYet: "No Bets Yet",
+        noBetsDescription: "Your betting history will appear here once you place your first bet.",
+        errorLoadingBets: "Error Loading Bets",
+        picked: "Picked",
+        viewTx: "View TX",
+        
+        // Chart Labels
+        marketConfidenceOverTime: "Market Confidence Over Time",
+        currentMarketDistribution: "Current Market Distribution",
+        chartLoadingError: "Chart failed to load",
+        chartTempUnavailable: "Charts temporarily unavailable",
+        currentMarketDataLoading: "Current market data loading...",
+        unableToCalculatePnL: "Unable to calculate current P&L",
+        
+        // Comments
+        comments: "Comments",
+        writeComment: "Write a comment...",
+        postComment: "Post",
+        noCommentsYet: "No comments yet. Be the first to comment!",
+        warningScammers: "Do not click any links beware of scammers.",
+        commentEmpty: "Comment cannot be empty.",
+        posting: "Posting...",
+        commentPosted: "Comment posted!",
+        failedToPost: "Failed to post comment.",
+        mustPlaceBet: "You must place a bet on this market to comment.",
+        
+        // Errors and Warnings
+        invalidMarketId: "Invalid market ID.",
+        failedToFetchMarket: "Failed to fetch market",
+        failedToFetchBets: "Failed to fetch bets",
+        metamaskNotFound: "MetaMask wallet not found! Please install MetaMask.",
+        metamaskNotConnected: "MetaMask not connected. Please reconnect.",
+        disconnectConfirm: "Disconnect wallet?",
+        
+        // Time and Dates
+        today: "Today",
+        yesterday: "Yesterday",
+        daysAgo: "days ago",
+        
+        // LMSR Messages
+        lmsrCalculation: "LMSR Calculation",
+        currentShares: "Current shares",
+        currentProbability: "Current probability",
+        sharesToBuy: "Shares to buy",
+        newProbability: "New probability",
+        fallbackCalculation: "Using fallback calculation (no LMSR data available)",
+        tradeExecution: "LMSR Trade Execution",
+        purchaseAmount: "Purchase amount",
+        netAmount: "Net amount",
+        sharesReceived: "Shares received",
+        avgExecutionPrice: "Avg execution price",
+        fallbackExecution: "Using fallback execution calculation"
+      },
+      
+      'zh-CN': {
+        // Navigation
+        markets: "市场",
+        myBets: "我的投注",
+        treasury: "资金库",
+        howItWorks: "工作原理",
+        adminPanel: "管理面板",
+        connectWallet: "连接钱包",
+        disconnect: "断开连接",
+        
+        // Market Info  
+        category: "类别",
+        created: "创建时间",
+        totalVolume: "总交易量",
+        totalBuys: "总购买数",
+        
+        // Trading
+        purchaseShares: "购买份额",
+        requestRefund: "申请退款",
+        amount: "金额",
+        platformFee: "平台费用",
+        netInvestment: "净投资",
+        shares: "份额",
+        maxReturn: "最大回报",
+        expectedReturn: "预期回报",
+        currentConfidence: "当前置信度",
+        finalConfidence: "最终置信度",
+        priceImpact: "价格影响",
+        largeTradeWarning: "大额交易",
+        ifWins: "如果获胜",
+        payoutFeeApplies: "支付费用适用",
+        
+        // Portfolio
+        portfolioPosition: "投资组合仓位",
+        myBettingPortfolio: "我的投注组合",
+        totalInvested: "总投资",
+        currentValue: "当前价值",
+        totalPnL: "总盈亏",
+        portfolioStats: "组合统计",
+        activeBets: "活跃投注",
+        originalPurchase: "原始购买",
+        marketConfidence: "市场置信度",
+        liveMarket: "实时市场",
+        marketResolved: "市场已结算",
+        
+        // Status Messages
+        connectWalletFirst: "请先连接您的钱包",
+        enterValidAmount: "请输入有效金额",
+        processingPurchase: "处理购买中...",
+        purchaseCompleted: "购买完成！",
+        purchaseFailed: "购买失败",
+        received: "已收到",
+        cancellationRequested: "取消请求已发送。退款将在24小时内处理。",
+        cancellationFailed: "取消失败",
+        
+        // My Bets Section
+        connectWalletToBets: "连接钱包",
+        connectWalletToView: "连接您的钱包以查看投注历史。",
+        noBetsYet: "暂无投注",
+        noBetsDescription: "您的投注历史将在您下第一笔投注后显示在这里。",
+        errorLoadingBets: "加载投注错误",
+        picked: "已选择",
+        viewTx: "查看交易",
+        
+        // Chart Labels
+        marketConfidenceOverTime: "市场置信度随时间变化",
+        currentMarketDistribution: "当前市场分布",
+        chartLoadingError: "图表加载失败",
+        chartTempUnavailable: "图表暂时不可用",
+        currentMarketDataLoading: "当前市场数据加载中...",
+        unableToCalculatePnL: "无法计算当前盈亏",
+        
+        // Comments
+        comments: "评论",
+        writeComment: "写评论...",
+        postComment: "发布",
+        noCommentsYet: "暂无评论。成为第一个评论的人！",
+        warningScammers: "请勿点击任何链接，谨防诈骗。",
+        commentEmpty: "评论不能为空。",
+        posting: "发布中...",
+        commentPosted: "评论已发布！",
+        failedToPost: "发布评论失败。",
+        mustPlaceBet: "您必须在此市场下注才能评论。",
+        
+        // Errors and Warnings
+        invalidMarketId: "无效的市场ID。",
+        failedToFetchMarket: "获取市场失败",
+        failedToFetchBets: "获取投注失败",
+        metamaskNotFound: "未找到MetaMask钱包！请安装MetaMask。",
+        metamaskNotConnected: "MetaMask未连接。请重新连接。",
+        disconnectConfirm: "断开钱包连接？",
+        
+        // Time and Dates
+        today: "今天",
+        yesterday: "昨天", 
+        daysAgo: "天前",
+        
+        // LMSR Messages
+        lmsrCalculation: "LMSR计算",
+        currentShares: "当前份额",
+        currentProbability: "当前概率",
+        sharesToBuy: "购买份额",
+        newProbability: "新概率", 
+        fallbackCalculation: "使用后备计算（无LMSR数据可用）",
+        tradeExecution: "LMSR交易执行",
+        purchaseAmount: "购买金额",
+        netAmount: "净金额",
+        sharesReceived: "收到份额",
+        avgExecutionPrice: "平均执行价格",
+        fallbackExecution: "使用后备执行计算"
+      }
+    };
+
+    /**
+     * Internationalization Manager
+     */
+    class I18nManager {
+      constructor() {
+        this.currentLanguage = this.detectLanguage();
+        this.translations = translations;
+        console.log(`🌍 I18n initialized with language: ${this.currentLanguage}`);
+      }
+      
+      /**
+       * Auto-detect user's preferred language
+       */
+      detectLanguage() {
+        // Check URL parameter first
+        const urlParams = new URLSearchParams(window.location.search);
+        const langParam = urlParams.get('lang');
+        if (langParam && this.translations[langParam]) {
+          return langParam;
+        }
+        
+        // Check localStorage
+        const savedLang = localStorage.getItem('bnbmarket_language');
+        if (savedLang && this.translations[savedLang]) {
+          return savedLang;
+        }
+        
+        // Check browser language
+        const browserLang = navigator.language || navigator.userLanguage;
+        if (browserLang.startsWith('zh')) {
+          return 'zh-CN';
+        }
+        
+        return 'en'; // Default to English
+      }
+      
+      /**
+       * Get translation for a key
+       */
+      t(key) {
+        const lang = this.translations[this.currentLanguage];
+        return lang && lang[key] ? lang[key] : this.translations.en[key] || key;
+      }
+      
+      /**
+       * Switch language
+       */
+      switchLanguage(lang) {
+        if (!this.translations[lang]) {
+          console.warn(`Language ${lang} not supported`);
+          return;
+        }
+        
+        this.currentLanguage = lang;
+        localStorage.setItem('bnbmarket_language', lang);
+        this.updateAllTexts();
+        console.log(`🌍 Language switched to: ${lang}`);
+      }
+      
+      /**
+       * Update all translatable texts in the DOM
+       */
+      updateAllTexts() {
+        // Update navigation
+        const myBetsLink = document.getElementById('myBetsNavLink');
+        if (myBetsLink) myBetsLink.textContent = this.t('myBets');
+        
+        // Update wallet button
+        const walletBtn = document.getElementById('walletBtn');
+        if (walletBtn && !walletAddress) {
+          walletBtn.textContent = this.t('connectWallet');
+        }
+        
+        // Update other elements with data-i18n attribute
+        document.querySelectorAll('[data-i18n]').forEach(element => {
+          const key = element.getAttribute('data-i18n');
+          element.textContent = this.t(key);
+        });
+        
+        // Update placeholders
+        document.querySelectorAll('[data-i18n-placeholder]').forEach(element => {
+          const key = element.getAttribute('data-i18n-placeholder');
+          element.placeholder = this.t(key);
+        });
+        
+        // Refresh current page content
+        if (window.currentMarket) {
+          this.updateMarketTexts();
+        }
+      }
+      
+      /**
+       * Update market-specific texts
+       */
+      updateMarketTexts() {
+        // Update trade panel
+        const buyBtn = document.getElementById('buyBtn');
+        if (buyBtn) buyBtn.textContent = this.t('purchaseShares');
+        
+        const cancelBtn = document.getElementById('cancelBtn');
+        if (cancelBtn) cancelBtn.textContent = this.t('requestRefund');
+        
+        // Update chart tabs
+        const probabilityTab = document.getElementById('probabilityTab');
+        if (probabilityTab) probabilityTab.textContent = this.t('marketConfidenceOverTime');
+        
+        const distributionTab = document.getElementById('distributionTab');
+        if (distributionTab) distributionTab.textContent = this.t('currentMarketDistribution');
+      }
+      
+      /**
+       * Format number with localization
+       */
+      formatNumber(number, decimals = 3) {
+        if (this.currentLanguage === 'zh-CN') {
+          return number.toLocaleString('zh-CN', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+        }
+        return number.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+      }
+      
+      /**
+       * Format currency
+       */
+      formatCurrency(amount, currency = 'BNB') {
+        const formatted = this.formatNumber(amount, 3);
+        return `${formatted} ${currency}`;
+      }
+    }
+
+    // Initialize global i18n manager
+    window.i18n = new I18nManager();
+
     // ========================================
     // LMSR IMPLEMENTATION (Digital Ronin's Mathematical Foundation)
     // ========================================
@@ -828,13 +1224,13 @@
     
     function setWalletBtnDisconnected() {
       const btn = document.getElementById('walletBtn');
-      btn.textContent = 'Connect Wallet';
+      btn.textContent = window.i18n.t('connectWallet');
       btn.classList.remove('connected');
     }
 
     async function connectWallet() {
       if (!window.ethereum) {
-        alert('MetaMask wallet not found! Please install MetaMask.');
+        alert(window.i18n.t('metamaskNotFound'));
         window.open('https://metamask.io/', '_blank');
         return;
       }
@@ -1088,16 +1484,16 @@
     async function handleBuy() {
       const amt = parseFloat(document.getElementById('tradeAmount').value);
       if (!amt || amt<=0) {
-        document.getElementById('tradeMsg').textContent = 'Enter a valid amount.';
+        document.getElementById('tradeMsg').textContent = window.i18n.t('enterValidAmount');
         return;
       }
       if (!walletAddress || !web3) {
-        document.getElementById('tradeMsg').textContent = 'Please connect your wallet first.';
+        document.getElementById('tradeMsg').textContent = window.i18n.t('connectWalletFirst');
         return;
       }
       
       if (!window.ethereum) {
-        document.getElementById('tradeMsg').textContent = 'MetaMask not connected. Please reconnect.';
+        document.getElementById('tradeMsg').textContent = window.i18n.t('metamaskNotConnected');
         return;
       }
       
@@ -1117,11 +1513,11 @@
           sharesReceived = window.lmsrEngine.sharesToBuy(currentShares, selectedOutcome, netPurchaseAmount);
           executionPrice = netPurchaseAmount / sharesReceived; // Average price per share for this purchase
           
-          console.log(`💰 LMSR Trade Execution:
-            Purchase amount: ${amt} BNB
-            Net amount: ${netPurchaseAmount} BNB
-            Shares received: ${sharesReceived.toFixed(3)}
-            Avg execution price: ${executionPrice.toFixed(3)} BNB/share`);
+          console.log(`💰 ${window.i18n.t('tradeExecution')}:
+            ${window.i18n.t('purchaseAmount')}: ${amt} BNB
+            ${window.i18n.t('netAmount')}: ${netPurchaseAmount} BNB
+            ${window.i18n.t('sharesReceived')}: ${sharesReceived.toFixed(3)}
+            ${window.i18n.t('avgExecutionPrice')}: ${executionPrice.toFixed(3)} BNB/share`);
           
         } catch (error) {
           console.warn('LMSR execution calculation failed, using fallback:', error);
@@ -1132,10 +1528,10 @@
         // Fallback calculation
         executionPrice = probData?.prices?.[selectedOutcome] || 0.5;
         sharesReceived = netPurchaseAmount / executionPrice;
-        console.log('💰 Using fallback execution calculation');
+        console.log(`💰 ${window.i18n.t('fallbackExecution')}`);
       }
       
-      document.getElementById('tradeMsg').textContent = 'Processing purchase...';
+      document.getElementById('tradeMsg').textContent = window.i18n.t('processingPurchase');
       try {
         // Convert BNB amount to Wei (ensure it's a string)
         const amountInWei = web3.utils.toWei(amt.toString(), 'ether');
@@ -1173,12 +1569,12 @@
           })
         });
         
-        document.getElementById('tradeMsg').textContent = `Purchase completed! Received ${sharesReceived.toFixed(3)} shares.`;
+        document.getElementById('tradeMsg').textContent = `${window.i18n.t('purchaseCompleted')} ${window.i18n.t('received')} ${sharesReceived.toFixed(3)} ${window.i18n.t('shares').toLowerCase()}.`;
         await updateBalance();
         if (typeof loadMarketPage === 'function') loadMarketPage();
       } catch (e) {
         console.error('Purchase transaction error:', e);
-        document.getElementById('tradeMsg').textContent = 'Purchase failed: ' + (e.message || e);
+        document.getElementById('tradeMsg').textContent = `${window.i18n.t('purchaseFailed')}: ${e.message || e}`;
       }
     }
 
@@ -1499,22 +1895,22 @@
           if (portfolioSummaryContainer) {
             portfolioSummaryContainer.innerHTML = `
               <div style="background:#23263a;padding:16px 20px;border-radius:12px;border:1.5px solid rgba(154,255,0,0.3);min-width:180px;">
-                <div style="color:#9aff00;font-weight:700;font-size:0.9rem;margin-bottom:6px;">Total Invested</div>
-                <div style="color:#e6eef8;font-size:1.4rem;font-weight:800;">${totalInvested.toFixed(3)} BNB</div>
+                <div style="color:#9aff00;font-weight:700;font-size:0.9rem;margin-bottom:6px;">${window.i18n.t('totalInvested')}</div>
+                <div style="color:#e6eef8;font-size:1.4rem;font-weight:800;">${window.i18n.formatCurrency(totalInvested)}</div>
               </div>
               <div style="background:#23263a;padding:16px 20px;border-radius:12px;border:1.5px solid rgba(245,158,11,0.3);min-width:180px;">
-                <div style="color:#f59e0b;font-weight:700;font-size:0.9rem;margin-bottom:6px;">Current Value</div>
-                <div style="color:#e6eef8;font-size:1.4rem;font-weight:800;">${totalCurrentValue.toFixed(3)} BNB</div>
+                <div style="color:#f59e0b;font-weight:700;font-size:0.9rem;margin-bottom:6px;">${window.i18n.t('currentValue')}</div>
+                <div style="color:#e6eef8;font-size:1.4rem;font-weight:800;">${window.i18n.formatCurrency(totalCurrentValue)}</div>
               </div>
               <div style="background:#23263a;padding:16px 20px;border-radius:12px;border:1.5px solid ${totalPnL >= 0 ? 'rgba(16,185,129,0.3)' : 'rgba(255,107,107,0.3)'};min-width:180px;">
-                <div style="color:${pnlColor};font-weight:700;font-size:0.9rem;margin-bottom:6px;">Total P&L</div>
-                <div style="color:${pnlColor};font-size:1.4rem;font-weight:800;">${pnlSign}${totalPnL.toFixed(3)} BNB</div>
+                <div style="color:${pnlColor};font-weight:700;font-size:0.9rem;margin-bottom:6px;">${window.i18n.t('totalPnL')}</div>
+                <div style="color:${pnlColor};font-size:1.4rem;font-weight:800;">${pnlSign}${window.i18n.formatCurrency(totalPnL)}</div>
                 <div style="color:${pnlColor};font-size:0.9rem;font-weight:600;">(${pnlSign}${pnlPercentage}%)</div>
               </div>
               <div style="background:#23263a;padding:16px 20px;border-radius:12px;border:1.5px solid rgba(156,163,175,0.3);min-width:160px;">
-                <div style="color:#9ca3af;font-weight:700;font-size:0.9rem;margin-bottom:6px;">Portfolio Stats</div>
-                <div style="color:#e6eef8;font-size:1.1rem;font-weight:600;">${totalShares.toFixed(0)} Shares</div>
-                <div style="color:#e6eef8;font-size:1.1rem;font-weight:600;">${activeBets} Active Bets</div>
+                <div style="color:#9ca3af;font-weight:700;font-size:0.9rem;margin-bottom:6px;">${window.i18n.t('portfolioStats')}</div>
+                <div style="color:#e6eef8;font-size:1.1rem;font-weight:600;">${totalShares.toFixed(0)} ${window.i18n.t('shares')}</div>
+                <div style="color:#e6eef8;font-size:1.1rem;font-weight:600;">${activeBets} ${window.i18n.t('activeBets')}</div>
               </div>
             `;
           }
@@ -1656,7 +2052,7 @@
       const netBetEl = document.getElementById('netBetAmount');
       
       if (!amt || amt <= 0) {
-        document.getElementById('profitCalc').textContent = `Potential Return: 0.000 BNB`;
+        document.getElementById('profitCalc').textContent = `${window.i18n.t('expectedReturn')}: 0.000 BNB`;
         if (feeBreakdownEl) feeBreakdownEl.style.display = 'none';
         return;
       }
@@ -1695,12 +2091,12 @@
           newProbability = Math.round(newPrices[selectedOutcome] * 100);
           priceImpact = newProbability - probability;
           
-          console.log(`📊 LMSR Calculation:
-            Current shares: [${currentShares.join(', ')}]
-            Current probability: ${probability}%
-            Shares to buy: ${sharesReceived.toFixed(3)}
-            New probability: ${newProbability}%
-            Price impact: +${priceImpact}%`);
+          console.log(`📊 ${window.i18n.t('lmsrCalculation')}:
+            ${window.i18n.t('currentShares')}: [${currentShares.join(', ')}]
+            ${window.i18n.t('currentProbability')}: ${probability}%
+            ${window.i18n.t('sharesToBuy')}: ${sharesReceived.toFixed(3)}
+            ${window.i18n.t('newProbability')}: ${newProbability}%
+            ${window.i18n.t('priceImpact')}: +${priceImpact}%`);
           
         } catch (error) {
           console.warn('LMSR calculation failed, using fallback:', error);
@@ -1714,7 +2110,7 @@
         const fallbackPrice = probData?.prices?.[selectedOutcome] || 0.5;
         sharesReceived = netPurchaseAmount / fallbackPrice;
         probability = probData?.probabilities?.[selectedOutcome] || 50;
-        console.log('📊 Using fallback calculation (no LMSR data available)');
+        console.log(`📊 ${window.i18n.t('fallbackCalculation')}`);
       }
       
       // Calculate returns
@@ -1725,16 +2121,16 @@
       // Price impact warning
       let priceImpactWarning = '';
       if (priceImpact > 5) {
-        priceImpactWarning = `<div style="color:#ff6b6b;font-size:0.9rem;margin-top:4px;background:rgba(255,107,107,0.1);padding:4px 8px;border-radius:4px;">⚠️ Large trade: +${priceImpact}% price impact</div>`;
+        priceImpactWarning = `<div style="color:#ff6b6b;font-size:0.9rem;margin-top:4px;background:rgba(255,107,107,0.1);padding:4px 8px;border-radius:4px;">⚠️ ${window.i18n.t('largeTradeWarning')}: +${priceImpact}% ${window.i18n.t('priceImpact')}</div>`;
       } else if (priceImpact > 0) {
-        priceImpactWarning = `<div style="color:#f59e0b;font-size:0.9rem;margin-top:4px;">📈 Price impact: +${priceImpact}%</div>`;
+        priceImpactWarning = `<div style="color:#f59e0b;font-size:0.9rem;margin-top:4px;">📈 ${window.i18n.t('priceImpact')}: +${priceImpact}%</div>`;
       }
       
       document.getElementById('profitCalc').innerHTML = `
-        <div>Shares: <span style="color:#9aff00;">${sharesReceived.toFixed(3)}</span> @ ${avgCostPerShare.toFixed(3)} BNB/share</div>
-        <div>Current Confidence: <span style="color:#f59e0b;">${probability}%</span> → <span style="color:#10b981;">${newProbability}%</span></div>
-        <div>Max Return: <span style="color:#10b981;">${maxReturn.toFixed(3)} BNB</span> if wins (1% payout fee applies)</div>
-        <div>Expected Return: <span style="color:#f59e0b;">${expectedReturn.toFixed(3)} BNB</span> (${newProbability}% final confidence)</div>
+        <div>${window.i18n.t('shares')}: <span style="color:#9aff00;">${sharesReceived.toFixed(3)}</span> @ ${window.i18n.formatCurrency(avgCostPerShare)}/share</div>
+        <div>${window.i18n.t('currentConfidence')}: <span style="color:#f59e0b;">${probability}%</span> → <span style="color:#10b981;">${newProbability}%</span></div>
+        <div>${window.i18n.t('maxReturn')}: <span style="color:#10b981;">${window.i18n.formatCurrency(maxReturn)}</span> ${window.i18n.t('ifWins')} (1% ${window.i18n.t('payoutFeeApplies')})</div>
+        <div>${window.i18n.t('expectedReturn')}: <span style="color:#f59e0b;">${window.i18n.formatCurrency(expectedReturn)}</span> (${newProbability}% ${window.i18n.t('finalConfidence')})</div>
         ${priceImpactWarning}
       `;
     }
@@ -1744,11 +2140,53 @@
       const btn = document.getElementById('walletBtn');
       btn.onclick = () => {
         if (walletAddress) {
-          if (confirm('Disconnect wallet?')) disconnectWallet();
+          if (confirm(window.i18n.t('disconnectConfirm'))) disconnectWallet();
         } else {
           connectWallet();
         }
       };
+
+      // Language switcher functionality
+      const langBtn = document.getElementById('langBtn');
+      const langDropdown = document.getElementById('langDropdown');
+      
+      // Update language button display
+      function updateLangBtn() {
+        const currentLang = window.i18n.currentLanguage;
+        const flag = currentLang === 'zh-CN' ? '🇨🇳' : '🇺🇸';
+        const code = currentLang === 'zh-CN' ? 'CN' : 'EN';
+        langBtn.textContent = `${flag} ${code}`;
+      }
+      
+      // Toggle language dropdown
+      langBtn.onclick = (e) => {
+        e.stopPropagation();
+        langDropdown.style.display = langDropdown.style.display === 'none' ? 'block' : 'none';
+      };
+      
+      // Hide dropdown when clicking outside
+      document.addEventListener('click', () => {
+        langDropdown.style.display = 'none';
+      });
+      
+      // Language option handlers
+      document.querySelectorAll('.lang-option').forEach(option => {
+        option.onclick = () => {
+          const lang = option.dataset.lang;
+          window.i18n.switchLanguage(lang);
+          updateLangBtn();
+          langDropdown.style.display = 'none';
+          
+          // Update URL parameter
+          const url = new URL(window.location);
+          url.searchParams.set('lang', lang);
+          window.history.replaceState({}, '', url);
+        };
+      });
+      
+      // Initialize language display
+      updateLangBtn();
+      window.i18n.updateAllTexts();
 
       // Navigation logic for My Bets
       const myBetsNavLink = document.getElementById('myBetsNavLink');

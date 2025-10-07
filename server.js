@@ -1,0 +1,969 @@
+// Load environment variables from .env file
+require('dotenv').config();
+
+const express = require('express');
+const cors = require('cors');
+const { Pool } = require('pg');
+const multer = require('multer');
+const cloudinary = require('cloudinary').v2;
+const { Readable } = require('stream');
+
+// Polyfill fetch for Node.js
+const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
+
+const app = express();
+const path = require('path');
+
+// Robust CORS configuration
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:3001',
+  'http://127.0.0.1:3000',
+  'http://127.0.0.1:3001',
+  'https://bnbmarket.cc',
+  'https://www.bnbmarket.cc',
+  'https://api.bnbmarket.cc',
+  'https://bnbmarket-10.onrender.com',
+];
+
+app.use(cors({
+  origin: function(origin, callback) {
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    } else {
+      console.error(`CORS not allowed from this origin: ${origin}`);
+      return callback(new Error('CORS not allowed from this origin: ' + origin), false);
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'ngrok-skip-browser-warning'],
+}));
+
+app.use(express.json({ limit: '10mb' }));
+
+const PORT = process.env.PORT || 3001;
+
+// PostgreSQL configuration
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false,
+  },
+  max: 20,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 2000,
+});
+
+// Test database connection
+pool.on('connect', () => {
+  console.log('Connected to PostgreSQL database');
+});
+
+pool.on('error', (err) => {
+  console.error('PostgreSQL connection error:', err.message);
+});
+
+// Cloudinary configuration
+if (
+  process.env.CLOUDINARY_CLOUD_NAME &&
+  process.env.CLOUDINARY_API_KEY &&
+  process.env.CLOUDINARY_API_SECRET
+) {
+  cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET
+  });
+} else {
+  console.warn('Warning: Cloudinary environment variables are missing. Image upload will not work.');
+}
+
+// Multer configuration
+const storage = multer.memoryStorage();
+const upload = multer({ 
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files allowed'), false);
+    }
+  }
+});
+
+// Initialize database tables
+async function initializeDatabase() {
+  try {
+    console.log('Initializing database tables...');
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS markets (
+        id SERIAL PRIMARY KEY,
+        title VARCHAR(500) NOT NULL,
+        description TEXT,
+        category VARCHAR(50) DEFAULT 'other',
+        creator_address VARCHAR(100) NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        end_date TIMESTAMP,
+        total_volume DECIMAL(18, 9) DEFAULT 0,
+        total_bets INTEGER DEFAULT 0,
+        options JSONB DEFAULT '[]',
+        status VARCHAR(20) DEFAULT 'under_review',
+        creation_signature VARCHAR(150),
+        initial_liquidity DECIMAL(18, 9) DEFAULT 0,
+        resolved BOOLEAN DEFAULT false,
+        resolution_value TEXT,
+        metadata JSONB DEFAULT '{}',
+        market_image TEXT
+      );
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS bets (
+        id SERIAL PRIMARY KEY,
+        market_id INTEGER REFERENCES markets(id) ON DELETE CASCADE,
+        bettor_address VARCHAR(100) NOT NULL,
+        option_id INTEGER NOT NULL,
+        amount DECIMAL(18, 9) NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        transaction_signature VARCHAR(150),
+        status VARCHAR(20) DEFAULT 'confirmed',
+        payout_amount DECIMAL(18, 9) DEFAULT 0,
+        claimed BOOLEAN DEFAULT false,
+        metadata JSONB DEFAULT '{}'
+      );
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS comments (
+        id SERIAL PRIMARY KEY,
+        bet_id INTEGER REFERENCES bets(id) ON DELETE CASCADE,
+        user_address VARCHAR(100) NOT NULL,
+        comment_text TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_markets_creator ON markets(creator_address);
+      CREATE INDEX IF NOT EXISTS idx_markets_category ON markets(category);
+      CREATE INDEX IF NOT EXISTS idx_markets_status ON markets(status);
+      CREATE INDEX IF NOT EXISTS idx_bets_market ON bets(market_id);
+      CREATE INDEX IF NOT EXISTS idx_bets_bettor ON bets(bettor_address);
+      CREATE INDEX IF NOT EXISTS idx_bets_transaction ON bets(transaction_signature);
+      CREATE INDEX IF NOT EXISTS idx_comments_bet_id ON comments(bet_id);
+      CREATE INDEX IF NOT EXISTS idx_comments_user_address ON comments(user_address);
+    `);
+
+    console.log('Database tables initialized successfully');
+  } catch (error) {
+    console.error('Database initialization failed:', error);
+    throw error;
+  }
+}
+
+// Utility function
+async function queryDatabase(query, params = []) {
+  try {
+    const result = await pool.query(query, params);
+    return result;
+  } catch (error) {
+    console.error('Database query error:', error.message);
+    console.error('Query:', query);
+    console.error('Params:', params);
+    throw error;
+  }
+}
+
+// Helper function to properly parse JSONB fields
+function parseJSONBField(field, fieldName = 'field') {
+  if (typeof field === 'string') {
+    try {
+      return JSON.parse(field);
+    } catch (e) {
+      console.error(`Failed to parse ${fieldName}:`, e);
+      return fieldName === 'metadata' ? {} : [];
+    }
+  }
+  return field || (fieldName === 'metadata' ? {} : []);
+}
+
+// API Routes
+
+// Health check
+app.get('/api/health', async (req, res) => {
+  const health = { status: 'ok', timestamp: new Date().toISOString(), diagnostics: {} };
+  try {
+    await pool.query('SELECT 1');
+    health.diagnostics.db = 'ok';
+  } catch (error) {
+    health.diagnostics.db = 'error: ' + error.message;
+    health.status = 'error';
+  }
+  health.diagnostics.env = process.env.NODE_ENV || 'development';
+  health.diagnostics.uptime = process.uptime();
+  res.status(health.status === 'ok' ? 200 : 500).json(health);
+});
+
+// Get platform stats
+app.get('/api/stats', async (req, res) => {
+  try {
+    const [marketsResult, betsResult, volumeResult] = await Promise.all([
+      queryDatabase('SELECT COUNT(*) as count FROM markets WHERE status = $1', ['active']),
+      queryDatabase('SELECT COUNT(*) as count FROM bets WHERE status = $1', ['confirmed']),
+      queryDatabase('SELECT COALESCE(SUM(total_volume), 0) as volume FROM markets')
+    ]);
+
+    res.json({
+      totalMarkets: parseInt(marketsResult.rows[0].count),
+      totalBets: parseInt(betsResult.rows[0].count),
+      totalVolume: parseFloat(volumeResult.rows[0].volume || 0),
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('API Error:', error);
+    res.status(500).json({ 
+      error: 'Failed to fetch stats',
+      details: error.message 
+    });
+  }
+});
+
+// Treasury endpoint
+app.get('/api/treasury', async (req, res) => {
+  try {
+    const volumeResult = await queryDatabase('SELECT COALESCE(SUM(total_volume), 0) as volume FROM markets');
+    const treasury = parseFloat(volumeResult.rows[0].volume || 0);
+    res.json({ treasury });
+  } catch (error) {
+    console.error('Treasury API error:', error);
+    res.status(500).json({ error: 'Failed to fetch treasury', details: error.message });
+  }
+});
+
+// Get all markets
+app.get('/api/markets', async (req, res) => {
+  try {
+    const { category, status, limit = 50, offset = 0 } = req.query;
+    
+    let query = `
+      SELECT 
+        m.*,
+        COUNT(b.id) as bet_count,
+        COALESCE(SUM(b.amount), 0) as volume
+      FROM markets m 
+      LEFT JOIN bets b ON m.id = b.market_id AND b.status = 'confirmed'
+      WHERE 1=1
+    `;
+    
+    const params = [];
+    
+    if (status) {
+      query += ` AND m.status = $${params.length + 1}`;
+      params.push(status);
+    } else {
+      query += ` AND m.status IN ('active', 'under_review')`;
+    }
+    
+    if (category && category !== 'all') {
+      query += ` AND m.category = $${params.length + 1}`;
+      params.push(category);
+    }
+    
+    query += `
+      GROUP BY m.id 
+      ORDER BY m.created_at DESC 
+      LIMIT $${params.length + 1} OFFSET $${params.length + 2}
+    `;
+    
+    params.push(parseInt(limit), parseInt(offset));
+    
+    const result = await queryDatabase(query, params);
+    
+    const markets = result.rows.map(row => {
+      const options = parseJSONBField(row.options, 'options');
+      const metadata = parseJSONBField(row.metadata, 'metadata');
+      
+      // Ensure admin_odds array exists
+      if (!Array.isArray(metadata.admin_odds)) {
+        metadata.admin_odds = [];
+      }
+      
+      return {
+        id: row.id,
+        title: row.title,
+        description: row.description,
+        category: row.category,
+        creator_address: row.creator_address,
+        created_at: row.created_at,
+        updated_at: row.updated_at,
+        end_date: row.end_date,
+        status: row.status,
+        creation_signature: row.creation_signature,
+        initial_liquidity: row.initial_liquidity,
+        resolved: row.resolved,
+        resolution_value: row.resolution_value,
+        total_volume: parseFloat(row.volume || 0),
+        total_bets: parseInt(row.bet_count || 0),
+        options: options,
+        metadata: metadata
+      };
+    });
+
+    res.json({ 
+      markets,
+      count: markets.length,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('API Error:', error);
+    res.status(500).json({ 
+      error: 'Failed to fetch markets',
+      details: error.message 
+    });
+  }
+});
+
+// Get specific market
+app.get('/api/markets/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const marketResult = await queryDatabase(`
+      SELECT 
+        m.*,
+        COUNT(b.id) as bet_count,
+        COALESCE(SUM(b.amount), 0) as volume
+      FROM markets m 
+      LEFT JOIN bets b ON m.id = b.market_id AND b.status = 'confirmed'
+      WHERE m.id = $1
+      GROUP BY m.id
+    `, [id]);
+
+    if (marketResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Market not found' });
+    }
+
+    const row = marketResult.rows[0];
+    const options = parseJSONBField(row.options, 'options');
+    const metadata = parseJSONBField(row.metadata, 'metadata');
+    
+    // Ensure admin_odds array exists
+    if (!Array.isArray(metadata.admin_odds)) {
+      metadata.admin_odds = [];
+    }
+
+    const market = {
+      id: row.id,
+      title: row.title,
+      description: row.description,
+      category: row.category,
+      creator_address: row.creator_address,
+      created_at: row.created_at,
+      updated_at: row.updated_at,
+      end_date: row.end_date,
+      status: row.status,
+      creation_signature: row.creation_signature,
+      initial_liquidity: row.initial_liquidity,
+      resolved: row.resolved,
+      resolution_value: row.resolution_value,
+      total_volume: parseFloat(row.volume || 0),
+      total_bets: parseInt(row.bet_count || 0),
+      options: options,
+      metadata: metadata
+    };
+
+    // Get bets
+    const betsResult = await queryDatabase(`
+      SELECT * FROM bets 
+      WHERE market_id = $1 AND status = 'confirmed'
+      ORDER BY created_at DESC
+    `, [id]);
+
+    market.bets = betsResult.rows;
+
+    console.log(`Market ${id} loaded. Admin odds:`, market.metadata.admin_odds);
+
+    res.json({ market });
+  } catch (error) {
+    console.error('API Error:', error);
+    res.status(500).json({ 
+      error: 'Failed to fetch market',
+      details: error.message 
+    });
+  }
+});
+
+// Create new market
+app.post('/api/markets', async (req, res) => {
+  try {
+    const {
+      title,
+      description = '',
+      category = 'other',
+      creator_address,
+      creatorAddress,
+      endDate,
+      initialLiquidity = 0,
+      options = [],
+      creationSignature,
+      marketImage
+    } = req.body;
+
+    const creatorAddr = creator_address || creatorAddress;
+    const adminAddresses = ['0x742d35Cc6A0de1234567890abcdef1234567890'];
+    const isAdmin = adminAddresses.includes(creatorAddr);
+
+    if (!title || !creatorAddr) {
+      return res.status(400).json({ 
+        error: 'Missing required fields',
+        required: ['title', 'creator_address or creatorAddress']
+      });
+    }
+
+    if (title.length < 10) {
+      return res.status(400).json({ 
+        error: 'Title must be at least 10 characters long' 
+      });
+    }
+
+    // Process options - remove odds from options array
+    let processedOptions = [];
+    if (Array.isArray(options)) {
+      processedOptions = options.map(o => ({
+        name: o.name,
+        image: o.image || null
+      }));
+    } else if (typeof options === 'string') {
+      try {
+        const parsed = JSON.parse(options);
+        processedOptions = parsed.map(o => ({
+          name: o.name,
+          image: o.image || null
+        }));
+      } catch (e) {
+        processedOptions = [
+          { name: 'Yes', image: null },
+          { name: 'No', image: null }
+        ];
+      }
+    } else {
+      processedOptions = [
+        { name: 'Yes', image: null },
+        { name: 'No', image: null }
+      ];
+    }
+
+    // Initialize metadata with empty admin_odds (admin must set them)
+    const metadata = {
+      marketImage: marketImage || null,
+      admin_odds: processedOptions.map(() => null)
+    };
+
+    let marketInsert;
+    if (isAdmin) {
+      const status = req.body.autoApprove ? 'active' : 'under_review';
+      marketInsert = await queryDatabase(`
+        INSERT INTO markets (
+          title, description, category, creator_address, 
+          end_date, initial_liquidity, options, creation_signature, status, metadata
+        ) 
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) 
+        RETURNING *
+      `, [
+        title, 
+        description, 
+        category, 
+        creatorAddr, 
+        endDate ? new Date(endDate) : null,
+        0,
+        JSON.stringify(processedOptions),
+        null,
+        status,
+        JSON.stringify(metadata)
+      ]);
+    } else {
+      const minInitialLiquidity = 0.1;
+      if (!initialLiquidity || isNaN(initialLiquidity) || parseFloat(initialLiquidity) < minInitialLiquidity) {
+        return res.status(400).json({
+          error: `A minimum initial liquidity of ${minInitialLiquidity} BNB is required.`
+        });
+      }
+      if (!creationSignature) {
+        return res.status(400).json({
+          error: 'A creation signature is required.'
+        });
+      }
+      marketInsert = await queryDatabase(`
+        INSERT INTO markets (
+          title, description, category, creator_address, 
+          end_date, initial_liquidity, options, creation_signature, status, metadata
+        ) 
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) 
+        RETURNING *
+      `, [
+        title, 
+        description, 
+        category, 
+        creatorAddr, 
+        endDate ? new Date(endDate) : null,
+        parseFloat(initialLiquidity),
+        JSON.stringify(processedOptions),
+        creationSignature,
+        'under_review',
+        JSON.stringify(metadata)
+      ]);
+    }
+
+    const market = marketInsert.rows[0];
+    market.options = parseJSONBField(market.options, 'options');
+    market.metadata = parseJSONBField(market.metadata, 'metadata');
+    
+    res.status(201).json({ market });
+  } catch (error) {
+    console.error('API Error:', error);
+    res.status(500).json({ 
+      error: 'Failed to create market',
+      details: error.message 
+    });
+  }
+});
+
+// Place a bet
+app.post('/api/bets', async (req, res) => {
+  try {
+    const {
+      marketId,
+      bettorAddress,
+      optionId,
+      amount,
+      transactionSignature
+    } = req.body;
+
+    if (!marketId || !bettorAddress || optionId === undefined || !amount || !transactionSignature) {
+      return res.status(400).json({ 
+        error: 'Missing required fields',
+        required: ['marketId', 'bettorAddress', 'optionId', 'amount', 'transactionSignature']
+      });
+    }
+
+    const marketResult = await queryDatabase(
+      'SELECT * FROM markets WHERE id = $1 AND status = $2', 
+      [marketId, 'active']
+    );
+
+    if (marketResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Market not found or inactive' });
+    }
+
+    const existingBet = await queryDatabase(
+      'SELECT id FROM bets WHERE transaction_signature = $1', 
+      [transactionSignature]
+    );
+
+    if (existingBet.rows.length > 0) {
+      return res.status(409).json({ error: 'Bet already recorded for this transaction' });
+    }
+
+    const result = await queryDatabase(`
+      INSERT INTO bets (market_id, bettor_address, option_id, amount, transaction_signature) 
+      VALUES ($1, $2, $3, $4, $5) 
+      RETURNING *
+    `, [marketId, bettorAddress, parseInt(optionId), parseFloat(amount), transactionSignature]);
+
+    await queryDatabase(`
+      UPDATE markets 
+      SET 
+        total_volume = total_volume + $1,
+        total_bets = total_bets + 1,
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = $2
+    `, [parseFloat(amount), marketId]);
+
+    const bet = result.rows[0];
+    console.log('Bet placed:', bet.id, `${amount} BNB on market ${marketId}`);
+
+    res.status(201).json({ 
+      bet,
+      message: 'Bet placed successfully'
+    });
+  } catch (error) {
+    console.error('API Error:', error);
+    res.status(500).json({ 
+      error: 'Failed to place bet',
+      details: error.message 
+    });
+  }
+});
+
+// Get bets
+app.get('/api/bets', async (req, res) => {
+  try {
+    const { address, market_id, marketId, limit = 50, offset = 0 } = req.query;
+    const actualMarketId = market_id || marketId;
+    
+    if (!address && !actualMarketId) {
+      return res.status(400).json({ error: 'Either address or market_id parameter required' });
+    }
+
+    let query = `
+      SELECT 
+        b.*,
+        m.title as market_title,
+        m.category as market_category,
+        m.status as market_status
+      FROM bets b
+      JOIN markets m ON b.market_id = m.id
+      WHERE b.status = 'confirmed'
+    `;
+    const params = [];
+    
+    if (address) {
+      query += ` AND b.bettor_address = $${params.length + 1}`;
+      params.push(address);
+    }
+    if (actualMarketId) {
+      query += ` AND b.market_id = $${params.length + 1}`;
+      params.push(actualMarketId);
+    }
+    
+    query += ` ORDER BY b.created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
+    params.push(parseInt(limit), parseInt(offset));
+    
+    const result = await queryDatabase(query, params);
+    
+    res.json({ 
+      bets: result.rows,
+      count: result.rows.length,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('API Error:', error);
+    res.status(500).json({ 
+      error: 'Failed to fetch bets',
+      details: error.message 
+    });
+  }
+});
+
+// Admin endpoints
+app.get('/api/admin/pending-markets', async (req, res) => {
+  try {
+    const { address } = req.query;
+    const adminAddresses = ['0x742d35Cc6A0de1234567890abcdef1234567890'];
+    
+    if (!adminAddresses.includes(address)) {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+
+    const result = await queryDatabase(`
+      SELECT 
+        m.*,
+        COUNT(b.id) as bet_count,
+        COALESCE(SUM(b.amount), 0) as volume
+      FROM markets m 
+      LEFT JOIN bets b ON m.id = b.market_id AND b.status = 'confirmed'
+      WHERE m.status = 'under_review'
+      GROUP BY m.id 
+      ORDER BY m.created_at ASC
+    `);
+
+    const markets = result.rows.map(row => {
+      const options = parseJSONBField(row.options, 'options');
+      const metadata = parseJSONBField(row.metadata, 'metadata');
+      
+      return {
+        ...row,
+        total_volume: parseFloat(row.volume || 0),
+        total_bets: parseInt(row.bet_count || 0),
+        options: options,
+        metadata: metadata
+      };
+    });
+
+    console.log(`Admin ${address} requested ${markets.length} pending markets`);
+
+    res.json({ 
+      markets,
+      count: markets.length,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('API Error:', error);
+    res.status(500).json({ 
+      error: 'Failed to fetch pending markets',
+      details: error.message 
+    });
+  }
+});
+
+app.post('/api/admin/approve-market/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { address } = req.query;
+    const adminAddresses = ['0x742d35Cc6A0de1234567890abcdef1234567890'];
+    
+    if (!adminAddresses.includes(address)) {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+
+    const result = await queryDatabase(`
+      UPDATE markets 
+      SET 
+        status = 'active',
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = $1 AND status = 'under_review'
+      RETURNING *
+    `, [id]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Market not found or already processed' });
+    }
+
+    const market = result.rows[0];
+    market.options = parseJSONBField(market.options, 'options');
+    market.metadata = parseJSONBField(market.metadata, 'metadata');
+
+    console.log(`Market ${id} approved by admin ${address}: "${market.title}"`);
+
+    res.json({ 
+      market,
+      message: 'Market approved successfully'
+    });
+  } catch (error) {
+    console.error('API Error:', error);
+    res.status(500).json({ 
+      error: 'Failed to approve market',
+      details: error.message 
+    });
+  }
+});
+
+// Update market odds
+app.post('/api/admin/update-odds/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { address } = req.query;
+    const { odds } = req.body;
+    
+    const adminAddresses = ['0x742d35Cc6A0de1234567890abcdef1234567890'];
+    
+    if (!adminAddresses.includes(address)) {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+
+    if (!Array.isArray(odds) || odds.length === 0) {
+      return res.status(400).json({ error: 'Invalid odds format - must be array' });
+    }
+    
+    const parsedOdds = odds.map(o => {
+      const val = typeof o === 'string' ? parseFloat(o) : o;
+      if (typeof val !== 'number' || isNaN(val) || val < 1.1) {
+        throw new Error(`Invalid odd value: ${o}. Must be >= 1.1`);
+      }
+      return val;
+    });
+
+    console.log('=== UPDATING ODDS ===');
+    console.log('Market ID:', id);
+    console.log('New Odds:', parsedOdds);
+
+    // Get current metadata
+    const currentResult = await queryDatabase('SELECT metadata FROM markets WHERE id = $1', [id]);
+    if (currentResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Market not found' });
+    }
+
+    let currentMetadata = parseJSONBField(currentResult.rows[0].metadata, 'metadata');
+
+    // Update admin_odds
+    currentMetadata.admin_odds = parsedOdds;
+
+    console.log('Updated metadata object:', JSON.stringify(currentMetadata, null, 2));
+
+    // Save to database
+    const result = await queryDatabase(`
+      UPDATE markets 
+      SET 
+        metadata = $2::jsonb,
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = $1
+      RETURNING *
+    `, [id, JSON.stringify(currentMetadata)]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Market not found after update' });
+    }
+
+    const row = result.rows[0];
+    const returnedMetadata = parseJSONBField(row.metadata, 'metadata');
+    const returnedOptions = parseJSONBField(row.options, 'options');
+
+    console.log('✓ Saved to DB - admin_odds:', returnedMetadata.admin_odds);
+
+    res.json({ 
+      market: {
+        ...row,
+        metadata: returnedMetadata,
+        options: returnedOptions
+      },
+      message: 'Odds updated successfully'
+    });
+
+  } catch (error) {
+    console.error('API Error:', error);
+    res.status(500).json({ 
+      error: 'Failed to update odds',
+      details: error.message,
+      stack: error.stack
+    });
+  }
+});
+
+// Image upload
+app.post('/api/upload', upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No image file provided' });
+    }
+
+    console.log('Uploading image:', req.file.originalname, `${(req.file.size / 1024).toFixed(1)}KB`);
+
+    const stream = Readable.from(req.file.buffer);
+
+    const result = await new Promise((resolve, reject) => {
+      const uploadStream = cloudinary.uploader.upload_stream(
+        {
+          resource_type: 'image',
+          folder: 'bnbmarket',
+          transformation: [
+            { width: 400, height: 400, crop: 'fill', gravity: 'face' },
+            { quality: 'auto:good' }
+          ]
+        },
+        (error, result) => {
+          if (error) {
+            console.error('Cloudinary upload error:', error);
+            reject(error);
+          } else {
+            console.log('Image uploaded successfully:', result.secure_url);
+            resolve(result);
+          }
+        }
+      );
+      
+      stream.pipe(uploadStream);
+    });
+
+    res.json({
+      url: result.secure_url,
+      publicId: result.public_id,
+      message: 'Image uploaded successfully'
+    });
+  } catch (error) {
+    console.error('Upload error:', error);
+    res.status(500).json({ 
+      error: 'Failed to upload image',
+      details: error.message 
+    });
+  }
+});
+
+// BSC RPC Proxy (replacing Solana proxy)
+app.post('/api/bsc-proxy', async (req, res) => {
+  try {
+    const { method, params } = req.body;
+    if (!method) return res.status(400).json({ error: 'Missing RPC method' });
+    
+    const rpcUrl = process.env.BSC_RPC_URL || 'https://bsc-dataseed1.binance.org/';
+    const response = await fetch(rpcUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params })
+    });
+    
+    const data = await response.json();
+    res.json(data);
+  } catch (error) {
+    console.error('BSC proxy error:', error);
+    res.status(500).json({ error: 'BSC proxy failed', details: error.message });
+  }
+});
+
+// Error handling middleware
+app.use((error, req, res, next) => {
+  console.error('Unhandled error:', error);
+  res.status(500).json({ 
+    error: 'Internal server error',
+    message: error.message,
+    timestamp: new Date().toISOString()
+  });
+});
+
+// 404 handler for API routes
+app.use('/api/*', (req, res) => {
+  res.status(404).json({ 
+    error: 'Route not found',
+    path: req.originalUrl,
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Serve static frontend
+app.use(express.static(path.join(__dirname, 'public')));
+
+app.get('/favicon.ico', (req, res) => res.status(204).end());
+
+// SPA fallback
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// Start server
+async function startServer() {
+  try {
+    await initializeDatabase();
+    
+    app.listen(PORT, async () => {
+      console.log('BNBmarket Backend Server Started');
+      console.log(`Server running on port ${PORT}`);
+      console.log(`API accessible at http://localhost:${PORT}/api`);
+      console.log(`Database: PostgreSQL (SSL enabled)`);
+      console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+      console.log('Health check: GET /api/health');
+      console.log('Admin endpoints: /api/admin/*');
+      console.log('=====================================');
+      
+      try {
+        await pool.query('SELECT 1');
+        console.log('✓ Database connection OK');
+      } catch (e) {
+        console.error('✗ Database connection ERROR:', e.message);
+      }
+    });
+  } catch (error) {
+    console.error('Failed to start server:', error);
+    process.exit(1);
+  }
+}
+
+// Graceful shutdown
+process.on('SIGTERM', async () => {
+  console.log('Shutting down server...');
+  await pool.end();
+  console.log('Database connections closed');
+  process.exit(0);
+});
+
+process.on('SIGINT', async () => {
+  console.log('Shutting down server...');
+  await pool.end();
+  console.log('Database connections closed');
+  process.exit(0);
+});
+
+startServer();

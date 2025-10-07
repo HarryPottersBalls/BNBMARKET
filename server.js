@@ -96,6 +96,54 @@ function isAdminAddress(address) {
   return adminAddresses.includes(address.toLowerCase()) || adminAddresses.includes(address);
 }
 
+// LMSR (Logarithmic Market Scoring Rule) Functions
+function calculateLMSRProbabilities(bets, numOutcomes, liquidity = 10) {
+  // Calculate total bet amounts per outcome
+  const outcomeTotals = Array(numOutcomes).fill(0);
+  
+  bets.forEach(bet => {
+    if (bet.option_id < numOutcomes) {
+      outcomeTotals[bet.option_id] += parseFloat(bet.amount || 0);
+    }
+  });
+  
+  // Add small initial liquidity to prevent division by zero
+  const initialLiquidity = liquidity / numOutcomes;
+  const adjustedTotals = outcomeTotals.map(total => total + initialLiquidity);
+  
+  // Calculate exponentials (scaled down to prevent overflow)
+  const scaleFactor = Math.max(...adjustedTotals) / 10; // Scale to manageable numbers
+  const expValues = adjustedTotals.map(total => Math.exp(total / Math.max(scaleFactor, 1)));
+  
+  // Calculate probabilities
+  const sumExp = expValues.reduce((sum, exp) => sum + exp, 0);
+  const probabilities = expValues.map(exp => exp / sumExp);
+  
+  return probabilities;
+}
+
+function calculateLMSRPrice(bets, outcomeIndex, numOutcomes, liquidity = 10) {
+  const probabilities = calculateLMSRProbabilities(bets, numOutcomes, liquidity);
+  return probabilities[outcomeIndex] || (1 / numOutcomes); // Default equal probability
+}
+
+function calculateLMSRCost(bets, outcomeIndex, shareAmount, numOutcomes, liquidity = 10) {
+  // Current state
+  const currentProb = calculateLMSRPrice(bets, outcomeIndex, numOutcomes, liquidity);
+  
+  // Create hypothetical bet to see new price
+  const hypotheticalBets = [...bets, {
+    option_id: outcomeIndex,
+    amount: shareAmount
+  }];
+  
+  const newProb = calculateLMSRPrice(hypotheticalBets, outcomeIndex, numOutcomes, liquidity);
+  
+  // Simple cost calculation based on probability change
+  const avgProb = (currentProb + newProb) / 2;
+  return shareAmount / avgProb;
+}
+
 // Cloudinary configuration
 if (
   process.env.CLOUDINARY_CLOUD_NAME &&
@@ -287,38 +335,44 @@ app.get('/api/creation-fee', async (req, res) => {
 // Treasury endpoint
 app.get('/api/treasury', async (req, res) => {
   try {
-    // Calculate treasury: total volume - total payouts + creation fees - platform fees (5%)
+    // Calculate treasury: total volume + platform fees from bids + platform fees from payouts + creation fees - total payouts
     const treasuryResult = await queryDatabase(`
       SELECT 
         COALESCE(SUM(m.total_volume), 0) as total_volume,
         COALESCE(SUM(b.payout_amount), 0) as total_payouts,
+        COALESCE(SUM(b.platform_fee_taken), 0) as bid_fees,
+        COALESCE(SUM(b.payout_fee_taken), 0) as payout_fees,
         COUNT(DISTINCT m.id) as total_markets,
         COUNT(b.id) as total_bets,
         COUNT(DISTINCT CASE WHEN m.creator_address != $1 THEN m.id END) as non_admin_markets
       FROM markets m
-      LEFT JOIN bets b ON m.id = b.market_id AND b.claimed = true
+      LEFT JOIN bets b ON m.id = b.market_id
     `, [process.env.ADMIN_WALLET || '0x7eCa382995Df91C250896c0EC73c9d2893F7800e']);
     
     const result = treasuryResult.rows[0];
     const totalVolume = parseFloat(result.total_volume || 0);
     const totalPayouts = parseFloat(result.total_payouts || 0);
+    const bidFees = parseFloat(result.bid_fees || 0);
+    const payoutFees = parseFloat(result.payout_fees || 0);
     const nonAdminMarkets = parseInt(result.non_admin_markets || 0);
     
     // Creation fees collected
     const marketCreationFee = 0.0007803101839841827;
     const totalCreationFees = nonAdminMarkets * marketCreationFee;
     
-    // Platform fees: 5% of total volume
-    const platformFees = totalVolume * 0.05;
+    // Total platform fees: 1% of bids + 1% of payouts
+    const totalPlatformFees = bidFees + payoutFees;
     
-    // Treasury balance: volume - payouts + creation fees (platform fee is automatically retained)
-    const treasury = totalVolume - totalPayouts + totalCreationFees;
+    // Treasury balance: volume + all platform fees + creation fees - payouts
+    const treasury = totalVolume + totalPlatformFees + totalCreationFees - totalPayouts;
     
     res.json({ 
       treasury,
       total_volume: totalVolume,
       total_payouts: totalPayouts,
-      platform_fees: platformFees,
+      platform_fees: totalPlatformFees,
+      bid_fees: bidFees,
+      payout_fees: payoutFees,
       creation_fees: totalCreationFees,
       creation_fee_per_market: marketCreationFee,
       total_markets: parseInt(result.total_markets),
@@ -484,6 +538,67 @@ app.get('/api/markets/:id', async (req, res) => {
   }
 });
 
+// Get LMSR probabilities for a market
+app.get('/api/markets/:id/probabilities', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Get market
+    const marketResult = await queryDatabase('SELECT * FROM markets WHERE id = $1', [id]);
+    if (marketResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Market not found' });
+    }
+    
+    const market = marketResult.rows[0];
+    
+    // Parse options
+    let options;
+    try {
+      options = typeof market.options === 'string' ? JSON.parse(market.options) : market.options;
+    } catch (e) {
+      return res.status(500).json({ error: 'Invalid market options format' });
+    }
+    
+    // Get bets
+    const betsResult = await queryDatabase(`
+      SELECT option_id, amount FROM bets 
+      WHERE market_id = $1 AND status = 'confirmed'
+    `, [id]);
+    
+    const bets = betsResult.rows;
+    const numOutcomes = options.length;
+    
+    // Calculate LMSR probabilities
+    const probabilities = calculateLMSRProbabilities(bets, numOutcomes);
+    
+    // Calculate volume per outcome
+    const outcomeVolumes = Array(numOutcomes).fill(0);
+    bets.forEach(bet => {
+      if (bet.option_id < numOutcomes) {
+        outcomeVolumes[bet.option_id] += parseFloat(bet.amount || 0);
+      }
+    });
+    
+    const totalVolume = outcomeVolumes.reduce((sum, vol) => sum + vol, 0);
+    
+    res.json({
+      market_id: parseInt(id),
+      probabilities: probabilities.map(prob => Math.round(prob * 10000) / 100), // Convert to percentages
+      prices: probabilities, // Raw probabilities for calculations
+      volumes: outcomeVolumes,
+      total_volume: totalVolume,
+      num_outcomes: numOutcomes
+    });
+    
+  } catch (error) {
+    console.error('API Error:', error);
+    res.status(500).json({ 
+      error: 'Failed to calculate probabilities',
+      details: error.message 
+    });
+  }
+});
+
 // Create new market
 app.post('/api/markets', async (req, res) => {
   try {
@@ -543,10 +658,12 @@ app.post('/api/markets', async (req, res) => {
       ];
     }
 
-    // Initialize metadata with empty admin_odds (admin must set them)
+    // Initialize metadata with LMSR settings (no admin odds needed)
     const metadata = {
       marketImage: marketImage || null,
-      admin_odds: processedOptions.map(() => null)
+      use_lmsr: true, // Enable LMSR for this market
+      liquidity_param: 10, // LMSR liquidity parameter
+      admin_odds: processedOptions.map(() => null) // Keep for backward compatibility
     };
 
     let marketInsert;
@@ -667,20 +784,26 @@ app.post('/api/bets', async (req, res) => {
       return res.status(409).json({ error: 'Bet already recorded for this transaction' });
     }
 
+    // Calculate platform fee (1% of bid amount)
+    const bidAmount = parseFloat(amount);
+    const platformFeeFromBid = bidAmount * 0.01;
+    const netBidAmount = bidAmount - platformFeeFromBid;
+
     const result = await queryDatabase(`
-      INSERT INTO bets (market_id, bettor_address, option_id, amount, transaction_signature) 
-      VALUES ($1, $2, $3, $4, $5) 
+      INSERT INTO bets (market_id, bettor_address, option_id, amount, transaction_signature, platform_fee_taken) 
+      VALUES ($1, $2, $3, $4, $5, $6) 
       RETURNING *
-    `, [marketId, bettorAddress, parseInt(optionId), parseFloat(amount), transactionSignature]);
+    `, [marketId, bettorAddress, parseInt(optionId), netBidAmount, transactionSignature, platformFeeFromBid]);
 
     await queryDatabase(`
       UPDATE markets 
       SET 
         total_volume = total_volume + $1,
         total_bets = total_bets + 1,
+        platform_fees_collected = platform_fees_collected + $2,
         updated_at = CURRENT_TIMESTAMP
-      WHERE id = $2
-    `, [parseFloat(amount), marketId]);
+      WHERE id = $3
+    `, [netBidAmount, platformFeeFromBid, marketId]);
 
     const bet = result.rows[0];
     console.log('Bet placed:', bet.id, `${amount} BNB on market ${marketId}`);
@@ -818,11 +941,18 @@ app.post('/api/claim/:betId', async (req, res) => {
     const totalVolume = parseFloat(bet.total_volume);
     const betAmount = parseFloat(bet.amount);
 
-    // Calculate payout: (user's bet / total winning bets) * total market volume * 0.95 (5% platform fee)
-    let payoutAmount = 0;
+    // Calculate payout: (user's bet / total winning bets) * total market volume
+    let grossPayoutAmount = 0;
+    let payoutFee = 0;
+    let netPayoutAmount = 0;
+    
     if (winningVolume > 0) {
       const userShare = betAmount / winningVolume;
-      payoutAmount = userShare * totalVolume * 0.95; // 5% platform fee
+      grossPayoutAmount = userShare * totalVolume;
+      
+      // Take 1% platform fee on payouts
+      payoutFee = grossPayoutAmount * 0.01;
+      netPayoutAmount = grossPayoutAmount - payoutFee;
     }
 
     // Update bet with payout information
@@ -831,23 +961,33 @@ app.post('/api/claim/:betId', async (req, res) => {
       SET 
         claimed = true,
         payout_amount = $2,
+        payout_fee_taken = $3,
         metadata = jsonb_set(
           COALESCE(metadata, '{}'), 
           '{claim_signature}', 
-          to_jsonb($3::text)
+          to_jsonb($4::text)
         ),
         updated_at = CURRENT_TIMESTAMP
       WHERE id = $1
       RETURNING *
-    `, [betId, payoutAmount, transactionSignature]);
+    `, [betId, netPayoutAmount, payoutFee, transactionSignature]);
+
+    // Update market platform fees collected
+    await queryDatabase(`
+      UPDATE markets 
+      SET platform_fees_collected = platform_fees_collected + $1
+      WHERE id = $2
+    `, [payoutFee, marketId]);
 
     const updatedBet = updateResult.rows[0];
 
-    console.log(`Claim processed: Bet ${betId}, Payout: ${payoutAmount} BNB to ${address}`);
+    console.log(`Claim processed: Bet ${betId}, Gross Payout: ${grossPayoutAmount} BNB, Fee: ${payoutFee} BNB, Net Payout: ${netPayoutAmount} BNB to ${address}`);
 
     res.json({
       bet: updatedBet,
-      payout_amount: payoutAmount,
+      payout_amount: netPayoutAmount,
+      gross_payout: grossPayoutAmount,
+      payout_fee: payoutFee,
       message: 'Winnings claimed successfully',
       transaction_signature: transactionSignature
     });
@@ -900,20 +1040,29 @@ app.get('/api/claimable/:address', async (req, res) => {
       const totalVolume = parseFloat(bet.total_volume);
       const betAmount = parseFloat(bet.amount);
 
-      let payoutAmount = 0;
+      let grossPayoutAmount = 0;
+      let payoutFee = 0;
+      let netPayoutAmount = 0;
+      
       if (winningVolume > 0) {
         const userShare = betAmount / winningVolume;
-        payoutAmount = userShare * totalVolume * 0.95; // 5% platform fee
+        grossPayoutAmount = userShare * totalVolume;
+        
+        // Take 1% platform fee on payouts
+        payoutFee = grossPayoutAmount * 0.01;
+        netPayoutAmount = grossPayoutAmount - payoutFee;
       }
 
-      if (payoutAmount > 0) {
+      if (netPayoutAmount > 0) {
         claimableBets.push({
           ...bet,
           options: parseJSONBField(bet.options, 'options'),
           metadata: parseJSONBField(bet.metadata, 'metadata'),
-          calculated_payout: payoutAmount
+          calculated_payout: netPayoutAmount,
+          gross_payout: grossPayoutAmount,
+          payout_fee: payoutFee
         });
-        totalClaimable += payoutAmount;
+        totalClaimable += netPayoutAmount;
       }
     }
 

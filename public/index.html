@@ -1065,8 +1065,8 @@
      */
     class I18nManager {
       constructor() {
-        this.currentLanguage = this.detectLanguage();
         this.translations = translations;
+        this.currentLanguage = this.detectLanguage();
         console.log(`🌍 I18n initialized with language: ${this.currentLanguage}`);
       }
       

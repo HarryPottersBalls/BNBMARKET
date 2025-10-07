@@ -322,8 +322,11 @@
 
     <!-- My Bets Section -->
     <section id="mybetsSection" style="display:none;max-width:900px;margin:40px auto 0 auto;padding:32px 24px 40px 24px;background:linear-gradient(180deg, rgba(55,65,81,0.4), rgba(31,41,55,0.6));border-radius:18px;box-shadow:0 4px 32px rgba(0,0,0,0.10);">
-      <div class="section-header">
-        <h2 class="section-title">My Betting History</h2>
+      <div class="section-header" style="margin-bottom:24px;">
+        <h2 class="section-title" style="color:#9aff00;font-size:2rem;font-weight:800;margin-bottom:12px;">My Betting Portfolio</h2>
+        <div id="portfolioSummary" style="display:flex;gap:20px;flex-wrap:wrap;margin-bottom:16px;">
+          <!-- Portfolio summary will be populated by JavaScript -->
+        </div>
       </div>
       <div id="betsContainer">
         <div class="empty-state">
@@ -1143,26 +1146,40 @@
 
     async function loadMyBets() {
       const container = document.getElementById('betsContainer');
+      const portfolioSummaryContainer = document.getElementById('portfolioSummary');
+      
       if (!walletAddress) {
         container.innerHTML = `<div class="empty-state"><h3>Connect Wallet</h3><p>Connect your wallet to view your betting history.</p></div>`;
+        if (portfolioSummaryContainer) portfolioSummaryContainer.innerHTML = '';
         return;
       }
+      
       try {
         const res = await fetch(`${API_BASE_URL}/bets?address=${walletAddress.toString()}`);
         const data = await res.json();
         const bets = data.bets || [];
+        
         if (bets.length === 0) {
           container.innerHTML = `<div class="empty-state"><h3>No Bets Yet</h3><p>Your betting history will appear here once you place your first bet.</p></div>`;
+          if (portfolioSummaryContainer) portfolioSummaryContainer.innerHTML = '';
         } else {
+          // Portfolio summary variables
+          let totalInvested = 0;
+          let totalCurrentValue = 0;
+          let totalShares = 0;
+          let activeBets = 0;
+          
           const betCards = await Promise.all(bets.map(async bet => {
             let optionName = '';
             let optionImage = '';
             let allOptions = [];
+            let market = null;
+            
             if (bet.optionId !== undefined && bet.market_id) {
               try {
                 const res = await fetch(`${API_BASE_URL}/markets/${bet.market_id}`);
                 if (res.ok) {
-                  const market = (await res.json()).market;
+                  market = (await res.json()).market;
                   if (market && market.options) {
                     allOptions = market.options;
                     if (market.options[bet.optionId]) {
@@ -1175,6 +1192,77 @@
                 console.warn('Failed to load market option data:', error);
               }
             }
+
+            // Calculate shares and PNL
+            let sharesHtml = '';
+            let pnlHtml = '';
+            
+            const originalAmount = parseFloat(bet.amount || 0);
+            const platformFee = originalAmount * 0.01; // 1% platform fee
+            const netInvestment = originalAmount - platformFee;
+            const executionPrice = bet.execution_odds || 0.5; // Price per share at purchase
+            const sharesOwned = executionPrice > 0 ? netInvestment / executionPrice : 0;
+            
+            // Update portfolio totals
+            totalInvested += netInvestment;
+            totalShares += sharesOwned;
+            if (market && market.status !== 'resolved') activeBets++;
+            
+            if (sharesOwned > 0) {
+              sharesHtml = `<div style="background:rgba(154,255,0,0.08);padding:8px 12px;border-radius:8px;margin:8px 0;">
+                <div style="color:#9aff00;font-weight:700;font-size:1.05rem;">Portfolio Position</div>
+                <div style="color:#e6eef8;margin:4px 0;">
+                  <span style="color:#10b981;font-weight:600;">${sharesOwned.toFixed(1)}</span> shares @ 
+                  <span style="color:#f59e0b;">${executionPrice.toFixed(3)} BNB/share</span>
+                </div>
+                <div style="color:#9ca3af;font-size:0.9rem;">Net Investment: ${netInvestment.toFixed(3)} BNB (after 1% fee)</div>
+              </div>`;
+              
+              // Get current market probabilities for PNL calculation
+              try {
+                const probData = await getLMSRProbabilities(bet.market_id);
+                if (probData && probData.prices && probData.prices[bet.optionId] !== undefined) {
+                  const currentPrice = probData.prices[bet.optionId];
+                  const currentProbability = probData.probabilities[bet.optionId];
+                  const currentValue = sharesOwned * currentPrice;
+                  const unrealizedPnL = currentValue - netInvestment;
+                  const pnlPercentage = ((unrealizedPnL / netInvestment) * 100).toFixed(1);
+                  
+                  // Update total current value
+                  totalCurrentValue += currentValue;
+                  
+                  const pnlColor = unrealizedPnL >= 0 ? '#10b981' : '#ff6b6b';
+                  const pnlSign = unrealizedPnL >= 0 ? '+' : '';
+                  
+                  pnlHtml = `<div style="background:rgba(${unrealizedPnL >= 0 ? '16,185,129' : '255,107,107'},0.08);padding:8px 12px;border-radius:8px;margin:8px 0;">
+                    <div style="color:${pnlColor};font-weight:700;font-size:1.05rem;">
+                      ${unrealizedPnL >= 0 ? '📈' : '📉'} P&L: ${pnlSign}${unrealizedPnL.toFixed(3)} BNB (${pnlSign}${pnlPercentage}%)
+                    </div>
+                    <div style="color:#e6eef8;margin:4px 0;">
+                      Current Value: <span style="color:#f59e0b;">${currentValue.toFixed(3)} BNB</span> 
+                      (${currentPrice.toFixed(3)} BNB/share)
+                    </div>
+                    <div style="color:#9ca3af;font-size:0.9rem;">
+                      Market Confidence: ${currentProbability}% | 
+                      ${market?.status === 'resolved' ? 'Market Resolved' : 'Live Market'}
+                    </div>
+                  </div>`;
+                } else {
+                  // Use fallback current value if no price data
+                  totalCurrentValue += netInvestment; // Conservative estimate
+                  pnlHtml = `<div style="background:rgba(156,163,175,0.08);padding:8px 12px;border-radius:8px;margin:8px 0;">
+                    <div style="color:#9ca3af;font-size:0.95rem;">📊 Current market data loading...</div>
+                  </div>`;
+                }
+              } catch (error) {
+                console.warn('Failed to calculate PNL for bet:', error);
+                totalCurrentValue += netInvestment; // Conservative estimate
+                pnlHtml = `<div style="background:rgba(156,163,175,0.08);padding:8px 12px;border-radius:8px;margin:8px 0;">
+                  <div style="color:#9ca3af;font-size:0.95rem;">⚠️ Unable to calculate current P&L</div>
+                </div>`;
+              }
+            }
+            
             let optionsHtml = '';
             if (allOptions.length > 0) {
               optionsHtml = `<div style="display:flex;gap:12px;margin-top:8px;">` +
@@ -1189,17 +1277,51 @@
             } else if (optionName) {
               optionsHtml = `<span style='display:flex;align-items:center;gap:6px;background:#23263a;padding:4px 10px;border-radius:8px;border:1.5px solid #9aff00;font-weight:700;color:#9aff00;'>${optionImage ? `<img src='${optionImage}' alt='' style='width:22px;height:22px;border-radius:50%;background:#181e29;'>` : ''}<span>${optionName}</span></span>`;
             }
+            
             return `<div class="admin-card" style="background:#23263a;margin-bottom:18px;padding:18px 16px;border-radius:12px;">
               <div class="market-title" style="font-weight:700;font-size:1.1rem;color:#9aff00;">${bet.market_title || 'Unknown Market'}</div>
-              <div style="display:flex;align-items:center;gap:10px;margin:8px 0;"><span style="color: #10b981; font-weight: 700;">Amount: ${parseFloat(bet.amount || 0).toFixed(3)} BNB</span></div>
+              <div style="display:flex;align-items:center;gap:10px;margin:8px 0;"><span style="color: #10b981; font-weight: 700;">Original Purchase: ${originalAmount.toFixed(3)} BNB</span></div>
               ${optionsHtml}
+              ${sharesHtml}
+              ${pnlHtml}
               <div style="color: #9ca3af; font-size: 12px;margin-top:6px;">${new Date(bet.created_at).toLocaleDateString()}${bet.transaction_signature ? ` | <a href="https://bscscan.com/tx/${bet.transaction_signature}" target="_blank" style="color: #10b981;">View TX</a>` : ''}</div>
             </div>`;
           }));
+          
+          // Display portfolio summary
+          const totalPnL = totalCurrentValue - totalInvested;
+          const pnlPercentage = totalInvested > 0 ? ((totalPnL / totalInvested) * 100).toFixed(1) : '0.0';
+          const pnlColor = totalPnL >= 0 ? '#10b981' : '#ff6b6b';
+          const pnlSign = totalPnL >= 0 ? '+' : '';
+          
+          if (portfolioSummaryContainer) {
+            portfolioSummaryContainer.innerHTML = `
+              <div style="background:#23263a;padding:16px 20px;border-radius:12px;border:1.5px solid rgba(154,255,0,0.3);min-width:180px;">
+                <div style="color:#9aff00;font-weight:700;font-size:0.9rem;margin-bottom:6px;">Total Invested</div>
+                <div style="color:#e6eef8;font-size:1.4rem;font-weight:800;">${totalInvested.toFixed(3)} BNB</div>
+              </div>
+              <div style="background:#23263a;padding:16px 20px;border-radius:12px;border:1.5px solid rgba(245,158,11,0.3);min-width:180px;">
+                <div style="color:#f59e0b;font-weight:700;font-size:0.9rem;margin-bottom:6px;">Current Value</div>
+                <div style="color:#e6eef8;font-size:1.4rem;font-weight:800;">${totalCurrentValue.toFixed(3)} BNB</div>
+              </div>
+              <div style="background:#23263a;padding:16px 20px;border-radius:12px;border:1.5px solid ${totalPnL >= 0 ? 'rgba(16,185,129,0.3)' : 'rgba(255,107,107,0.3)'};min-width:180px;">
+                <div style="color:${pnlColor};font-weight:700;font-size:0.9rem;margin-bottom:6px;">Total P&L</div>
+                <div style="color:${pnlColor};font-size:1.4rem;font-weight:800;">${pnlSign}${totalPnL.toFixed(3)} BNB</div>
+                <div style="color:${pnlColor};font-size:0.9rem;font-weight:600;">(${pnlSign}${pnlPercentage}%)</div>
+              </div>
+              <div style="background:#23263a;padding:16px 20px;border-radius:12px;border:1.5px solid rgba(156,163,175,0.3);min-width:160px;">
+                <div style="color:#9ca3af;font-weight:700;font-size:0.9rem;margin-bottom:6px;">Portfolio Stats</div>
+                <div style="color:#e6eef8;font-size:1.1rem;font-weight:600;">${totalShares.toFixed(0)} Shares</div>
+                <div style="color:#e6eef8;font-size:1.1rem;font-weight:600;">${activeBets} Active Bets</div>
+              </div>
+            `;
+          }
+          
           container.innerHTML = betCards.join('');
         }
       } catch (error) {
         container.innerHTML = `<div class="empty-state"><h3>Error Loading Bets</h3><p>${error.message}</p></div>`;
+        if (portfolioSummaryContainer) portfolioSummaryContainer.innerHTML = '';
       }
     }
 
@@ -1380,6 +1502,15 @@
         }
       };
 
+      // Navigation logic for My Bets
+      const myBetsNavLink = document.getElementById('myBetsNavLink');
+      if (myBetsNavLink) {
+        myBetsNavLink.onclick = (e) => {
+          e.preventDefault();
+          showMyBetsSection();
+        };
+      }
+
       // Quick bet amount buttons
       document.querySelectorAll('.quick-btn').forEach(btn => {
         btn.addEventListener('click', function() {
@@ -1408,6 +1539,39 @@
       document.getElementById('tradeAmount').oninput = calculateProfit;
       loadMarketPage();
     });
+
+    // Function to show My Bets section
+    function showMyBetsSection() {
+      // Hide market section
+      const marketSection = document.getElementById('marketSection');
+      if (marketSection) marketSection.style.display = 'none';
+      
+      // Show My Bets section
+      const mybetsSection = document.getElementById('mybetsSection');
+      if (mybetsSection) {
+        mybetsSection.style.display = 'block';
+        loadMyBets(); // Load the user's bets with shares and PNL
+      }
+      
+      // Update navigation highlight
+      document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
+      const myBetsNavLink = document.getElementById('myBetsNavLink');
+      if (myBetsNavLink) myBetsNavLink.classList.add('active');
+    }
+
+    // Function to show market section (for returning from My Bets)
+    function showMarketSection() {
+      // Show market section
+      const marketSection = document.getElementById('marketSection');
+      if (marketSection) marketSection.style.display = 'block';
+      
+      // Hide My Bets section
+      const mybetsSection = document.getElementById('mybetsSection');
+      if (mybetsSection) mybetsSection.style.display = 'none';
+      
+      // Update navigation highlight
+      document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
+    }
 
     // Make functions available globally
     window.calculateProfit = calculateProfit;

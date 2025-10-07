@@ -1571,9 +1571,9 @@
         markets = response.markets || [];
 
         // Initialize markets in the odds engine
-        if (oddsEngine) {
+        if (oddsEngine && oddsEngine.markets) {
           markets.forEach(market => {
-            if (market.options && !oddsEngine.markets.has(market.id)) {
+            if (market.options && market.options.length > 0 && !oddsEngine.markets.has(market.id)) {
               // Initialize with equal odds or use admin odds as starting point
               let initialLiquidity = 100; // Default starting liquidity
 
@@ -1595,10 +1595,16 @@
                 }
               }
 
-              oddsEngine.initializeMarket(market.id, market.options, initialLiquidity);
-              console.log(`Initialized odds engine for market ${market.id}`);
+              try {
+                oddsEngine.initializeMarket(market.id, market.options, initialLiquidity);
+                console.log(`Initialized odds engine for market ${market.id}`);
+              } catch (engineError) {
+                console.error(`Failed to initialize odds engine for market ${market.id}:`, engineError);
+              }
             }
           });
+        } else {
+          console.warn('OddsEngine not available or not properly initialized');
         }
 
         renderMarkets(markets);

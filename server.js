@@ -434,8 +434,11 @@ app.post('/api/markets', async (req, res) => {
     } = req.body;
 
     const creatorAddr = creator_address || creatorAddress;
-    const adminAddresses = ['0x742d35Cc6A0de1234567890abcdef1234567890'];
-    const isAdmin = adminAddresses.includes(creatorAddr);
+    const adminAddresses = [
+      process.env.ADMIN_WALLET || '0x7eCa382995Df91C250896c0EC73c9d2893F7800e',
+      '0x7eCa382995Df91C250896c0EC73c9d2893F7800e' // Fallback admin wallet
+    ];
+    const isAdmin = adminAddresses.includes(creatorAddr.toLowerCase()) || adminAddresses.includes(creatorAddr);
 
     if (!title || !creatorAddr) {
       return res.status(400).json({ 

@@ -120,6 +120,17 @@
       color: #9aff00;
     }
 
+    /* Language Switcher Styles */
+    .lang-btn:hover {
+      background: rgba(255, 255, 255, 0.08) !important;
+      border-color: rgba(154, 255, 0, 0.3) !important;
+    }
+
+    .lang-option:hover {
+      background: rgba(154, 255, 0, 0.1) !important;
+      color: #9aff00 !important;
+    }
+
     .container {
       max-width: 1200px;
       margin: 0 auto;
@@ -600,18 +611,28 @@
         BNBmarket
       </div>
       <nav class="nav">
-  <a href="#" class="nav-link active" data-section="markets">Markets</a>
-  <a href="#" class="nav-link" data-section="mybets" id="myBetsNavLink">My Bets</a>
-  <a href="#" class="nav-link" data-section="claim" id="claimNavLink" style="display:none">Claim Winnings</a>
-        <a href="#" class="nav-link" data-section="treasury">Treasury</a>
-        <a href="#" class="nav-link" data-section="how">How It Works</a>
-        <a href="#" id="adminTab" class="nav-link admin" data-section="admin" style="display:none">Admin Panel</a>
+  <a href="#" class="nav-link active" data-section="markets" data-i18n="markets">Markets</a>
+  <a href="#" class="nav-link" data-section="mybets" id="myBetsNavLink" data-i18n="myBets">My Bets</a>
+  <a href="#" class="nav-link" data-section="claim" id="claimNavLink" style="display:none" data-i18n="claimWinnings">Claim Winnings</a>
+        <a href="#" class="nav-link" data-section="treasury" data-i18n="treasury">Treasury</a>
+        <a href="#" class="nav-link" data-section="how" data-i18n="howItWorks">How It Works</a>
+        <a href="#" id="adminTab" class="nav-link admin" data-section="admin" style="display:none" data-i18n="adminPanel">Admin Panel</a>
       </nav>
       <div class="wallet-group">
+        <!-- Language Switcher -->
+        <div class="language-switcher" style="margin-right:12px;position:relative;display:inline-block;">
+          <button id="langBtn" class="lang-btn" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#e6eef8;padding:8px 12px;border-radius:6px;font-size:13px;cursor:pointer;transition:all 0.2s;">
+            🌍 EN
+          </button>
+          <div id="langDropdown" class="lang-dropdown" style="display:none;position:absolute;top:100%;right:0;background:#23263a;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:4px;margin-top:4px;box-shadow:0 4px 12px rgba(0,0,0,0.3);z-index:1000;min-width:120px;">
+            <button class="lang-option" data-lang="en" style="display:block;width:100%;text-align:left;background:none;border:none;color:#e6eef8;padding:8px 12px;border-radius:4px;cursor:pointer;font-size:13px;transition:background 0.2s;">🇺🇸 English</button>
+            <button class="lang-option" data-lang="zh-CN" style="display:block;width:100%;text-align:left;background:none;border:none;color:#e6eef8;padding:8px 12px;border-radius:4px;cursor:pointer;font-size:13px;transition:background 0.2s;">🇨🇳 中文</button>
+          </div>
+        </div>
         <div class="balance" id="balanceDisplay" style="display:none">
           BNB: <span id="bnbBalance">0.000</span>
         </div>
-        <button id="walletBtn" class="wallet-btn">Connect Wallet</button>
+        <button id="walletBtn" class="wallet-btn" data-i18n="connectWallet">Connect Wallet</button>
       </div>
     </div>
   </header>
@@ -624,10 +645,10 @@
     <!-- Markets Section -->
     <section id="marketsSection" class="section active">
       <div class="section-header">
-        <h2 class="section-title">Prediction Markets</h2>
+        <h2 class="section-title" data-i18n="predictionMarkets">Prediction Markets</h2>
         <div class="controls">
-          <input id="searchInput" class="search-input" placeholder="Search markets..." />
-          <button id="createMarketBtn" class="btn">+ Create Market</button>
+          <input id="searchInput" class="search-input" placeholder="Search markets..." data-i18n-placeholder="searchMarkets" />
+          <button id="createMarketBtn" class="btn" data-i18n="createMarket">+ Create Market</button>
         </div>
       </div>
       <div id="marketsGrid" class="grid"></div>
@@ -636,12 +657,12 @@
     <!-- My Bets Section -->
     <section id="mybetsSection" class="section">
       <div class="section-header">
-        <h2 class="section-title">My Betting History</h2>
+        <h2 class="section-title" data-i18n="myBettingHistory">My Betting History</h2>
       </div>
       <div id="betsContainer">
         <div class="empty-state">
-          <h3>Connect Wallet</h3>
-          <p>Connect your wallet to view your betting history.</p>
+          <h3 data-i18n="connectWallet">Connect Wallet</h3>
+          <p data-i18n="connectWalletToView">Connect your wallet to view your betting history.</p>
         </div>
       </div>
     </section>
@@ -649,13 +670,13 @@
     <!-- Claim Winnings Section -->
     <section id="claimSection" class="section">
       <div class="section-header">
-        <h2 class="section-title">Claim Winnings</h2>
-        <p style="color: #9ca3af; margin-top: 8px;">Claim your winnings from resolved markets</p>
+        <h2 class="section-title" data-i18n="claimWinnings">Claim Winnings</h2>
+        <p style="color: #9ca3af; margin-top: 8px;" data-i18n="claimDescription">Claim your winnings from resolved markets</p>
       </div>
       <div id="claimContainer">
         <div class="empty-state">
-          <h3>Connect Wallet</h3>
-          <p>Connect your wallet to view and claim your winnings.</p>
+          <h3 data-i18n="connectWallet">Connect Wallet</h3>
+          <p data-i18n="connectWalletToClaim">Connect your wallet to view and claim your winnings.</p>
         </div>
       </div>
     </section>
@@ -663,31 +684,31 @@
     <!-- Treasury Section -->
     <section id="treasurySection" class="section">
       <div class="section-header">
-        <h2 class="section-title">Platform Treasury</h2>
+        <h2 class="section-title" data-i18n="platformTreasury">Platform Treasury</h2>
       </div>
       <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));">
         <div class="admin-card">
-          <h3 style="color: #10b981; margin-bottom: 8px;">Treasury Balance</h3>
+          <h3 style="color: #10b981; margin-bottom: 8px;" data-i18n="treasuryBalance">Treasury Balance</h3>
           <div style="font-size: 28px; font-weight: 700; color: #f9fafb;" id="treasuryBalance">0 BNB</div>
         </div>
         <div class="admin-card">
-          <h3 style="color: #10b981; margin-bottom: 8px;">Total Markets</h3>
+          <h3 style="color: #10b981; margin-bottom: 8px;" data-i18n="totalMarkets">Total Markets</h3>
           <div style="font-size: 28px; font-weight: 700; color: #f9fafb;" id="marketCount">0</div>
         </div>
         <div class="admin-card">
-          <h3 style="color: #10b981; margin-bottom: 8px;">Total Volume</h3>
+          <h3 style="color: #10b981; margin-bottom: 8px;" data-i18n="totalVolume">Total Volume</h3>
           <div style="font-size: 28px; font-weight: 700; color: #f9fafb;" id="totalVolume">0 BNB</div>
         </div>
         <div class="admin-card">
-          <h3 style="color: #10b981; margin-bottom: 8px;">Creation Fees</h3>
+          <h3 style="color: #10b981; margin-bottom: 8px;" data-i18n="creationFees">Creation Fees</h3>
           <div style="font-size: 28px; font-weight: 700; color: #f9fafb;" id="creationFees">0 BNB</div>
         </div>
         <div class="admin-card">
-          <h3 style="color: #f59e0b; margin-bottom: 8px;">Bid Fees (1%)</h3>
+          <h3 style="color: #f59e0b; margin-bottom: 8px;" data-i18n="bidFees">Bid Fees (1%)</h3>
           <div style="font-size: 28px; font-weight: 700; color: #f9fafb;" id="bidFees">0 BNB</div>
         </div>
         <div class="admin-card">
-          <h3 style="color: #f59e0b; margin-bottom: 8px;">Payout Fees (1%)</h3>
+          <h3 style="color: #f59e0b; margin-bottom: 8px;" data-i18n="payoutFees">Payout Fees (1%)</h3>
           <div style="font-size: 28px; font-weight: 700; color: #f9fafb;" id="payoutFees">0 BNB</div>
         </div>
       </div>
@@ -696,11 +717,11 @@
     <!-- How It Works Section -->
     <section id="howSection" class="section">
       <div class="section-header">
-        <h2 class="section-title">How BNBmarket Works</h2>
+        <h2 class="section-title" data-i18n="howBNBmarketWorks">How BNBmarket Works</h2>
       </div>
       <div class="admin-card">
-        <h3 style="color: #10b981; margin-bottom: 16px;">Decentralized Prediction Markets</h3>
-        <p style="color: #d1d5db; line-height: 1.6; margin-bottom: 16px;">
+        <h3 style="color: #10b981; margin-bottom: 16px;" data-i18n="decentralizedPredictionMarkets">Decentralized Prediction Markets</h3>
+        <p style="color: #d1d5db; line-height: 1.6; margin-bottom: 16px;" data-i18n="platformDescription">
           BNBmarket is a decentralized prediction market platform built on Binance Smart Chain. Create markets on any topic or trade on existing ones with transparent, blockchain-based odds.
         </p>
         <ul style="color: #9ca3af; line-height: 1.8; padding-left: 20px;">
@@ -737,22 +758,22 @@
   <!-- Create Market Modal -->
   <div id="createMarketModal" class="modal">
     <div class="modal-content">
-      <h3 class="modal-title">Create Prediction Market</h3>
+      <h3 class="modal-title" data-i18n="createPredictionMarket">Create Prediction Market</h3>
       
       <div class="form-group">
-        <label class="form-label">Market Question</label>
-        <input id="marketTitle" class="form-input" placeholder="Type in your bet or your question
+        <label class="form-label" data-i18n="marketQuestion">Market Question</label>
+        <input id="marketTitle" class="form-input" placeholder="Type in your bet or your question" data-i18n-placeholder="typeMarketQuestion" />
       </div>
 
       <div class="form-group">
-        <label class="form-label">Category</label>
+        <label class="form-label" data-i18n="category">Category</label>
         <select id="marketCategory" class="form-select">
-          <option value="other">Other</option>
-          <option value="politics">Politics</option>
-          <option value="crypto">Crypto</option>
-          <option value="sports">Sports</option>
-          <option value="tech">Technology</option>
-          <option value="business">Business</option>
+          <option value="other" data-i18n="other">Other</option>
+          <option value="politics" data-i18n="politics">Politics</option>
+          <option value="crypto" data-i18n="crypto">Crypto</option>
+          <option value="sports" data-i18n="sports">Sports</option>
+          <option value="tech" data-i18n="technology">Technology</option>
+          <option value="business" data-i18n="business">Business</option>
         </select>
       </div>
 
@@ -795,6 +816,354 @@
 
   <script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
   <script>
+    // ========================================
+    // INTERNATIONALIZATION SYSTEM
+    // ========================================
+    
+    /**
+     * Translation data for BNBmarket
+     * Supporting English (en) and Simplified Chinese (zh-CN)
+     */
+    const translations = {
+      en: {
+        // Navigation
+        markets: "Markets",
+        myBets: "My Bets",
+        claimWinnings: "Claim Winnings",
+        treasury: "Treasury",
+        howItWorks: "How It Works",
+        adminPanel: "Admin Panel",
+        connectWallet: "Connect Wallet",
+        disconnect: "Disconnect",
+        
+        // Market Listings
+        category: "Category",
+        created: "Created",
+        totalVolume: "Total Volume",
+        allMarkets: "All Markets",
+        searchMarkets: "Search markets...",
+        noMarketsFound: "No markets found",
+        loadingMarkets: "Loading markets...",
+        errorLoadingMarkets: "Error loading markets",
+        viewMarket: "View Market",
+        createMarket: "+ Create Market",
+        predictionMarkets: "Prediction Markets",
+        
+        // Market Creation
+        createPredictionMarket: "Create Prediction Market",
+        marketQuestion: "Market Question",
+        typeMarketQuestion: "Type in your bet or your question",
+        marketDetails: "Market Details",
+        connectWalletToBet: "Connect your wallet to place bets",
+        betAmount: "Bet Amount (BNB)",
+        
+        // Market Categories
+        sports: "Sports",
+        politics: "Politics",
+        crypto: "Crypto",
+        business: "Business", 
+        entertainment: "Entertainment",
+        technology: "Technology",
+        other: "Other",
+        
+        // Market Status
+        active: "Active",
+        resolved: "Resolved",
+        pending: "Pending",
+        cancelled: "Cancelled",
+        
+        // My Bets
+        connectWalletToBets: "Connect Wallet",
+        connectWalletToView: "Connect your wallet to view your betting history.",
+        connectWalletToClaim: "Connect your wallet to view and claim your winnings.",
+        myBettingHistory: "My Betting History",
+        noBetsYet: "No Bets Yet",
+        noBetsDescription: "Your betting history will appear here once you place your first bet.",
+        amount: "Amount",
+        outcome: "Outcome",
+        status: "Status",
+        payout: "Payout",
+        
+        // Treasury
+        treasuryOverview: "Treasury Overview",
+        platformTreasury: "Platform Treasury",
+        treasuryBalance: "Treasury Balance",
+        totalBalance: "Total Balance",
+        totalVolume: "Total Volume",
+        totalMarkets: "Total Markets",
+        creationFees: "Creation Fees",
+        bidFees: "Bid Fees (1%)",
+        payoutFees: "Payout Fees (1%)",
+        activeBets: "Active Bets",
+        platformFees: "Platform Fees",
+        
+        // How It Works
+        howItWorksTitle: "How BNBmarket Works",
+        howBNBmarketWorks: "How BNBmarket Works",
+        decentralizedPredictionMarkets: "Decentralized Prediction Markets",
+        platformDescription: "BNBmarket is a decentralized prediction market platform built on Binance Smart Chain. Create markets on any topic or trade on existing ones with transparent, blockchain-based odds.",
+        claimDescription: "Claim your winnings from resolved markets",
+        step1Title: "Connect Your Wallet",
+        step1Desc: "Connect your MetaMask wallet to start trading prediction markets on BSC.",
+        step2Title: "Choose a Market",
+        step2Desc: "Browse active prediction markets and select outcomes you believe will occur.",
+        step3Title: "Purchase Shares",
+        step3Desc: "Buy shares in outcomes using BNB. Share prices reflect market confidence.",
+        step4Title: "Earn Rewards",
+        step4Desc: "Collect winnings when your predictions are correct. Winners split the total pool.",
+        
+        // Wallet & Connection
+        walletNotFound: "MetaMask wallet not found! Please install MetaMask.",
+        connectingWallet: "Connecting wallet...",
+        walletConnected: "Wallet connected successfully",
+        disconnectConfirm: "Disconnect wallet?",
+        switchNetwork: "Please switch to BSC network",
+        
+        // General
+        loading: "Loading...",
+        error: "Error",
+        success: "Success",
+        cancel: "Cancel",
+        confirm: "Confirm",
+        close: "Close",
+        back: "Back",
+        next: "Next",
+        yes: "Yes",
+        no: "No",
+        buy: "Buy",
+        sell: "Sell",
+        submit: "Submit",
+        
+        // Time
+        just_now: "Just now",
+        minutes_ago: "minutes ago",
+        hours_ago: "hours ago",
+        days_ago: "days ago",
+        weeks_ago: "weeks ago"
+      },
+      
+      'zh-CN': {
+        // Navigation
+        markets: "市场",
+        myBets: "我的投注",
+        claimWinnings: "领取奖励",
+        treasury: "资金库",
+        howItWorks: "工作原理",
+        adminPanel: "管理面板",
+        connectWallet: "连接钱包",
+        disconnect: "断开连接",
+        
+        // Market Listings
+        category: "类别",
+        created: "创建时间",
+        totalVolume: "总交易量",
+        allMarkets: "所有市场",
+        searchMarkets: "搜索市场...",
+        noMarketsFound: "未找到市场",
+        loadingMarkets: "加载市场中...",
+        errorLoadingMarkets: "加载市场错误",
+        viewMarket: "查看市场",
+        createMarket: "+ 创建市场",
+        predictionMarkets: "预测市场",
+        
+        // Market Creation
+        createPredictionMarket: "创建预测市场",
+        marketQuestion: "市场问题",
+        typeMarketQuestion: "输入您的投注或问题",
+        marketDetails: "市场详情",
+        connectWalletToBet: "连接您的钱包以下注",
+        betAmount: "投注金额 (BNB)",
+        
+        // Market Categories
+        sports: "体育",
+        politics: "政治",
+        crypto: "加密货币",
+        business: "商业",
+        entertainment: "娱乐",
+        technology: "科技",
+        other: "其他",
+        
+        // Market Status
+        active: "活跃",
+        resolved: "已结算",
+        pending: "待定",
+        cancelled: "已取消",
+        
+        // My Bets
+        connectWalletToBets: "连接钱包",
+        connectWalletToView: "连接您的钱包以查看投注历史。",
+        connectWalletToClaim: "连接您的钱包以查看并领取您的奖金。",
+        myBettingHistory: "我的投注历史",
+        noBetsYet: "暂无投注",
+        noBetsDescription: "您的投注历史将在您下第一笔投注后显示在这里。",
+        amount: "金额",
+        outcome: "结果",
+        status: "状态",
+        payout: "支付",
+        
+        // Treasury
+        treasuryOverview: "资金库概览",
+        platformTreasury: "平台金库",
+        treasuryBalance: "金库余额",
+        totalBalance: "总余额",
+        totalVolume: "总交易量",
+        totalMarkets: "总市场数",
+        creationFees: "创建费用",
+        bidFees: "投注费用 (1%)",
+        payoutFees: "提现费用 (1%)",
+        activeBets: "活跃投注",
+        platformFees: "平台费用",
+        
+        // How It Works
+        howItWorksTitle: "BNBmarket 工作原理",
+        howBNBmarketWorks: "BNB市场如何运作",
+        decentralizedPredictionMarkets: "去中心化预测市场",
+        platformDescription: "BNB市场是基于币安智能链构建的去中心化预测市场平台。您可以创建任何主题的市场，或在现有市场上进行交易，享受透明的区块链赔率。",
+        claimDescription: "从已结算的市场中领取您的奖金",
+        step1Title: "连接您的钱包",
+        step1Desc: "连接您的MetaMask钱包，开始在BSC上交易预测市场。",
+        step2Title: "选择市场",
+        step2Desc: "浏览活跃的预测市场，选择您认为会发生的结果。",
+        step3Title: "购买份额",
+        step3Desc: "使用BNB购买结果份额。份额价格反映市场信心。",
+        step4Title: "赚取奖励",
+        step4Desc: "当您的预测正确时收集奖金。获胜者平分总奖池。",
+        
+        // Wallet & Connection
+        walletNotFound: "未找到MetaMask钱包！请安装MetaMask。",
+        connectingWallet: "连接钱包中...",
+        walletConnected: "钱包连接成功",
+        disconnectConfirm: "断开钱包连接？",
+        switchNetwork: "请切换到BSC网络",
+        
+        // General
+        loading: "加载中...",
+        error: "错误",
+        success: "成功",
+        cancel: "取消",
+        confirm: "确认",
+        close: "关闭",
+        back: "返回",
+        next: "下一步",
+        yes: "是",
+        no: "否",
+        buy: "买入",
+        sell: "卖出",
+        submit: "提交",
+        
+        // Time
+        just_now: "刚刚",
+        minutes_ago: "分钟前",
+        hours_ago: "小时前",
+        days_ago: "天前",
+        weeks_ago: "周前"
+      }
+    };
+
+    /**
+     * Internationalization Manager
+     */
+    class I18nManager {
+      constructor() {
+        this.currentLanguage = this.detectLanguage();
+        this.translations = translations;
+        console.log(`🌍 I18n initialized with language: ${this.currentLanguage}`);
+      }
+      
+      /**
+       * Auto-detect user's preferred language
+       */
+      detectLanguage() {
+        // Check URL parameter first
+        const urlParams = new URLSearchParams(window.location.search);
+        const langParam = urlParams.get('lang');
+        if (langParam && this.translations[langParam]) {
+          return langParam;
+        }
+        
+        // Check localStorage
+        const savedLang = localStorage.getItem('bnbmarket_language');
+        if (savedLang && this.translations[savedLang]) {
+          return savedLang;
+        }
+        
+        // Check browser language
+        const browserLang = navigator.language || navigator.userLanguage;
+        if (browserLang.startsWith('zh')) {
+          return 'zh-CN';
+        }
+        
+        return 'en'; // Default to English
+      }
+      
+      /**
+       * Get translation for a key
+       */
+      t(key) {
+        const lang = this.translations[this.currentLanguage];
+        return lang && lang[key] ? lang[key] : this.translations.en[key] || key;
+      }
+      
+      /**
+       * Switch language
+       */
+      switchLanguage(lang) {
+        if (!this.translations[lang]) {
+          console.warn(`Language ${lang} not supported`);
+          return;
+        }
+        
+        this.currentLanguage = lang;
+        localStorage.setItem('bnbmarket_language', lang);
+        this.updateAllTexts();
+        console.log(`🌍 Language switched to: ${lang}`);
+      }
+      
+      /**
+       * Update all translatable texts in the DOM
+       */
+      updateAllTexts() {
+        // Update elements with data-i18n attribute
+        document.querySelectorAll('[data-i18n]').forEach(element => {
+          const key = element.getAttribute('data-i18n');
+          element.textContent = this.t(key);
+        });
+        
+        // Update placeholders
+        document.querySelectorAll('[data-i18n-placeholder]').forEach(element => {
+          const key = element.getAttribute('data-i18n-placeholder');
+          element.placeholder = this.t(key);
+        });
+        
+        // Update wallet button if not connected
+        if (!window.walletAddress) {
+          const walletBtn = document.getElementById('walletBtn');
+          if (walletBtn) walletBtn.textContent = this.t('connectWallet');
+        }
+      }
+      
+      /**
+       * Format number with localization
+       */
+      formatNumber(number, decimals = 3) {
+        if (this.currentLanguage === 'zh-CN') {
+          return number.toLocaleString('zh-CN', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+        }
+        return number.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+      }
+      
+      /**
+       * Format currency
+       */
+      formatCurrency(amount, currency = 'BNB') {
+        const formatted = this.formatNumber(amount, 3);
+        return `${formatted} ${currency}`;
+      }
+    }
+
+    // Initialize global i18n manager
+    window.i18n = new I18nManager();
+
     // Wait for Web3 library to load
 
 
@@ -2410,6 +2779,53 @@ function showMarketDetail(marketId) {
     document.addEventListener('DOMContentLoaded', async () => {
       console.log('DOM Loaded - Page ready');
 
+      // Initialize language switcher
+      const langBtn = document.getElementById('langBtn');
+      const langDropdown = document.getElementById('langDropdown');
+      
+      // Update language button display
+      function updateLangBtn() {
+        const currentLang = window.i18n.currentLanguage;
+        const flag = currentLang === 'zh-CN' ? '🇨🇳' : '🇺🇸';
+        const code = currentLang === 'zh-CN' ? 'CN' : 'EN';
+        langBtn.textContent = `${flag} ${code}`;
+      }
+      
+      // Toggle language dropdown
+      langBtn.onclick = (e) => {
+        e.stopPropagation();
+        langDropdown.style.display = langDropdown.style.display === 'none' ? 'block' : 'none';
+      };
+      
+      // Hide dropdown when clicking outside
+      document.addEventListener('click', () => {
+        langDropdown.style.display = 'none';
+      });
+      
+      // Language option handlers
+      document.querySelectorAll('.lang-option').forEach(option => {
+        option.onclick = () => {
+          const lang = option.dataset.lang;
+          window.i18n.switchLanguage(lang);
+          updateLangBtn();
+          langDropdown.style.display = 'none';
+          
+          // Update URL parameter
+          const url = new URL(window.location);
+          url.searchParams.set('lang', lang);
+          window.history.replaceState({}, '', url);
+          
+          // Refresh market listings with new language
+          if (typeof loadMarkets === 'function') {
+            loadMarkets();
+          }
+        };
+      });
+      
+      // Initialize language display
+      updateLangBtn();
+      window.i18n.updateAllTexts();
+
       // Initialize Reactive Odds Engine
       if (typeof OddsEngine !== 'undefined') {
         window.oddsEngine = new OddsEngine();
@@ -2602,7 +3018,7 @@ function showMarketDetail(marketId) {
   <!-- Market Detail Modal -->
 <div id="marketDetailModal" class="modal">
   <div class="modal-content">
-    <h3 id="marketDetailTitle" class="modal-title">Market Details</h3>
+    <h3 id="marketDetailTitle" class="modal-title" data-i18n="marketDetails">Market Details</h3>
     <div id="marketDetailContent">
       <!-- Market details will be populated by JavaScript -->
     </div>
@@ -2612,12 +3028,12 @@ function showMarketDetail(marketId) {
     </div>
     
     <div class="betting-form">
-      <div id="bettingWarning" class="betting-warning" style="display: none;">
+      <div id="bettingWarning" class="betting-warning" style="display: none;" data-i18n="connectWalletToBet">
         Connect your wallet to place bets
       </div>
       
       <div class="form-group">
-        <label class="form-label" for="betAmount">Bet Amount (BNB)</label>
+        <label class="form-label" for="betAmount" data-i18n="betAmount">Bet Amount (BNB)</label>
         <input type="number" id="betAmount" class="form-input" min="0" step="0.001" placeholder="0.000">
       </div>
       

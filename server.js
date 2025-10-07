@@ -14,16 +14,21 @@ const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch
 const app = express();
 const path = require('path');
 
-// Robust CORS configuration
+// Production CORS configuration
 const allowedOrigins = [
-  'http://localhost:3000',
-  'http://localhost:3001',
-  'http://127.0.0.1:3000',
-  'http://127.0.0.1:3001',
+  // Production domains
   'https://bnbmarket.cc',
   'https://www.bnbmarket.cc',
   'https://api.bnbmarket.cc',
-  'https://bnbmarket-10.onrender.com',
+  'https://bnbmarket.onrender.com',
+  // Add your actual Render domain here when you get it
+  // Local development (only if NODE_ENV is not production)
+  ...(process.env.NODE_ENV !== 'production' ? [
+    'http://localhost:3000',
+    'http://localhost:3001',
+    'http://127.0.0.1:3000',
+    'http://127.0.0.1:3001',
+  ] : []),
 ];
 
 app.use(cors({
@@ -41,19 +46,33 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'ngrok-skip-browser-warning'],
 }));
 
+// Production security headers
+if (process.env.NODE_ENV === 'production') {
+  app.use((req, res, next) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('X-XSS-Protection', '1; mode=block');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
+    next();
+  });
+}
+
 app.use(express.json({ limit: '10mb' }));
 
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 10000;
 
-// PostgreSQL configuration
+// PostgreSQL configuration with production-ready SSL
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: {
+  ssl: process.env.NODE_ENV === 'production' ? {
     rejectUnauthorized: false,
-  },
-  max: 20,
+    sslmode: 'require'
+  } : false,
+  max: process.env.NODE_ENV === 'production' ? 10 : 20, // Lower connection pool for production
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 2000,
+  connectionTimeoutMillis: 10000, // Increased timeout for production
+  query_timeout: 30000,
 });
 
 // Test database connection

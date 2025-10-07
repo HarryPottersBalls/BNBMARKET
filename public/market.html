@@ -336,15 +336,31 @@
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
-  <script src="lmsr-charts.js"></script>
+  <script src="odds-engine.js" onerror="console.warn('Failed to load odds-engine.js')"></script>
+  <script src="lmsr-charts.js" onerror="console.warn('Failed to load lmsr-charts.js - using fallback')"></script>
   <script>
+    // Fallback LMSRChartEngine if external script fails to load
+    if (typeof LMSRChartEngine === 'undefined') {
+      console.warn('LMSRChartEngine not available, using fallback');
+      class LMSRChartEngine {
+        constructor() {
+          console.log('Using fallback LMSRChartEngine');
+        }
+        createProbabilityChart() {
+          console.warn('Chart functionality disabled - lmsr-charts.js not loaded');
+          return null;
+        }
+      }
+    }
+
     // Initialize Web3 and BSC connection
     let web3 = null;
     let wallet = null;
     let bnbBalance = 0;
+    let isAdmin = false;
     
     // BSC Configuration
-    const TREASURY_WALLET = '0x742d35Cc6A0de1234567890abcdef1234567890';
+    const TREASURY_WALLET = '0x7eCa382995Df91C250896c0EC73c9d2893F7800e';
     const BSC_MAINNET_CONFIG = {
       chainId: '0x38',
       chainName: 'Binance Smart Chain',
@@ -436,6 +452,34 @@
     window.currentOrderBook = currentOrderBook;
     window.currentMarket = currentMarket;
     window.selectedOutcome = selectedOutcome;
+
+    // Web3 initialization
+    async function initializeWeb3() {
+      try {
+        if (!window.ethereum) {
+          console.log('MetaMask not detected');
+          return false;
+        }
+        
+        web3 = new Web3(window.ethereum);
+        
+        // Check if wallet was previously connected
+        const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+        if (accounts.length > 0) {
+          walletAddress = accounts[0];
+          // Check if this wallet is admin
+          const adminWallet = '0x7eCa382995Df91C250896c0EC73c9d2893F7800e';
+          isAdmin = walletAddress.toLowerCase() === adminWallet.toLowerCase();
+          await updateBalance();
+        }
+        
+        console.log('Successfully initialized Web3 connection');
+        return true;
+      } catch (error) {
+        console.error('Failed to initialize Web3:', error);
+        return false;
+      }
+    }
 
     // Wallet functions
     async function updateBalance() {
@@ -1134,7 +1178,8 @@
       const probData = await getLMSRProbabilities(currentMarket.id);
       let displayOdds = 2.0; // Fallback
       
-      if (probData && probData.prices && probData.prices[selectedOutcome]) {
+      // Safety check for selectedOutcome and probData
+      if (probData && probData.prices && selectedOutcome !== null && selectedOutcome !== undefined && probData.prices[selectedOutcome]) {
         const probability = probData.prices[selectedOutcome];
         const odds = probabilityToOdds(probability);
         displayOdds = odds && odds >= 1.1 ? odds : 2.0;

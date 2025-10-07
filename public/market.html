@@ -292,10 +292,10 @@
             </div>
             <div id="profitCalc" style="color:#10b981;font-size:1.08rem;margin-bottom:14px;font-weight:600;background:rgba(16,185,129,0.07);padding:8px 10px;border-radius:8px;"></div>
             <div style="display:flex;gap:10px;margin-bottom:10px;align-items:flex-start;">
-              <button id="buyBtn" class="btn" style="flex:1;width:100%;font-size:1.08rem;padding:13px 0;box-shadow:0 2px 8px rgba(154,255,0,0.07);">Buy</button>
+              <button id="buyBtn" class="btn" style="flex:1;width:100%;font-size:1.08rem;padding:13px 0;box-shadow:0 2px 8px rgba(154,255,0,0.07);">Purchase Shares</button>
             </div>
             <div style="display:flex;gap:10px;margin-bottom:10px;align-items:flex-start;">
-              <button id="cancelBtn" class="btn" style="flex:1;width:100%;background:#ef4444;color:#fff;font-size:1.08rem;padding:13px 0;box-shadow:0 2px 8px rgba(239,68,68,0.13);border:1.5px solid #ef4444;">Cancel Purchase</button>
+              <button id="cancelBtn" class="btn" style="flex:1;width:100%;background:#ef4444;color:#fff;font-size:1.08rem;padding:13px 0;box-shadow:0 2px 8px rgba(239,68,68,0.13);border:1.5px solid #ef4444;">Request Refund</button>
             </div>
             <hr style="border:none;border-top:1px solid #23263a;margin:12px 0 10px 0;">
             <div id="tradeMsg" style="margin-top:0;color:#10b981;font-size:1.05rem;min-height:22px;"></div>
@@ -561,23 +561,15 @@
       return 1 / probability;
     }
 
-    // Helper function to get odds from LMSR probabilities (replaces admin odds)
-    async function getOddsForOption(market, optionIndex) {
+    // Helper function to get LMSR price per share for an option
+    async function getLMSRPrice(market, optionIndex) {
       const probData = await getLMSRProbabilities(market.id);
       if (!probData || !probData.prices || !probData.prices[optionIndex]) {
-        console.warn(`LMSR probabilities not available for option ${optionIndex}`);
-        return null;
+        console.warn(`LMSR prices not available for option ${optionIndex}`);
+        return 0.5; // Default fallback price
       }
       
-      const probability = probData.prices[optionIndex];
-      const odds = probabilityToOdds(probability);
-      
-      if (!odds || odds < 1.1) {
-        console.warn(`Invalid odds calculated for option ${optionIndex}:`, odds);
-        return null;
-      }
-      
-      return odds;
+      return probData.prices[optionIndex];
     }
 
     // Globals
@@ -754,10 +746,11 @@
         
         if (probData && probData.probabilities && probData.probabilities[i] !== undefined) {
           const probability = probData.probabilities[i];
-          const odds = probabilityToOdds(probData.prices[i]);
-          probabilityDisplay = `<div style='color:#10b981;font-size:0.9em;font-weight:600;margin-top:2px;'>${probability}%</div>`;
-          if (odds && odds >= 1.1) {
-            oddsDisplay = `<div style='color:#f59e0b;font-size:0.85em;font-weight:500;'>x${odds.toFixed(2)}</div>`;
+          probabilityDisplay = `<div style='color:#10b981;font-size:0.9em;font-weight:600;margin-top:2px;'>${probability}% probability</div>`;
+          // Show price per share instead of odds
+          if (probData.prices && probData.prices[i]) {
+            const pricePerShare = probData.prices[i];
+            oddsDisplay = `<div style='color:#f59e0b;font-size:0.85em;font-weight:500;'>${pricePerShare.toFixed(3)} BNB/share</div>`;
           }
         } else {
           probabilityDisplay = `<div style='color:#9ca3af;font-size:0.85em;font-weight:600;margin-top:2px;'>Loading...</div>`;
@@ -811,16 +804,24 @@
       async function rowHtml(order) {
         const barW = Math.max(8, 180*(parseFloat(order.amount)/maxShares));
         
-        // Get current LMSR probabilities for payout calculation
+        // Get current LMSR probabilities for potential return calculation
         const probData = await getLMSRProbabilities(market.id);
-        let displayOdds = 2.0; // Fallback
+        let sharesOwned = 0;
+        let potentialReturn = 0;
         
         if (probData && probData.prices && probData.prices[selectedOutcome]) {
-          const probability = probData.prices[selectedOutcome];
-          displayOdds = probabilityToOdds(probability) || 2.0;
+          // Calculate shares owned: amount / price per share at time of purchase
+          const executionPrice = order.execution_odds || probData.prices[selectedOutcome];
+          sharesOwned = parseFloat(order.amount) / executionPrice;
+          
+          // Potential return is shares * probability of winning (max 1 BNB per share if wins)
+          const winProbability = probData.probabilities[selectedOutcome] / 100;
+          potentialReturn = sharesOwned * winProbability;
+        } else {
+          // Fallback calculation
+          potentialReturn = parseFloat(order.amount) * 1.5;
         }
         
-        let payout = parseFloat(order.amount) * displayOdds;
         let buyerCell = '-';
         if (order.transaction_signature) {
           const shortTx = order.transaction_signature.slice(0,4) + '...' + order.transaction_signature.slice(-4);
@@ -832,7 +833,7 @@
             <span style="position:relative;z-index:2;font-weight:600;color:#10b981;">${parseFloat(order.amount).toFixed(3)}</span>
           </td>
           <td style="position:relative;z-index:2;">${buyerCell}</td>
-          <td style="position:relative;z-index:2;color:#f3f4f6;">${payout.toFixed(3)} BNB</td>
+          <td style="position:relative;z-index:2;color:#f3f4f6;">${sharesOwned.toFixed(1)} shares (${potentialReturn.toFixed(3)} BNB)</td>
         </tr>`;
       }
       
@@ -841,7 +842,7 @@
         <div>${tabs}</div>
       </div>`;
       html += `<table style="width:100%;border-radius:10px;overflow:hidden;font-size:1rem;">
-        <thead><tr style="background:#23263a;color:#10b981;font-weight:700;"><th style="padding:8px;">Amount (BNB)</th><th>Buyer</th><th>Potential Payout</th></tr></thead>
+        <thead><tr style="background:#23263a;color:#10b981;font-weight:700;"><th style="padding:8px;">Amount (BNB)</th><th>Buyer</th><th>Shares & Potential Return</th></tr></thead>
         <tbody id="orderBookRows">`;
       
       html += '</tbody></table>';
@@ -867,38 +868,28 @@
       
       // Get LMSR probabilities
       const probData = await getLMSRProbabilities(currentMarket.id);
-      let displayOdds = 2.0; // Fallback
-      let probabilityText = 'Loading...';
+      let probabilityText = 'Loading probability...';
+      let pricePerShare = 0.5; // Default fallback price
       
       if (probData && probData.prices && probData.prices[selectedOutcome]) {
-        const probability = probData.prices[selectedOutcome];
-        const odds = probabilityToOdds(probability);
-        displayOdds = odds && odds >= 1.1 ? odds : 2.0;
-        probabilityText = `${probData.probabilities[selectedOutcome]}% chance`;
+        const probability = probData.probabilities[selectedOutcome];
+        pricePerShare = probData.prices[selectedOutcome];
+        probabilityText = `${probability}% probability`;
       }
       
-      let oddsDisplay = '';
+      // Show price per share instead of odds
+      let priceDisplay = '';
       if (probData && probData.prices && probData.prices[selectedOutcome]) {
-        oddsDisplay = `<span style='color:#f59e0b;font-size:1.08em;font-weight:700;margin-left:8px;'>x${displayOdds.toFixed(2)}</span>`;
+        priceDisplay = `<span style='color:#f59e0b;font-size:1.08em;font-weight:700;margin-left:8px;'>${pricePerShare.toFixed(3)} BNB/share</span>`;
       } else {
-        oddsDisplay = `<span style='color:#9ca3af;font-size:0.95em;font-weight:700;margin-left:8px;'>Loading odds...</span>`;
+        priceDisplay = `<span style='color:#9ca3af;font-size:0.95em;font-weight:700;margin-left:8px;'>Loading price...</span>`;
       }
       
-      document.getElementById('tradeOptionName').innerHTML = `<span style='color:#9aff00;'>${opt.name}</span> ${opt.image?`<img src='${opt.image}' style='width:28px;height:28px;border-radius:50%;vertical-align:middle;margin-left:6px;'>`:''} ${oddsDisplay}`;
+      document.getElementById('tradeOptionName').innerHTML = `<span style='color:#9aff00;'>${opt.name}</span> ${opt.image?`<img src='${opt.image}' style='width:28px;height:28px;border-radius:50%;vertical-align:middle;margin-left:6px;'>`:''} ${priceDisplay}`;
       document.getElementById('tradeOdds').textContent = probabilityText;
       document.getElementById('tradeAmount').value = '';
       document.getElementById('tradeMsg').textContent = '';
       
-      const amt = parseFloat(document.getElementById('tradeAmount').value);
-      let payoutText = '';
-      if (amt && amt > 0) {
-        const platformFee = amt * 0.01;
-        const netBetAmount = amt - platformFee;
-        payoutText = `Potential Return: ${(netBetAmount * displayOdds).toFixed(3)} BNB (1% payout fee will apply)`;
-      } else {
-        payoutText = `Potential Return: 0.000 BNB`;
-      }
-      document.getElementById('profitCalc').textContent = payoutText;
       calculateProfit();
     }
 
@@ -918,16 +909,15 @@
         return;
       }
       
-      // Get current LMSR odds for transaction recording
+      // Get current LMSR price for this option
       const probData = await getLMSRProbabilities(currentMarket.id);
-      let executionOdds = 2.0; // Fallback
+      let executionPrice = 0.5; // Fallback price per share
       
       if (probData && probData.prices && probData.prices[selectedOutcome]) {
-        const probability = probData.prices[selectedOutcome];
-        executionOdds = probabilityToOdds(probability) || 2.0;
+        executionPrice = probData.prices[selectedOutcome];
       }
       
-      document.getElementById('tradeMsg').textContent = 'Processing buy...';
+      document.getElementById('tradeMsg').textContent = 'Processing purchase...';
       try {
         // Convert BNB amount to Wei
         const amountInWei = web3.utils.toWei(amt.toString(), 'ether');
@@ -946,9 +936,9 @@
           params: [transaction],
         });
         
-        console.log('Bet transaction sent:', transactionHash);
+        console.log('Purchase transaction sent:', transactionHash);
         
-        // Record bet in database
+        // Record purchase in database with execution price
         await fetch(`${API_BASE_URL}/bets`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -958,16 +948,16 @@
             amount: amt,
             bettorAddress: walletAddress,
             transactionSignature: transactionHash,
-            executionOdds: executionOdds
+            executionOdds: executionPrice // Store price per share, not odds
           })
         });
         
-        document.getElementById('tradeMsg').textContent = 'Buy order placed!';
+        document.getElementById('tradeMsg').textContent = 'Purchase completed!';
         await updateBalance();
         if (typeof loadMarketPage === 'function') loadMarketPage();
       } catch (e) {
-        console.error('Buy transaction error:', e);
-        document.getElementById('tradeMsg').textContent = 'Buy failed: ' + (e.message || e);
+        console.error('Purchase transaction error:', e);
+        document.getElementById('tradeMsg').textContent = 'Purchase failed: ' + (e.message || e);
       }
     }
 
@@ -1328,29 +1318,36 @@
         return;
       }
       
-      // Calculate 1% platform fee on bid
+      // Calculate 1% platform fee on purchase
       const platformFee = amt * 0.01;
-      const netBetAmount = amt - platformFee;
+      const netPurchaseAmount = amt - platformFee;
       
       // Show fee breakdown
       if (platformFeeEl) platformFeeEl.textContent = `${platformFee.toFixed(6)} BNB`;
-      if (netBetEl) netBetEl.textContent = `${netBetAmount.toFixed(3)} BNB`;
+      if (netBetEl) netBetEl.textContent = `${netPurchaseAmount.toFixed(3)} BNB`;
       if (feeBreakdownEl) feeBreakdownEl.style.display = 'block';
       
-      // Get LMSR odds for calculation
+      // Get LMSR price for this option
       const probData = await getLMSRProbabilities(currentMarket.id);
-      let displayOdds = 2.0; // Fallback
+      let pricePerShare = 0.5; // Fallback price
+      let probability = 50; // Fallback probability
       
       // Safety check for selectedOutcome and probData
       if (probData && probData.prices && selectedOutcome !== null && selectedOutcome !== undefined && probData.prices[selectedOutcome]) {
-        const probability = probData.prices[selectedOutcome];
-        const odds = probabilityToOdds(probability);
-        displayOdds = odds && odds >= 1.1 ? odds : 2.0;
+        pricePerShare = probData.prices[selectedOutcome];
+        probability = probData.probabilities[selectedOutcome];
       }
       
-      // Calculate potential payout based on net bet amount
-      const payout = netBetAmount * displayOdds;
-      document.getElementById('profitCalc').textContent = `Potential Return: ${payout.toFixed(3)} BNB (1% payout fee will apply)`;
+      // Calculate shares and potential return
+      const sharesReceived = netPurchaseAmount / pricePerShare;
+      const maxReturn = sharesReceived * 1.0; // Max 1 BNB per share if wins
+      const expectedReturn = sharesReceived * (probability / 100); // Expected value based on probability
+      
+      document.getElementById('profitCalc').innerHTML = `
+        <div>Shares: <span style="color:#9aff00;">${sharesReceived.toFixed(1)}</span> @ ${pricePerShare.toFixed(3)} BNB/share</div>
+        <div>Max Return: <span style="color:#10b981;">${maxReturn.toFixed(3)} BNB</span> if wins (1% payout fee applies)</div>
+        <div>Expected Return: <span style="color:#f59e0b;">${expectedReturn.toFixed(3)} BNB</span> (${probability}% probability)</div>
+      `;
     }
 
     // Event listeners

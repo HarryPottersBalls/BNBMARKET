@@ -350,8 +350,15 @@
           console.warn('Chart functionality disabled - lmsr-charts.js not loaded');
           return null;
         }
+        createCurrentDistributionChart() {
+          console.warn('Chart functionality disabled - lmsr-charts.js not loaded');
+          return null;
+        }
       }
     }
+
+    // Initialize chart engine
+    window.lmsrChartEngine = new LMSRChartEngine();
 
     // Initialize Web3 and BSC connection
     let web3 = null;
@@ -563,8 +570,8 @@
 
     function updateAdminTabVisibility() {
       const adminTab = document.getElementById('adminTab');
-      const ADMIN_WALLET = '0x742d35Cc6A0de1234567890abcdef1234567890';
-      if (walletAddress && walletAddress.toString() === ADMIN_WALLET) {
+      const ADMIN_WALLET = '0x7eCa382995Df91C250896c0EC73c9d2893F7800e';
+      if (walletAddress && walletAddress.toLowerCase() === ADMIN_WALLET.toLowerCase()) {
         if (adminTab) adminTab.style.display = '';
       } else {
         if (adminTab) adminTab.style.display = 'none';
@@ -646,7 +653,7 @@
       if (currentOrderBook && market.options) {
         let html = '<span style="color:#9ca3af;">Total Buys:</span> ';
         const totals = Array(market.options.length).fill(0);
-        currentOrderBook.forEach(b=>{ if(b.outcomeId!==undefined) totals[b.outcomeId]+=1; });
+        currentOrderBook.forEach(b=>{ if(b.option_id!==undefined) totals[b.option_id]+=1; });
         html += market.options.map((opt,i)=>`${opt.name}: <span style='color:#10b981;'>${totals[i]}</span>`).join(' &nbsp; ');
         document.getElementById('totalBuys').innerHTML = html;
       }
@@ -656,14 +663,14 @@
       const obDiv = document.getElementById('orderBook');
       
       if (!orderBook || orderBook.length === 0) {
-        obDiv.innerHTML = '<div style="color:#9ca3af;">No orders yet.</div>';
+        obDiv.innerHTML = '<div style="color:#9ca3af;">No bets yet.</div>';
         return;
       }
       
-      const filtered = orderBook.filter(b => b.outcomeId === selectedOutcome);
+      const filtered = orderBook.filter(b => b.option_id === selectedOutcome);
       const bids = filtered;
-      bids.sort((a,b) => b.price-a.price);
-      const maxShares = Math.max(...bids.map(x=>x.amount),1);
+      bids.sort((a,b) => parseFloat(b.amount) - parseFloat(a.amount));
+      const maxShares = Math.max(...bids.map(x => parseFloat(x.amount)), 1);
       
       let tabs = '';
       (market.options||[]).forEach((opt,i)=>{
@@ -671,7 +678,7 @@
       });
       
       async function rowHtml(order) {
-        const barW = Math.max(8, 180*(order.amount/maxShares));
+        const barW = Math.max(8, 180*(parseFloat(order.amount)/maxShares));
         
         // Get current LMSR probabilities for payout calculation
         const probData = await getLMSRProbabilities(market.id);
@@ -682,11 +689,11 @@
           displayOdds = probabilityToOdds(probability) || 2.0;
         }
         
-        let payout = order.amount * displayOdds;
+        let payout = parseFloat(order.amount) * displayOdds;
         let buyerCell = '-';
-        if (order.transactionSignature) {
-          const shortTx = order.transactionSignature.slice(0,4) + '...' + order.transactionSignature.slice(-4);
-          buyerCell = `<a href="https://bscscan.com/tx/${order.transactionSignature}" target="_blank" rel="noopener" style="color:#10b981;font-weight:700;text-decoration:none;">${shortTx}</a>`;
+        if (order.transaction_signature) {
+          const shortTx = order.transaction_signature.slice(0,4) + '...' + order.transaction_signature.slice(-4);
+          buyerCell = `<a href="https://bscscan.com/tx/${order.transaction_signature}" target="_blank" rel="noopener" style="color:#10b981;font-weight:700;text-decoration:none;">${shortTx}</a>`;
         }
         return `<tr style="background:rgba(16,185,129,0.08);">
           <td style="position:relative;">
@@ -716,7 +723,10 @@
       });
       
       obDiv.querySelectorAll('.ob-tab').forEach(btn=>{
-        btn.onclick = ()=>renderOrderBookPro(orderBook,market,parseInt(btn.dataset.idx));
+        btn.onclick = ()=>{
+          selectedOutcome = parseInt(btn.dataset.idx);
+          renderOrderBookPro(orderBook,market,selectedOutcome);
+        };
       });
     }
 
@@ -831,7 +841,7 @@
     }
 
     async function handleCancelPurchase() {
-      if (!walletPublicKey) {
+      if (!walletAddress) {
         document.getElementById('tradeMsg').textContent = 'Connect your wallet first.';
         return;
       }
@@ -843,7 +853,7 @@
           body: JSON.stringify({
             marketId: currentMarket.id,
             optionId: selectedOutcome,
-            bettorAddress: walletPublicKey.toString()
+            bettorAddress: walletAddress.toString()
           })
         });
         document.getElementById('tradeMsg').textContent = 'Cancellation request sent. Refunds are processed within 24 hours.';
@@ -890,17 +900,17 @@
       }
       
       try {
-        // Fetch both market and orderbook data
+        // Fetch both market and bets data (there's no separate orderbook endpoint)
         const marketResponse = await fetch(`${API_BASE_URL}/markets/${marketId}`);
         if (!marketResponse.ok) throw new Error('Failed to fetch market');
         const marketData = await marketResponse.json();
         
-        const orderBookResponse = await fetch(`${API_BASE_URL}/orderbook/${marketId}`);
-        if (!orderBookResponse.ok) throw new Error('Failed to fetch orderbook');
-        const orderBookData = await orderBookResponse.json();
+        const betsResponse = await fetch(`${API_BASE_URL}/bets?marketId=${marketId}`);
+        if (!betsResponse.ok) throw new Error('Failed to fetch bets');
+        const betsData = await betsResponse.json();
         
         const market = marketData.market;
-        const orderBook = orderBookData.orderBook || orderBookData;
+        const orderBook = betsData.bets || [];
         
         // CRITICAL: Force parse metadata - this is where odds are stored
         if (typeof market.metadata === 'string') {
@@ -971,12 +981,12 @@
 
     async function loadMyBets() {
       const container = document.getElementById('betsContainer');
-      if (!walletPublicKey) {
+      if (!walletAddress) {
         container.innerHTML = `<div class="empty-state"><h3>Connect Wallet</h3><p>Connect your wallet to view your betting history.</p></div>`;
         return;
       }
       try {
-        const res = await fetch(`${API_BASE_URL}/bets?address=${walletPublicKey.toString()}`);
+        const res = await fetch(`${API_BASE_URL}/bets?address=${walletAddress.toString()}`);
         const data = await res.json();
         const bets = data.bets || [];
         if (bets.length === 0) {
@@ -1106,12 +1116,12 @@
       commentBox.style.display = 'none';
       loginMsg.textContent = '';
       
-      if (!walletPublicKey || !walletPublicKey.toString) {
+      if (!walletAddress || !walletAddress.toString) {
         loginMsg.textContent = 'Connect your wallet and place a bet to comment.';
         return;
       }
       
-      fetch(`${API_BASE_URL}/bets?address=${walletPublicKey.toString()}&market_id=${marketId}`)
+      fetch(`${API_BASE_URL}/bets?address=${walletAddress.toString()}&market_id=${marketId}`)
         .then(res => res.json())
         .then(data => {
           if (data.bets && data.bets.length > 0) {
@@ -1131,7 +1141,7 @@
                 const res = await fetch(`${API_BASE_URL}/bets/${betId}/comments`, {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ user_address: walletPublicKey.toString(), comment_text: text })
+                  body: JSON.stringify({ user_address: walletAddress.toString(), comment_text: text })
                 });
                 const resp = await res.json();
                 if (res.ok && resp.comment) {

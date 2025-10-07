@@ -84,6 +84,18 @@ pool.on('error', (err) => {
   console.error('PostgreSQL connection error:', err.message);
 });
 
+// Admin authorization helper function
+function isAdminAddress(address) {
+  if (!address) return false;
+  
+  const adminAddresses = [
+    process.env.ADMIN_WALLET || '0x7eCa382995Df91C250896c0EC73c9d2893F7800e',
+    '0x7eCa382995Df91C250896c0EC73c9d2893F7800e' // Fallback admin wallet
+  ];
+  
+  return adminAddresses.includes(address.toLowerCase()) || adminAddresses.includes(address);
+}
+
 // Cloudinary configuration
 if (
   process.env.CLOUDINARY_CLOUD_NAME &&
@@ -434,11 +446,7 @@ app.post('/api/markets', async (req, res) => {
     } = req.body;
 
     const creatorAddr = creator_address || creatorAddress;
-    const adminAddresses = [
-      process.env.ADMIN_WALLET || '0x7eCa382995Df91C250896c0EC73c9d2893F7800e',
-      '0x7eCa382995Df91C250896c0EC73c9d2893F7800e' // Fallback admin wallet
-    ];
-    const isAdmin = adminAddresses.includes(creatorAddr.toLowerCase()) || adminAddresses.includes(creatorAddr);
+    const isAdmin = isAdminAddress(creatorAddr);
 
     if (!title || !creatorAddr) {
       return res.status(400).json({ 
@@ -676,9 +684,8 @@ app.get('/api/bets', async (req, res) => {
 app.get('/api/admin/pending-markets', async (req, res) => {
   try {
     const { address } = req.query;
-    const adminAddresses = ['0x742d35Cc6A0de1234567890abcdef1234567890'];
     
-    if (!adminAddresses.includes(address)) {
+    if (!isAdminAddress(address)) {
       return res.status(403).json({ error: 'Admin access required' });
     }
 
@@ -727,9 +734,8 @@ app.post('/api/admin/approve-market/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const { address } = req.query;
-    const adminAddresses = ['0x742d35Cc6A0de1234567890abcdef1234567890'];
     
-    if (!adminAddresses.includes(address)) {
+    if (!isAdminAddress(address)) {
       return res.status(403).json({ error: 'Admin access required' });
     }
 
@@ -772,9 +778,7 @@ app.post('/api/admin/update-odds/:id', async (req, res) => {
     const { address } = req.query;
     const { odds } = req.body;
     
-    const adminAddresses = ['0x742d35Cc6A0de1234567890abcdef1234567890'];
-    
-    if (!adminAddresses.includes(address)) {
+    if (!isAdminAddress(address)) {
       return res.status(403).json({ error: 'Admin access required' });
     }
 

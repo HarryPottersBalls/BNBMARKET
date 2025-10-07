@@ -161,6 +161,7 @@ async function initializeDatabase() {
         option_id INTEGER NOT NULL,
         amount DECIMAL(18, 9) NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         transaction_signature VARCHAR(150),
         status VARCHAR(20) DEFAULT 'confirmed',
         payout_amount DECIMAL(18, 9) DEFAULT 0,
@@ -267,9 +268,36 @@ app.get('/api/stats', async (req, res) => {
 // Treasury endpoint
 app.get('/api/treasury', async (req, res) => {
   try {
-    const volumeResult = await queryDatabase('SELECT COALESCE(SUM(total_volume), 0) as volume FROM markets');
-    const treasury = parseFloat(volumeResult.rows[0].volume || 0);
-    res.json({ treasury });
+    // Calculate treasury: total volume - total payouts - platform fees (5%)
+    const treasuryResult = await queryDatabase(`
+      SELECT 
+        COALESCE(SUM(m.total_volume), 0) as total_volume,
+        COALESCE(SUM(b.payout_amount), 0) as total_payouts,
+        COUNT(DISTINCT m.id) as total_markets,
+        COUNT(b.id) as total_bets
+      FROM markets m
+      LEFT JOIN bets b ON m.id = b.market_id AND b.claimed = true
+    `);
+    
+    const result = treasuryResult.rows[0];
+    const totalVolume = parseFloat(result.total_volume || 0);
+    const totalPayouts = parseFloat(result.total_payouts || 0);
+    
+    // Platform fees: 5% of total volume
+    const platformFees = totalVolume * 0.05;
+    
+    // Treasury balance: volume - payouts (the platform fee is automatically retained)
+    const treasury = totalVolume - totalPayouts;
+    
+    res.json({ 
+      treasury,
+      total_volume: totalVolume,
+      total_payouts: totalPayouts,
+      platform_fees: platformFees,
+      total_markets: parseInt(result.total_markets),
+      total_bets: parseInt(result.total_bets),
+      timestamp: new Date().toISOString()
+    });
   } catch (error) {
     console.error('Treasury API error:', error);
     res.status(500).json({ error: 'Failed to fetch treasury', details: error.message });
@@ -645,7 +673,9 @@ app.get('/api/bets', async (req, res) => {
         b.*,
         m.title as market_title,
         m.category as market_category,
-        m.status as market_status
+        m.status as market_status,
+        m.resolved as market_resolved,
+        m.resolution_value as market_resolution
       FROM bets b
       JOIN markets m ON b.market_id = m.id
       WHERE b.status = 'confirmed'
@@ -675,6 +705,189 @@ app.get('/api/bets', async (req, res) => {
     console.error('API Error:', error);
     res.status(500).json({ 
       error: 'Failed to fetch bets',
+      details: error.message 
+    });
+  }
+});
+
+// Claim winnings from resolved markets
+app.post('/api/claim/:betId', async (req, res) => {
+  try {
+    const { betId } = req.params;
+    const { address, transactionSignature } = req.body;
+
+    if (!address || !transactionSignature) {
+      return res.status(400).json({ 
+        error: 'Missing required fields',
+        required: ['address', 'transactionSignature']
+      });
+    }
+
+    // Get bet details with market information
+    const betResult = await queryDatabase(`
+      SELECT 
+        b.*,
+        m.title as market_title,
+        m.resolved,
+        m.resolution_value,
+        m.status as market_status,
+        m.options,
+        m.total_volume,
+        m.metadata
+      FROM bets b
+      JOIN markets m ON b.market_id = m.id
+      WHERE b.id = $1 AND b.bettor_address = $2
+    `, [betId, address]);
+
+    if (betResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Bet not found or not owned by this address' });
+    }
+
+    const bet = betResult.rows[0];
+
+    // Check if market is resolved
+    if (!bet.resolved) {
+      return res.status(400).json({ error: 'Market is not yet resolved' });
+    }
+
+    // Check if already claimed
+    if (bet.claimed) {
+      return res.status(400).json({ error: 'Winnings already claimed for this bet' });
+    }
+
+    // Check if bet won
+    const winningOptionId = parseInt(bet.resolution_value);
+    const betOptionId = parseInt(bet.option_id);
+    
+    if (winningOptionId !== betOptionId) {
+      return res.status(400).json({ error: 'This bet did not win' });
+    }
+
+    // Calculate payout
+    const options = parseJSONBField(bet.options, 'options');
+    const metadata = parseJSONBField(bet.metadata, 'metadata');
+    
+    // Get total volume for winning option
+    const winningBetsResult = await queryDatabase(`
+      SELECT COALESCE(SUM(amount), 0) as winning_volume
+      FROM bets 
+      WHERE market_id = $1 AND option_id = $2 AND status = 'confirmed'
+    `, [bet.market_id, winningOptionId]);
+
+    const winningVolume = parseFloat(winningBetsResult.rows[0].winning_volume);
+    const totalVolume = parseFloat(bet.total_volume);
+    const betAmount = parseFloat(bet.amount);
+
+    // Calculate payout: (user's bet / total winning bets) * total market volume * 0.95 (5% platform fee)
+    let payoutAmount = 0;
+    if (winningVolume > 0) {
+      const userShare = betAmount / winningVolume;
+      payoutAmount = userShare * totalVolume * 0.95; // 5% platform fee
+    }
+
+    // Update bet with payout information
+    const updateResult = await queryDatabase(`
+      UPDATE bets 
+      SET 
+        claimed = true,
+        payout_amount = $2,
+        metadata = jsonb_set(
+          COALESCE(metadata, '{}'), 
+          '{claim_signature}', 
+          to_jsonb($3::text)
+        ),
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = $1
+      RETURNING *
+    `, [betId, payoutAmount, transactionSignature]);
+
+    const updatedBet = updateResult.rows[0];
+
+    console.log(`Claim processed: Bet ${betId}, Payout: ${payoutAmount} BNB to ${address}`);
+
+    res.json({
+      bet: updatedBet,
+      payout_amount: payoutAmount,
+      message: 'Winnings claimed successfully',
+      transaction_signature: transactionSignature
+    });
+
+  } catch (error) {
+    console.error('Claim API Error:', error);
+    res.status(500).json({ 
+      error: 'Failed to process claim',
+      details: error.message 
+    });
+  }
+});
+
+// Get claimable winnings for a user
+app.get('/api/claimable/:address', async (req, res) => {
+  try {
+    const { address } = req.params;
+
+    const result = await queryDatabase(`
+      SELECT 
+        b.*,
+        m.title as market_title,
+        m.category,
+        m.total_volume,
+        m.resolution_value,
+        m.options,
+        m.metadata
+      FROM bets b
+      JOIN markets m ON b.market_id = m.id
+      WHERE b.bettor_address = $1 
+        AND b.status = 'confirmed'
+        AND b.claimed = false
+        AND m.resolved = true
+        AND b.option_id = CAST(m.resolution_value AS INTEGER)
+      ORDER BY b.created_at DESC
+    `, [address]);
+
+    const claimableBets = [];
+    let totalClaimable = 0;
+
+    for (const bet of result.rows) {
+      // Calculate payout for each bet
+      const winningBetsResult = await queryDatabase(`
+        SELECT COALESCE(SUM(amount), 0) as winning_volume
+        FROM bets 
+        WHERE market_id = $1 AND option_id = $2 AND status = 'confirmed'
+      `, [bet.market_id, bet.option_id]);
+
+      const winningVolume = parseFloat(winningBetsResult.rows[0].winning_volume);
+      const totalVolume = parseFloat(bet.total_volume);
+      const betAmount = parseFloat(bet.amount);
+
+      let payoutAmount = 0;
+      if (winningVolume > 0) {
+        const userShare = betAmount / winningVolume;
+        payoutAmount = userShare * totalVolume * 0.95; // 5% platform fee
+      }
+
+      if (payoutAmount > 0) {
+        claimableBets.push({
+          ...bet,
+          options: parseJSONBField(bet.options, 'options'),
+          metadata: parseJSONBField(bet.metadata, 'metadata'),
+          calculated_payout: payoutAmount
+        });
+        totalClaimable += payoutAmount;
+      }
+    }
+
+    res.json({
+      claimable_bets: claimableBets,
+      total_claimable: totalClaimable,
+      count: claimableBets.length,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('Claimable API Error:', error);
+    res.status(500).json({ 
+      error: 'Failed to fetch claimable winnings',
       details: error.message 
     });
   }
@@ -846,6 +1059,102 @@ app.post('/api/admin/update-odds/:id', async (req, res) => {
       error: 'Failed to update odds',
       details: error.message,
       stack: error.stack
+    });
+  }
+});
+
+// Resolve market (admin only)
+app.post('/api/admin/resolve-market/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { address } = req.query;
+    const { winningOptionId, resolutionSignature } = req.body;
+    
+    if (!isAdminAddress(address)) {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+
+    if (winningOptionId === undefined || !resolutionSignature) {
+      return res.status(400).json({ 
+        error: 'Missing required fields',
+        required: ['winningOptionId', 'resolutionSignature']
+      });
+    }
+
+    // Check if market exists and is active
+    const marketResult = await queryDatabase(`
+      SELECT * FROM markets 
+      WHERE id = $1 AND status = 'active' AND resolved = false
+    `, [id]);
+
+    if (marketResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Market not found, inactive, or already resolved' });
+    }
+
+    const market = marketResult.rows[0];
+    const options = parseJSONBField(market.options, 'options');
+
+    // Validate winning option ID
+    if (winningOptionId < 0 || winningOptionId >= options.length) {
+      return res.status(400).json({ error: 'Invalid winning option ID' });
+    }
+
+    // Update market as resolved
+    const result = await queryDatabase(`
+      UPDATE markets 
+      SET 
+        resolved = true,
+        resolution_value = $2,
+        status = 'resolved',
+        metadata = jsonb_set(
+          COALESCE(metadata, '{}'), 
+          '{resolution_signature}', 
+          to_jsonb($3::text)
+        ),
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = $1
+      RETURNING *
+    `, [id, winningOptionId.toString(), resolutionSignature]);
+
+    const resolvedMarket = result.rows[0];
+    resolvedMarket.options = parseJSONBField(resolvedMarket.options, 'options');
+    resolvedMarket.metadata = parseJSONBField(resolvedMarket.metadata, 'metadata');
+
+    // Get statistics about the resolution
+    const statsResult = await queryDatabase(`
+      SELECT 
+        COUNT(CASE WHEN option_id = $2 THEN 1 END) as winning_bets,
+        COUNT(*) as total_bets,
+        COALESCE(SUM(CASE WHEN option_id = $2 THEN amount ELSE 0 END), 0) as winning_volume,
+        COALESCE(SUM(amount), 0) as total_volume
+      FROM bets 
+      WHERE market_id = $1 AND status = 'confirmed'
+    `, [id, winningOptionId]);
+
+    const stats = statsResult.rows[0];
+
+    console.log(`Market ${id} resolved by admin ${address}:`);
+    console.log(`- Winner: Option ${winningOptionId} (${options[winningOptionId]?.name})`);
+    console.log(`- Winning bets: ${stats.winning_bets}/${stats.total_bets}`);
+    console.log(`- Winning volume: ${stats.winning_volume}/${stats.total_volume} BNB`);
+
+    res.json({
+      market: resolvedMarket,
+      resolution_stats: {
+        winning_option: options[winningOptionId],
+        winning_bets: parseInt(stats.winning_bets),
+        total_bets: parseInt(stats.total_bets),
+        winning_volume: parseFloat(stats.winning_volume),
+        total_volume: parseFloat(stats.total_volume)
+      },
+      message: 'Market resolved successfully'
+    });
+
+  } catch (error) {
+    console.error('Resolution API Error:', error);
+    res.status(500).json({ 
+      error: 'Failed to resolve market',
+      details: error.message 
     });
   }
 });

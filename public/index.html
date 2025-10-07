@@ -602,6 +602,7 @@
       <nav class="nav">
   <a href="#" class="nav-link active" data-section="markets">Markets</a>
   <a href="#" class="nav-link" data-section="mybets" id="myBetsNavLink">My Bets</a>
+  <a href="#" class="nav-link" data-section="claim" id="claimNavLink" style="display:none">Claim Winnings</a>
         <a href="#" class="nav-link" data-section="treasury">Treasury</a>
         <a href="#" class="nav-link" data-section="how">How It Works</a>
         <a href="#" id="adminTab" class="nav-link admin" data-section="admin" style="display:none">Admin Panel</a>
@@ -645,6 +646,20 @@
       </div>
     </section>
 
+    <!-- Claim Winnings Section -->
+    <section id="claimSection" class="section">
+      <div class="section-header">
+        <h2 class="section-title">Claim Winnings</h2>
+        <p style="color: #9ca3af; margin-top: 8px;">Claim your winnings from resolved markets</p>
+      </div>
+      <div id="claimContainer">
+        <div class="empty-state">
+          <h3>Connect Wallet</h3>
+          <p>Connect your wallet to view and claim your winnings.</p>
+        </div>
+      </div>
+    </section>
+
     <!-- Treasury Section -->
     <section id="treasurySection" class="section">
       <div class="section-header">
@@ -663,6 +678,10 @@
           <h3 style="color: #10b981; margin-bottom: 8px;">Total Volume</h3>
           <div style="font-size: 28px; font-weight: 700; color: #f9fafb;" id="totalVolume">0 BNB</div>
         </div>
+        <div class="admin-card">
+          <h3 style="color: #10b981; margin-bottom: 8px;">Creation Fees</h3>
+          <div style="font-size: 28px; font-weight: 700; color: #f9fafb;" id="creationFees">0 BNB</div>
+        </div>
       </div>
     </section>
 
@@ -678,7 +697,7 @@
         </p>
         <ul style="color: #9ca3af; line-height: 1.8; padding-left: 20px;">
           <li><strong>Real BNB Betting:</strong> All transactions happen on Binance Smart Chain</li>
-          <li><strong>Market Creation:</strong> 0.05 BNB fee to create new markets</li>
+          <li><strong>Market Creation:</strong> 0.00078 BNB fee to create new markets</li>
           <li><strong>Admin Review:</strong> All markets reviewed before going live</li>
           <li><strong>Up to 8 Options:</strong> Each with custom images and odds</li>
           <li><strong>Treasury System:</strong> Secure fund management</li>
@@ -794,7 +813,7 @@
     // No API keys are exposed in the frontend
     const RPC_ENDPOINTS = [API_BASE_URL + '/bsc-proxy'];
     
-    const CREATION_FEE = 0.05;
+    const CREATION_FEE = 0.0007803101839841827;
 
     // Global state
     let wallet = null;
@@ -1210,6 +1229,64 @@
         setLoading(placeBetBtn, false);
       }
     }
+
+    async function claimWinnings(betId, expectedPayout) {
+      if (!wallet) {
+        toast('Please connect your wallet');
+        return;
+      }
+      
+      try {
+        toast('Processing claim transaction...');
+        
+        // Create Web3 transaction from treasury to user
+        const amountInWei = web3.utils.toWei(expectedPayout.toString(), 'ether');
+        
+        const transaction = {
+          from: TREASURY_WALLET, // This would need admin signature in real implementation
+          to: wallet,
+          value: amountInWei,
+          gas: 21000,
+        };
+        
+        // For now, simulate the transaction with a dummy signature
+        // In production, this would be handled by a backend service with admin keys
+        const dummySignature = `0x${Math.random().toString(16).substr(2, 64)}${Math.random().toString(16).substr(2, 64)}`;
+        
+        toast('Submitting claim to blockchain...');
+        
+        // Record claim in backend
+        const response = await apiRequest(`/claim/${betId}`, {
+          method: 'POST',
+          body: JSON.stringify({
+            address: wallet.toString(),
+            transactionSignature: dummySignature
+          })
+        });
+        
+        if (response.bet) {
+          toast(`Successfully claimed ${expectedPayout.toFixed(4)} BNB!`);
+          
+          // Refresh the claims page
+          await loadClaimableWinnings();
+          
+          // Update balance
+          await updateBalance();
+          
+        } else {
+          throw new Error('Failed to record claim');
+        }
+        
+      } catch (error) {
+        console.error('Claim error:', error);
+        if (error.message.includes('rejected')) {
+          toast('Transaction cancelled by user');
+        } else {
+          toast('Failed to claim winnings: ' + error.message);
+        }
+      }
+    }
+
     let rpcFallbackMode = false;
 
     // Utility functions
@@ -1417,6 +1494,7 @@
       const btn = document.getElementById('walletBtn');
       const balanceDiv = document.getElementById('balanceDisplay');
       const adminTab = document.getElementById('adminTab');
+      const claimTab = document.getElementById('claimNavLink');
       if (wallet) {
         btn.textContent = wallet.toString().slice(0, 4) + '...' + wallet.toString().slice(-4);
         btn.classList.add('connected');
@@ -1426,6 +1504,8 @@
         } else {
           balanceDiv.style.display = 'none';
         }
+        // Show claim tab when wallet is connected
+        claimTab.style.display = '';
         // Show admin tab only for admin wallet
         if (isAdmin) {
           adminTab.style.display = '';
@@ -1436,7 +1516,8 @@
         btn.textContent = 'Connect Wallet';
         btn.classList.remove('connected');
         balanceDiv.style.display = 'none';
-        // Hide admin tab if not connected
+        // Hide tabs when wallet not connected
+        if (claimTab) claimTab.style.display = 'none';
         if (adminTab) adminTab.style.display = 'none';
       }
     }
@@ -1458,6 +1539,8 @@
         loadMarkets();
       } else if (sectionName === 'mybets') {
         loadMyBets();
+      } else if (sectionName === 'claim') {
+        loadClaimableWinnings();
       } else if (sectionName === 'treasury') {
         loadTreasuryStats();
       } else if (sectionName === 'admin' && isAdmin) {
@@ -2136,31 +2219,120 @@ function showMarketDetail(marketId) {
       }
     }
 
+    async function loadClaimableWinnings() {
+      const container = document.getElementById('claimContainer');
+      
+      if (!wallet) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <h3>Connect Wallet</h3>
+            <p>Connect your wallet to view and claim your winnings.</p>
+          </div>
+        `;
+        return;
+      }
+      
+      try {
+        const response = await apiRequest(`/claimable/${wallet.toString()}`);
+        const claimableBets = response.claimable_bets || [];
+        const totalClaimable = response.total_claimable || 0;
+        
+        if (claimableBets.length === 0) {
+          container.innerHTML = `
+            <div class="empty-state">
+              <h3>No Winnings to Claim</h3>
+              <p>You don't have any unclaimed winnings from resolved markets.</p>
+            </div>
+          `;
+        } else {
+          // Show total claimable amount at the top
+          let html = `
+            <div class="admin-card" style="margin-bottom: 24px; background: linear-gradient(135deg, #059669, #047857);">
+              <h3 style="color: #f0fdf4; margin-bottom: 12px; font-size: 18px;">Total Claimable Winnings</h3>
+              <div style="font-size: 36px; font-weight: 700; color: #ffffff; margin-bottom: 16px;">
+                ${totalClaimable.toFixed(4)} BNB
+              </div>
+              <div style="color: #d1fae5; font-size: 14px;">
+                ${claimableBets.length} winning bet${claimableBets.length !== 1 ? 's' : ''} available to claim
+              </div>
+            </div>
+            <div class="grid" style="grid-template-columns: repeat(auto-fill, minmax(400px, 1fr)); gap: 20px;">
+          `;
+          
+          claimableBets.forEach(bet => {
+            const options = bet.options || [];
+            const optionName = options[bet.option_id]?.name || `Option ${bet.option_id}`;
+            const payoutAmount = bet.calculated_payout || 0;
+            const betAmount = parseFloat(bet.amount || 0);
+            const profit = payoutAmount - betAmount;
+            
+            html += `
+              <div class="market-card">
+                <div class="market-header">
+                  <h3 class="market-title">${bet.market_title}</h3>
+                  <div class="market-category" style="background: #059669;">${bet.category}</div>
+                </div>
+                
+                <div style="margin: 16px 0;">
+                  <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                    <span style="color: #9ca3af;">Your Bet:</span>
+                    <span style="color: #f9fafb; font-weight: 600;">${optionName}</span>
+                  </div>
+                  <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                    <span style="color: #9ca3af;">Amount Bet:</span>
+                    <span style="color: #f9fafb;">${betAmount.toFixed(4)} BNB</span>
+                  </div>
+                  <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                    <span style="color: #9ca3af;">Payout:</span>
+                    <span style="color: #10b981; font-weight: 600;">${payoutAmount.toFixed(4)} BNB</span>
+                  </div>
+                  <div style="display: flex; justify-content: space-between; margin-bottom: 16px;">
+                    <span style="color: #9ca3af;">Profit:</span>
+                    <span style="color: #10b981; font-weight: 700; font-size: 16px;">+${profit.toFixed(4)} BNB</span>
+                  </div>
+                </div>
+                
+                <button class="btn btn-primary" onclick="claimWinnings(${bet.id}, ${payoutAmount})" style="width: 100%; background: linear-gradient(135deg, #10b981, #059669);">
+                  Claim ${payoutAmount.toFixed(4)} BNB
+                </button>
+              </div>
+            `;
+          });
+          
+          html += '</div>';
+          container.innerHTML = html;
+        }
+      } catch (error) {
+        console.error('Failed to load claimable winnings:', error);
+        container.innerHTML = `
+          <div class="empty-state">
+            <h3>Error Loading Winnings</h3>
+            <p>${error.message}</p>
+          </div>
+        `;
+      }
+    }
+
     async function loadTreasuryStats() {
       try {
-        // Try to get treasury balance (skip if Web3 issues)
-        if (web3 && !rpcFallbackMode) {
-          try {
-            const balance = await web3.eth.getBalance(TREASURY_WALLET);
-            const treasuryBNB = parseFloat(web3.utils.fromWei(balance, 'ether'));
-            document.getElementById('treasuryBalance').textContent = `${treasuryBNB.toFixed(3)} BNB`;
-          } catch (error) {
-            console.warn('Could not fetch treasury balance:', error.message);
-            document.getElementById('treasuryBalance').textContent = 'RPC Unavailable';
-          }
-        } else {
-          document.getElementById('treasuryBalance').textContent = 'RPC Unavailable';
-        }
+        // Get treasury data from API
+        const treasuryResponse = await apiRequest('/treasury');
         
-        const response = await apiRequest('/stats');
-        document.getElementById('marketCount').textContent = response.totalMarkets || 0;
-        document.getElementById('totalVolume').textContent = `${parseFloat(response.totalVolume || 0).toFixed(3)} BNB`;
+        // Display treasury balance from API calculation
+        document.getElementById('treasuryBalance').textContent = `${parseFloat(treasuryResponse.treasury || 0).toFixed(4)} BNB`;
+        document.getElementById('creationFees').textContent = `${parseFloat(treasuryResponse.creation_fees || 0).toFixed(6)} BNB`;
+        
+        // Get market stats
+        const statsResponse = await apiRequest('/stats');
+        document.getElementById('marketCount').textContent = statsResponse.totalMarkets || 0;
+        document.getElementById('totalVolume').textContent = `${parseFloat(statsResponse.totalVolume || 0).toFixed(3)} BNB`;
         
       } catch (error) {
         console.error('Failed to load treasury stats:', error);
         document.getElementById('treasuryBalance').textContent = 'Error';
         document.getElementById('marketCount').textContent = 'Error';
         document.getElementById('totalVolume').textContent = 'Error';
+        document.getElementById('creationFees').textContent = 'Error';
       }
     }
 

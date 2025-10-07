@@ -682,6 +682,14 @@
           <h3 style="color: #10b981; margin-bottom: 8px;">Creation Fees</h3>
           <div style="font-size: 28px; font-weight: 700; color: #f9fafb;" id="creationFees">0 BNB</div>
         </div>
+        <div class="admin-card">
+          <h3 style="color: #f59e0b; margin-bottom: 8px;">Bid Fees (1%)</h3>
+          <div style="font-size: 28px; font-weight: 700; color: #f9fafb;" id="bidFees">0 BNB</div>
+        </div>
+        <div class="admin-card">
+          <h3 style="color: #f59e0b; margin-bottom: 8px;">Payout Fees (1%)</h3>
+          <div style="font-size: 28px; font-weight: 700; color: #f9fafb;" id="payoutFees">0 BNB</div>
+        </div>
       </div>
     </section>
 
@@ -698,8 +706,10 @@
         <ul style="color: #9ca3af; line-height: 1.8; padding-left: 20px;">
           <li><strong>Real BNB Betting:</strong> All transactions happen on Binance Smart Chain</li>
           <li><strong>Market Creation:</strong> 0.00078 BNB fee to create new markets</li>
-          <li><strong>Admin Review:</strong> All markets reviewed before going live</li>
-          <li><strong>Up to 8 Options:</strong> Each with custom images and odds</li>
+          <li><strong>Trading Fees:</strong> 1% fee on bids + 1% fee on payouts</li>
+          <li><strong>LMSR Pricing:</strong> Automated market making with dynamic probabilities</li>
+          <li><strong>Live Odds:</strong> Probabilities update in real-time based on trading activity</li>
+          <li><strong>Up to 8 Options:</strong> Each with custom images and live probability tracking</li>
           <li><strong>Treasury System:</strong> Secure fund management</li>
         </ul>
       </div>
@@ -1249,8 +1259,12 @@
           gas: 21000,
         };
         
-        // For now, simulate the transaction with a dummy signature
-        // In production, this would be handled by a backend service with admin keys
+        // IMPORTANT: Payout transactions currently use dummy signatures
+        // This is a MAJOR LIMITATION that needs to be addressed for production use
+        // Real implementation would require either:
+        // 1. Backend hot wallet (security risk)
+        // 2. Manual admin signing (not scalable)  
+        // 3. Smart contract system (recommended for production)
         const dummySignature = `0x${Math.random().toString(16).substr(2, 64)}${Math.random().toString(16).substr(2, 64)}`;
         
         toast('Submitting claim to blockchain...');
@@ -1599,6 +1613,16 @@
       }
     }
 
+    async function loadMarketProbabilities(marketId) {
+      try {
+        const response = await apiRequest(`/markets/${marketId}/probabilities`);
+        return response;
+      } catch (error) {
+        console.warn(`Failed to load probabilities for market ${marketId}:`, error);
+        return null;
+      }
+    }
+
     function renderMarkets(marketList) {
       const grid = document.getElementById('marketsGrid');
       
@@ -1613,13 +1637,15 @@
         return;
       }
       
+      // Render markets and then load probabilities
       grid.innerHTML = marketList.map(market => {
-        const optionsHtml = (market.options || []).slice(0, 4).map(option => `
-          <div class="option-preview">
+        const optionsHtml = (market.options || []).slice(0, 4).map((option, index) => `
+          <div class="option-preview" id="option-${market.id}-${index}">
             <img src="${option.image || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTEiIGZpbGw9IiM0Yjc4OTAiLz4KPHRleHQgeD0iMTIiIHk9IjE2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSJ3aGl0ZSIgZm9udC1zaXplPSIxMiIgZm9udC1mYW1pbHk9IkFyaWFsIj4/PC90ZXh0Pgo8L3N2Zz4='}" 
                  alt="${escapeHtml(option.name || 'Option')}" 
                  class="option-avatar" />
             <span class="option-name">${escapeHtml(option.name || 'Option')}</span>
+            <span class="option-probability" id="prob-${market.id}-${index}" style="color:#10b981;font-weight:600;font-size:0.9em;">--</span>
           </div>
         `).join('');
         // Market image display (prominent circle next to title)
@@ -1655,6 +1681,19 @@
           </div>
         `;
       }).join('');
+      
+      // Load probabilities for each market asynchronously
+      marketList.forEach(async (market) => {
+        const probData = await loadMarketProbabilities(market.id);
+        if (probData && probData.probabilities) {
+          probData.probabilities.forEach((prob, index) => {
+            const probElement = document.getElementById(`prob-${market.id}-${index}`);
+            if (probElement) {
+              probElement.textContent = `${prob}%`;
+            }
+          });
+        }
+      });
     }
 
     function escapeHtml(text) {
@@ -2321,6 +2360,8 @@ function showMarketDetail(marketId) {
         // Display treasury balance from API calculation
         document.getElementById('treasuryBalance').textContent = `${parseFloat(treasuryResponse.treasury || 0).toFixed(4)} BNB`;
         document.getElementById('creationFees').textContent = `${parseFloat(treasuryResponse.creation_fees || 0).toFixed(6)} BNB`;
+        document.getElementById('bidFees').textContent = `${parseFloat(treasuryResponse.bid_fees || 0).toFixed(6)} BNB`;
+        document.getElementById('payoutFees').textContent = `${parseFloat(treasuryResponse.payout_fees || 0).toFixed(6)} BNB`;
         
         // Get market stats
         const statsResponse = await apiRequest('/stats');
@@ -2333,6 +2374,8 @@ function showMarketDetail(marketId) {
         document.getElementById('marketCount').textContent = 'Error';
         document.getElementById('totalVolume').textContent = 'Error';
         document.getElementById('creationFees').textContent = 'Error';
+        document.getElementById('bidFees').textContent = 'Error';
+        document.getElementById('payoutFees').textContent = 'Error';
       }
     }
 
@@ -2378,61 +2421,12 @@ function showMarketDetail(marketId) {
         oddsVisualizer = new OddsVisualizer(oddsEngine);
         console.log('Odds engine initialized successfully');
 
-        // Initialize demo system
-        if (typeof ReactiveOddsDemo !== 'undefined') {
-          window.reactiveOddsDemo = new ReactiveOddsDemo(oddsEngine);
-          console.log('✅ Reactive Odds Demo system ready');
 
-          // Add demo button to header
-          addDemoButton();
-        }
       } else {
         console.warn('OddsEngine not available - odds-engine.js may not be loaded');
       }
 
-      // Function to add demo button
-      function addDemoButton() {
-        const headerInner = document.querySelector('.header-inner');
-        if (headerInner) {
-          const demoButton = document.createElement('button');
-          demoButton.innerHTML = '🎮 Demo Reactive Odds';
-          demoButton.style.cssText = `
-            background: linear-gradient(135deg, #9aff00, #7acc00);
-            color: #0b0b0f;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 6px;
-            font-weight: 600;
-            font-size: 14px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-          `;
 
-          demoButton.addEventListener('mouseover', () => {
-            demoButton.style.transform = 'scale(1.05)';
-            demoButton.style.boxShadow = '0 4px 12px rgba(154, 255, 0, 0.3)';
-          });
-
-          demoButton.addEventListener('mouseout', () => {
-            demoButton.style.transform = 'scale(1)';
-            demoButton.style.boxShadow = 'none';
-          });
-
-          demoButton.addEventListener('click', () => {
-            if (window.reactiveOddsDemo) {
-              window.reactiveOddsDemo.startDemo();
-            }
-          });
-
-          // Insert before wallet button
-          const walletBtn = document.getElementById('walletBtn');
-          if (walletBtn) {
-            headerInner.insertBefore(demoButton, walletBtn);
-          } else {
-            headerInner.appendChild(demoButton);
-          }
-        }
-      }
 
       // MetaMask event listeners for better connection stability
       if (window.ethereum) {

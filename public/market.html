@@ -342,6 +342,181 @@
   <script src="odds-engine.js" onerror="console.warn('Failed to load odds-engine.js')"></script>
   <!-- <script src="lmsr-charts.js" onerror="console.warn('Failed to load lmsr-charts.js - using fallback')"></script> -->
   <script>
+    // ========================================
+    // LMSR IMPLEMENTATION (Digital Ronin's Mathematical Foundation)
+    // ========================================
+    
+    /**
+     * Professional LMSR (Logarithmic Market Scoring Rule) Implementation
+     * Based on the mathematical foundation provided by Digital Ronin
+     * 
+     * Formula: C(q) = b * ln(Σ e^(q_j/b))
+     * Price: p_i(q) = e^(q_i/b) / Σ e^(q_j/b)
+     */
+    class LMSREngine {
+      constructor(liquidityParameter = 50) {
+        this.b = liquidityParameter; // Larger b = deeper market, less price impact
+        console.log(`🔮 LMSR Engine initialized with liquidity parameter b=${this.b}`);
+      }
+      
+      /**
+       * Calculate the cost function C(q) = b * ln(Σ e^(q_j/b))
+       * @param {number[]} q - Array of outstanding shares for each outcome
+       * @param {number} b - Liquidity parameter (optional, uses instance default)
+       * @returns {number} - Cost function value
+       */
+      cost(q, b = this.b) {
+        const exps = q.map(x => Math.exp(x / b));
+        const sum = exps.reduce((acc, val) => acc + val, 0);
+        return b * Math.log(sum);
+      }
+      
+      /**
+       * Calculate instantaneous prices (probabilities) for all outcomes
+       * @param {number[]} q - Array of outstanding shares for each outcome
+       * @param {number} b - Liquidity parameter (optional)
+       * @returns {number[]} - Array of probabilities (sum = 1)
+       */
+      prices(q, b = this.b) {
+        const exps = q.map(x => Math.exp(x / b));
+        const sum = exps.reduce((acc, val) => acc + val, 0);
+        return exps.map(exp => exp / sum);
+      }
+      
+      /**
+       * Calculate cost to buy a delta vector of shares
+       * @param {number[]} q - Current outstanding shares
+       * @param {number[]} delta - Shares to buy (same length as q)
+       * @param {number} b - Liquidity parameter (optional)
+       * @returns {number} - Cost in BNB
+       */
+      costToBuy(q, delta, b = this.b) {
+        if (q.length !== delta.length) {
+          throw new Error('Share arrays must have same length');
+        }
+        const qNext = q.map((val, i) => val + (delta[i] || 0));
+        return this.cost(qNext, b) - this.cost(q, b);
+      }
+      
+      /**
+       * Calculate cost to buy shares of a specific outcome
+       * @param {number[]} q - Current outstanding shares
+       * @param {number} outcomeIndex - Index of outcome to buy
+       * @param {number} shareAmount - Number of shares to buy
+       * @param {number} b - Liquidity parameter (optional)
+       * @returns {number} - Cost in BNB
+       */
+      costToBuyOutcome(q, outcomeIndex, shareAmount, b = this.b) {
+        const delta = new Array(q.length).fill(0);
+        delta[outcomeIndex] = shareAmount;
+        return this.costToBuy(q, delta, b);
+      }
+      
+      /**
+       * Calculate shares you get for a given BNB amount (reverse calculation)
+       * Uses binary search to find optimal share purchase
+       * @param {number[]} q - Current outstanding shares
+       * @param {number} outcomeIndex - Index of outcome to buy
+       * @param {number} bnbAmount - BNB to spend
+       * @param {number} b - Liquidity parameter (optional)
+       * @returns {number} - Number of shares you can buy
+       */
+      sharesToBuy(q, outcomeIndex, bnbAmount, b = this.b) {
+        let low = 0;
+        let high = bnbAmount * 10; // Upper bound estimate
+        let tolerance = 0.0001;
+        
+        for (let iterations = 0; iterations < 100; iterations++) {
+          const mid = (low + high) / 2;
+          const cost = this.costToBuyOutcome(q, outcomeIndex, mid, b);
+          
+          if (Math.abs(cost - bnbAmount) < tolerance) {
+            return mid;
+          }
+          
+          if (cost < bnbAmount) {
+            low = mid;
+          } else {
+            high = mid;
+          }
+        }
+        
+        return (low + high) / 2;
+      }
+      
+      /**
+       * Check if market is in neutral 50/50 state (for binary markets)
+       * or balanced state (for multi-outcome markets)
+       * @param {number[]} q - Outstanding shares
+       * @returns {boolean} - True if market is balanced
+       */
+      isBalanced(q) {
+        const prices = this.prices(q);
+        const expectedPrice = 1 / q.length; // Equal probability for all outcomes
+        const tolerance = 0.01; // 1% tolerance
+        
+        return prices.every(price => Math.abs(price - expectedPrice) < tolerance);
+      }
+      
+      /**
+       * Get market status description
+       * @param {number[]} q - Outstanding shares
+       * @returns {object} - Market analysis
+       */
+      analyzeMarket(q) {
+        const prices = this.prices(q);
+        const maxPrice = Math.max(...prices);
+        const maxIndex = prices.indexOf(maxPrice);
+        const dominantOutcome = maxIndex;
+        const confidence = maxPrice * 100;
+        const isNeutral = this.isBalanced(q);
+        
+        return {
+          prices: prices.map(p => Math.round(p * 100)), // Convert to percentages
+          dominantOutcome,
+          confidence: Math.round(confidence),
+          isNeutral,
+          liquidityDepth: this.b,
+          totalShares: q.reduce((sum, shares) => sum + shares, 0)
+        };
+      }
+    }
+
+    // Initialize global LMSR engine
+    window.lmsrEngine = new LMSREngine(50); // Liquidity parameter b = 50
+    
+    /**
+     * Helper function to get LMSR probabilities for market (backward compatibility)
+     * This maintains compatibility with your existing code
+     */
+    async function getLMSRProbabilities(marketId) {
+      try {
+        const response = await fetch(`${API_BASE_URL}/markets/${marketId}/probabilities`);
+        if (response.ok) {
+          const data = await response.json();
+          
+          // If server provides shares data, use our LMSR engine for calculation
+          if (data.shares && Array.isArray(data.shares)) {
+            const analysis = window.lmsrEngine.analyzeMarket(data.shares);
+            return {
+              probabilities: analysis.prices,
+              prices: window.lmsrEngine.prices(data.shares).map(p => p), // Price per share
+              shares: data.shares,
+              analysis: analysis
+            };
+          }
+          
+          return data; // Fallback to server-provided data
+        }
+      } catch (error) {
+        console.warn('Failed to fetch LMSR probabilities:', error);
+      }
+      return null;
+    }
+
+    // ========================================
+    // CHART ENGINE WITH LMSR INTEGRATION
+    // ========================================
     // Define LMSRChartEngine fallback BEFORE any other code
     class LMSRChartEngineFallback {
       constructor() {
@@ -926,12 +1101,38 @@
         return;
       }
       
-      // Get current LMSR price for this option
+      // Get current LMSR data and calculate execution price
       const probData = await getLMSRProbabilities(currentMarket.id);
       let executionPrice = 0.5; // Fallback price per share
+      let sharesReceived = 0;
       
-      if (probData && probData.prices && probData.prices[selectedOutcome]) {
-        executionPrice = probData.prices[selectedOutcome];
+      const platformFee = amt * 0.01;
+      const netPurchaseAmount = amt - platformFee;
+      
+      // Use proper LMSR mathematics for execution
+      if (probData && probData.shares && window.lmsrEngine && selectedOutcome !== null && selectedOutcome !== undefined) {
+        try {
+          // Calculate exact shares and average execution price using LMSR
+          const currentShares = probData.shares;
+          sharesReceived = window.lmsrEngine.sharesToBuy(currentShares, selectedOutcome, netPurchaseAmount);
+          executionPrice = netPurchaseAmount / sharesReceived; // Average price per share for this purchase
+          
+          console.log(`💰 LMSR Trade Execution:
+            Purchase amount: ${amt} BNB
+            Net amount: ${netPurchaseAmount} BNB
+            Shares received: ${sharesReceived.toFixed(3)}
+            Avg execution price: ${executionPrice.toFixed(3)} BNB/share`);
+          
+        } catch (error) {
+          console.warn('LMSR execution calculation failed, using fallback:', error);
+          executionPrice = probData.prices?.[selectedOutcome] || 0.5;
+          sharesReceived = netPurchaseAmount / executionPrice;
+        }
+      } else {
+        // Fallback calculation
+        executionPrice = probData?.prices?.[selectedOutcome] || 0.5;
+        sharesReceived = netPurchaseAmount / executionPrice;
+        console.log('💰 Using fallback execution calculation');
       }
       
       document.getElementById('tradeMsg').textContent = 'Processing purchase...';
@@ -957,7 +1158,7 @@
         
         console.log('Purchase transaction sent:', transactionHash);
         
-        // Record purchase in database with execution price
+        // Record purchase in database with proper LMSR execution data
         await fetch(`${API_BASE_URL}/bets`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -967,11 +1168,12 @@
             amount: amt,
             bettorAddress: walletAddress,
             transactionSignature: transactionHash,
-            executionOdds: executionPrice // Store price per share, not odds
+            executionOdds: executionPrice, // Store average price per share for this trade
+            sharesReceived: sharesReceived // Optional: store calculated shares for verification
           })
         });
         
-        document.getElementById('tradeMsg').textContent = 'Purchase completed!';
+        document.getElementById('tradeMsg').textContent = `Purchase completed! Received ${sharesReceived.toFixed(3)} shares.`;
         await updateBalance();
         if (typeof loadMarketPage === 'function') loadMarketPage();
       } catch (e) {
@@ -1468,26 +1670,72 @@
       if (netBetEl) netBetEl.textContent = `${netPurchaseAmount.toFixed(3)} BNB`;
       if (feeBreakdownEl) feeBreakdownEl.style.display = 'block';
       
-      // Get LMSR price for this option
+      // Get LMSR data for proper calculation
       const probData = await getLMSRProbabilities(currentMarket.id);
-      let pricePerShare = 0.5; // Fallback price
       let probability = 50; // Fallback probability
+      let sharesReceived = 0;
+      let priceImpact = 0;
+      let newProbability = probability;
       
-      // Safety check for selectedOutcome and probData
-      if (probData && probData.prices && selectedOutcome !== null && selectedOutcome !== undefined && probData.prices[selectedOutcome]) {
-        pricePerShare = probData.prices[selectedOutcome];
-        probability = probData.probabilities[selectedOutcome];
+      // Use proper LMSR mathematics if we have share data
+      if (probData && probData.shares && window.lmsrEngine && selectedOutcome !== null && selectedOutcome !== undefined) {
+        try {
+          // Current market state
+          const currentShares = probData.shares;
+          const currentPrices = window.lmsrEngine.prices(currentShares);
+          probability = Math.round(currentPrices[selectedOutcome] * 100);
+          
+          // Calculate exact shares using LMSR engine
+          sharesReceived = window.lmsrEngine.sharesToBuy(currentShares, selectedOutcome, netPurchaseAmount);
+          
+          // Calculate price impact (new probability after purchase)
+          const newShares = [...currentShares];
+          newShares[selectedOutcome] += sharesReceived;
+          const newPrices = window.lmsrEngine.prices(newShares);
+          newProbability = Math.round(newPrices[selectedOutcome] * 100);
+          priceImpact = newProbability - probability;
+          
+          console.log(`📊 LMSR Calculation:
+            Current shares: [${currentShares.join(', ')}]
+            Current probability: ${probability}%
+            Shares to buy: ${sharesReceived.toFixed(3)}
+            New probability: ${newProbability}%
+            Price impact: +${priceImpact}%`);
+          
+        } catch (error) {
+          console.warn('LMSR calculation failed, using fallback:', error);
+          // Fallback to simple calculation
+          const fallbackPrice = probData.prices?.[selectedOutcome] || 0.5;
+          sharesReceived = netPurchaseAmount / fallbackPrice;
+          probability = probData.probabilities?.[selectedOutcome] || 50;
+        }
+      } else {
+        // Fallback calculation for backward compatibility
+        const fallbackPrice = probData?.prices?.[selectedOutcome] || 0.5;
+        sharesReceived = netPurchaseAmount / fallbackPrice;
+        probability = probData?.probabilities?.[selectedOutcome] || 50;
+        console.log('📊 Using fallback calculation (no LMSR data available)');
       }
       
-      // Calculate shares and potential return
-      const sharesReceived = netPurchaseAmount / pricePerShare;
+      // Calculate returns
       const maxReturn = sharesReceived * 1.0; // Max 1 BNB per share if wins
-      const expectedReturn = sharesReceived * (probability / 100); // Expected value based on market sentiment
+      const expectedReturn = sharesReceived * (newProbability / 100); // Expected value based on new market sentiment
+      const avgCostPerShare = netPurchaseAmount / sharesReceived;
+      
+      // Price impact warning
+      let priceImpactWarning = '';
+      if (priceImpact > 5) {
+        priceImpactWarning = `<div style="color:#ff6b6b;font-size:0.9rem;margin-top:4px;background:rgba(255,107,107,0.1);padding:4px 8px;border-radius:4px;">⚠️ Large trade: +${priceImpact}% price impact</div>`;
+      } else if (priceImpact > 0) {
+        priceImpactWarning = `<div style="color:#f59e0b;font-size:0.9rem;margin-top:4px;">📈 Price impact: +${priceImpact}%</div>`;
+      }
       
       document.getElementById('profitCalc').innerHTML = `
-        <div>Shares: <span style="color:#9aff00;">${sharesReceived.toFixed(1)}</span> @ ${pricePerShare.toFixed(3)} BNB/share</div>
+        <div>Shares: <span style="color:#9aff00;">${sharesReceived.toFixed(3)}</span> @ ${avgCostPerShare.toFixed(3)} BNB/share</div>
+        <div>Current Confidence: <span style="color:#f59e0b;">${probability}%</span> → <span style="color:#10b981;">${newProbability}%</span></div>
         <div>Max Return: <span style="color:#10b981;">${maxReturn.toFixed(3)} BNB</span> if wins (1% payout fee applies)</div>
-        <div>Expected Return: <span style="color:#f59e0b;">${expectedReturn.toFixed(3)} BNB</span> (${probability}% market confidence)</div>
+        <div>Expected Return: <span style="color:#f59e0b;">${expectedReturn.toFixed(3)} BNB</span> (${newProbability}% final confidence)</div>
+        ${priceImpactWarning}
       `;
     }
 

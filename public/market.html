@@ -933,16 +933,18 @@
       
       document.getElementById('tradeMsg').textContent = 'Processing purchase...';
       try {
-        // Convert BNB amount to Wei
+        // Convert BNB amount to Wei (ensure it's a string)
         const amountInWei = web3.utils.toWei(amt.toString(), 'ether');
         
-        // Create transaction to treasury wallet
+        // Create transaction to treasury wallet - ensure all values are strings
         const transaction = {
-          from: walletAddress,
-          to: TREASURY_WALLET,
-          value: amountInWei,
-          gas: 21000,
+          from: walletAddress.toString(),
+          to: TREASURY_WALLET.toString(),
+          value: '0x' + web3.utils.toBN(amountInWei).toString(16), // Convert to hex string
+          gas: '0x5208', // 21000 in hex
         };
+        
+        console.log('Sending transaction:', transaction);
         
         // Send transaction through MetaMask
         const transactionHash = await window.ethereum.request({

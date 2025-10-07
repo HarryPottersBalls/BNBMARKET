@@ -4,7 +4,106 @@
 class OddsEngine {
   constructor() {
     this.liquidity = 10; // Default LMSR liquidity parameter
+    this.markets = new Map(); // Track initialized markets
     console.log('OddsEngine initialized with LMSR support');
+  }
+
+  // Initialize a market in the odds engine
+  initializeMarket(marketId, options, initialLiquidity = null) {
+    if (this.markets.has(marketId)) {
+      console.log(`Market ${marketId} already initialized`);
+      return;
+    }
+
+    const marketData = {
+      id: marketId,
+      options: options,
+      initialLiquidity: initialLiquidity || Array(options.length).fill(this.liquidity / options.length),
+      bets: []
+    };
+
+    this.markets.set(marketId, marketData);
+    console.log(`Initialized market ${marketId} with ${options.length} options`);
+  }
+
+  // Get market data
+  getMarket(marketId) {
+    return this.markets.get(marketId);
+  }
+
+  // Update market with new bet
+  addBet(marketId, optionId, amount) {
+    const market = this.markets.get(marketId);
+    if (!market) {
+      console.warn(`Market ${marketId} not found in odds engine`);
+      return;
+    }
+
+    market.bets.push({
+      option_id: optionId,
+      amount: amount
+    });
+  }
+
+  // Get current market odds
+  getMarketOdds(marketId) {
+    const market = this.markets.get(marketId);
+    if (!market) {
+      console.warn(`Market ${marketId} not found in odds engine`);
+      return null;
+    }
+
+    const probabilities = this.calculateLMSRProbabilities(market.bets, market.options.length);
+    const odds = probabilities.map(prob => this.probabilityToOdds(prob));
+    
+    return odds.map((odd, index) => ({
+      optionId: index,
+      odds: odd,
+      probability: probabilities[index]
+    }));
+  }
+
+  // Calculate payout for a potential bet
+  calculatePayout(marketId, optionId, betAmount) {
+    const market = this.markets.get(marketId);
+    if (!market) {
+      console.warn(`Market ${marketId} not found in odds engine`);
+      return { payout: 0, odds: 1 };
+    }
+
+    const currentOdds = this.calculatePrice(market.bets, optionId, market.options.length);
+    const odds = this.probabilityToOdds(currentOdds);
+    const profitInfo = this.calculatePotentialProfit(betAmount, odds);
+
+    return {
+      payout: profitInfo.net,
+      gross: profitInfo.gross,
+      fees: profitInfo.fees,
+      odds: odds,
+      probability: currentOdds
+    };
+  }
+
+  // Simulate placing a bet (for UI updates)
+  placeBet(marketId, optionId, betAmount) {
+    const market = this.markets.get(marketId);
+    if (!market) {
+      console.warn(`Market ${marketId} not found in odds engine`);
+      return null;
+    }
+
+    // Calculate payout before adding bet
+    const payoutInfo = this.calculatePayout(marketId, optionId, betAmount);
+    
+    // Add the bet to update odds
+    this.addBet(marketId, optionId, betAmount);
+    
+    return {
+      success: true,
+      payout: payoutInfo.payout,
+      odds: payoutInfo.odds,
+      newOdds: this.getMarketOdds(marketId)
+    };
   }
 
   // Calculate LMSR probabilities from bets

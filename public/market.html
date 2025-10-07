@@ -611,8 +611,8 @@
      */
     class I18nManager {
       constructor() {
-        this.currentLanguage = this.detectLanguage();
         this.translations = translations;
+        this.currentLanguage = this.detectLanguage();
         console.log(`🌍 I18n initialized with language: ${this.currentLanguage}`);
       }
       
@@ -2152,6 +2152,10 @@
       
       // Update language button display
       function updateLangBtn() {
+        if (!window.i18n || !window.i18n.currentLanguage) {
+          console.warn('I18n not initialized yet');
+          return;
+        }
         const currentLang = window.i18n.currentLanguage;
         const flag = currentLang === 'zh-CN' ? '🇨🇳' : '🇺🇸';
         const code = currentLang === 'zh-CN' ? 'CN' : 'EN';
@@ -2185,8 +2189,12 @@
       });
       
       // Initialize language display
-      updateLangBtn();
-      window.i18n.updateAllTexts();
+      if (window.i18n && window.i18n.currentLanguage) {
+        updateLangBtn();
+        window.i18n.updateAllTexts();
+      } else {
+        console.warn('I18n not ready during initialization');
+      }
 
       // Navigation logic for My Bets
       const myBetsNavLink = document.getElementById('myBetsNavLink');

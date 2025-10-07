@@ -262,8 +262,8 @@
           <div style="flex: 2.5; min-width: 420px; background: #181e29; border-radius: 18px; padding: 32px 24px 32px 24px; box-shadow: 0 2px 24px rgba(16,185,129,0.09);">
             <!-- Chart Tabs -->
             <div style="display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 1px solid #23263a; padding-bottom: 12px;">
-              <button id="probabilityTab" class="chart-tab active" onclick="switchChart('probability')">Probability Over Time</button>
-              <button id="distributionTab" class="chart-tab" onclick="switchChart('distribution')">Current Distribution</button>
+              <button id="probabilityTab" class="chart-tab active" onclick="switchChart('probability')">Market Confidence Over Time</button>
+              <button id="distributionTab" class="chart-tab" onclick="switchChart('distribution')">Current Market Distribution</button>
             </div>
             
             <!-- Chart Containers -->
@@ -288,7 +288,7 @@
             </div>
             <input id="tradeAmount" type="number" min="0.01" step="0.01" placeholder="Amount (BNB)" style="width:100%;padding:16px 14px;border-radius:10px;border:2px solid #7acc00;background:#181e29;color:#f3f4f6;font-size:1.2rem;margin-bottom:10px;outline:none;box-shadow:none;">
             <div id="feeBreakdown" style="color:#f59e0b;font-size:0.95rem;margin-bottom:10px;font-weight:500;background:rgba(245,158,11,0.08);padding:6px 8px;border-radius:6px;display:none;">
-              Platform Fee (1%): <span id="platformFeeAmount">0.000 BNB</span> | Net Bet: <span id="netBetAmount">0.000 BNB</span>
+              Platform Fee (1%): <span id="platformFeeAmount">0.000 BNB</span> | Net Investment: <span id="netBetAmount">0.000 BNB</span>
             </div>
             <div id="profitCalc" style="color:#10b981;font-size:1.08rem;margin-bottom:14px;font-weight:600;background:rgba(16,185,129,0.07);padding:8px 10px;border-radius:8px;"></div>
             <div style="display:flex;gap:10px;margin-bottom:10px;align-items:flex-start;">
@@ -394,14 +394,14 @@
                 responsive: true,
                 plugins: {
                   legend: { labels: { color: '#ffffff' } },
-                  title: { display: true, text: 'Probability Over Time', color: '#ffffff' }
+                  title: { display: true, text: 'Market Confidence Over Time', color: '#ffffff' }
                 },
                 scales: {
                   y: { 
                     beginAtZero: true, 
                     max: 100,
                     ticks: { color: '#9ca3af' },
-                    title: { display: true, text: 'Probability (%)', color: '#9ca3af' }
+                    title: { display: true, text: 'Market Confidence (%)', color: '#9ca3af' }
                   },
                   x: { 
                     ticks: { color: '#9ca3af' } 
@@ -467,7 +467,7 @@
                 responsive: true,
                 plugins: {
                   legend: { labels: { color: '#ffffff' } },
-                  title: { display: true, text: 'Current Distribution', color: '#ffffff' }
+                  title: { display: true, text: 'Current Market Distribution', color: '#ffffff' }
                 }
               }
             });
@@ -746,14 +746,14 @@
         
         if (probData && probData.probabilities && probData.probabilities[i] !== undefined) {
           const probability = probData.probabilities[i];
-          probabilityDisplay = `<div style='color:#10b981;font-size:0.9em;font-weight:600;margin-top:2px;'>${probability}% probability</div>`;
+          probabilityDisplay = `<div style='color:#10b981;font-size:0.9em;font-weight:600;margin-top:2px;'>${probability}% market confidence</div>`;
           // Show price per share instead of odds
           if (probData.prices && probData.prices[i]) {
             const pricePerShare = probData.prices[i];
             oddsDisplay = `<div style='color:#f59e0b;font-size:0.85em;font-weight:500;'>${pricePerShare.toFixed(3)} BNB/share</div>`;
           }
         } else {
-          probabilityDisplay = `<div style='color:#9ca3af;font-size:0.85em;font-weight:600;margin-top:2px;'>Loading...</div>`;
+          probabilityDisplay = `<div style='color:#9ca3af;font-size:0.85em;font-weight:600;margin-top:2px;'>Loading market data...</div>`;
         }
         
         el.innerHTML = `
@@ -868,13 +868,13 @@
       
       // Get LMSR probabilities
       const probData = await getLMSRProbabilities(currentMarket.id);
-      let probabilityText = 'Loading probability...';
+      let probabilityText = 'Loading market sentiment...';
       let pricePerShare = 0.5; // Default fallback price
       
       if (probData && probData.prices && probData.prices[selectedOutcome]) {
         const probability = probData.probabilities[selectedOutcome];
         pricePerShare = probData.prices[selectedOutcome];
-        probabilityText = `${probability}% probability`;
+        probabilityText = `${probability}% market confidence (based on community investments)`;
       }
       
       // Show price per share instead of odds
@@ -1341,12 +1341,12 @@
       // Calculate shares and potential return
       const sharesReceived = netPurchaseAmount / pricePerShare;
       const maxReturn = sharesReceived * 1.0; // Max 1 BNB per share if wins
-      const expectedReturn = sharesReceived * (probability / 100); // Expected value based on probability
+      const expectedReturn = sharesReceived * (probability / 100); // Expected value based on market sentiment
       
       document.getElementById('profitCalc').innerHTML = `
         <div>Shares: <span style="color:#9aff00;">${sharesReceived.toFixed(1)}</span> @ ${pricePerShare.toFixed(3)} BNB/share</div>
         <div>Max Return: <span style="color:#10b981;">${maxReturn.toFixed(3)} BNB</span> if wins (1% payout fee applies)</div>
-        <div>Expected Return: <span style="color:#f59e0b;">${expectedReturn.toFixed(3)} BNB</span> (${probability}% probability)</div>
+        <div>Expected Return: <span style="color:#f59e0b;">${expectedReturn.toFixed(3)} BNB</span> (${probability}% market confidence)</div>
       `;
     }
 

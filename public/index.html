@@ -816,14 +816,14 @@
       return url;
     })();
   // Only this wallet is admin for UI/admin panel
-  const ADMIN_WALLET = '0x742d35Cc6A0de1234567890abcdef1234567890';
-  const TREASURY_WALLET = '0x742d35Cc6A0de1234567890abcdef1234567890';
+  const ADMIN_WALLET = '0x7eCa382995Df91C250896c0EC73c9d2893F7800e';
+  const TREASURY_WALLET = '0x7eCa382995Df91C250896c0EC73c9d2893F7800e';
     
     // All BSC RPC requests are now proxied through the backend for security
     // No API keys are exposed in the frontend
     const RPC_ENDPOINTS = [API_BASE_URL + '/bsc-proxy'];
     
-    const CREATION_FEE = 0.0007803101839841827;
+    const CREATION_FEE = 0.001; // 0.001 BNB (~$0.60)
 
     // Global state
     let wallet = null;
@@ -1405,8 +1405,9 @@
         if (accounts.length > 0) {
           wallet = accounts[0];
           walletAdapter = window.ethereum;
-          // Check if this wallet is admin
-          isAdmin = wallet.toString() === ADMIN_WALLET;
+          // Check if this wallet is admin (case-insensitive)
+          isAdmin = wallet.toString().toLowerCase() === ADMIN_WALLET.toLowerCase();
+          console.log('Admin check:', wallet.toString(), 'vs', ADMIN_WALLET, '-> isAdmin:', isAdmin);
           updateWalletUI();
         }
         
@@ -1478,8 +1479,9 @@
             bnbBalance = 0;
           }
         }
-        // Only this wallet is admin
-        isAdmin = wallet.toString() === ADMIN_WALLET;
+        // Only this wallet is admin (case-insensitive)
+        isAdmin = wallet.toString().toLowerCase() === ADMIN_WALLET.toLowerCase();
+        console.log('Admin check (connect):', wallet.toString(), 'vs', ADMIN_WALLET, '-> isAdmin:', isAdmin);
         updateWalletUI();
         // No popup, just update UI
         if (currentSection === 'mybets') {
@@ -1715,13 +1717,32 @@ function showMarketDetail(marketId) {
       }
       // Admin wallet can create for free, skip balance check
       if (!isAdmin) {
+        console.log('Balance check: isAdmin=', isAdmin, 'bnbBalance=', bnbBalance, 'CREATION_FEE=', CREATION_FEE, 'rpcFallbackMode=', rpcFallbackMode);
         if (!rpcFallbackMode && bnbBalance < CREATION_FEE) {
-          toast(`Insufficient balance. Need ${CREATION_FEE} BNB to create market`);
+          toast(`Insufficient balance. Need ${CREATION_FEE} BNB to create market. You have ${bnbBalance} BNB.`);
           return;
         }
+      } else {
+        console.log('Admin wallet detected - creating market for free');
       }
       resetCreateForm();
       document.getElementById('createMarketModal').classList.add('active');
+    }
+
+    function closeModal() {
+      // Close all modals
+      const modals = document.querySelectorAll('.modal');
+      modals.forEach(modal => {
+        modal.classList.remove('active');
+      });
+      
+      // Alternative method for older modal styles
+      const oldModals = document.querySelectorAll('[id*="Modal"]');
+      oldModals.forEach(modal => {
+        modal.style.display = 'none';
+      });
+      
+      document.body.style.overflow = 'auto';
     }
 
     function closeCreateMarketModal() {

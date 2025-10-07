@@ -93,7 +93,21 @@ function isAdminAddress(address) {
     '0x7eCa382995Df91C250896c0EC73c9d2893F7800e' // Fallback admin wallet
   ];
   
-  return adminAddresses.includes(address.toLowerCase()) || adminAddresses.includes(address);
+  // Normalize all addresses to lowercase for comparison
+  const normalizedAddress = address.toLowerCase();
+  const normalizedAdminAddresses = adminAddresses.map(addr => addr.toLowerCase());
+  
+  const isAdmin = normalizedAdminAddresses.includes(normalizedAddress);
+  
+  // Debug logging
+  console.log('Admin check:', {
+    providedAddress: address,
+    normalizedAddress: normalizedAddress,
+    adminAddresses: normalizedAdminAddresses,
+    isAdmin: isAdmin
+  });
+  
+  return isAdmin;
 }
 
 // LMSR (Logarithmic Market Scoring Rule) Functions
@@ -308,6 +322,27 @@ app.get('/api/stats', async (req, res) => {
     console.error('API Error:', error);
     res.status(500).json({ 
       error: 'Failed to fetch stats',
+      details: error.message 
+    });
+  }
+});
+
+// Check if address is admin (helpful for frontend)
+app.get('/api/admin/check/:address', async (req, res) => {
+  try {
+    const { address } = req.params;
+    const isAdmin = isAdminAddress(address);
+    
+    res.json({
+      address: address,
+      isAdmin: isAdmin,
+      canCreateFreeMarkets: isAdmin,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('API Error:', error);
+    res.status(500).json({ 
+      error: 'Failed to check admin status',
       details: error.message 
     });
   }
@@ -618,6 +653,13 @@ app.post('/api/markets', async (req, res) => {
     const creatorAddr = creator_address || creatorAddress;
     const isAdmin = isAdminAddress(creatorAddr);
 
+    console.log('Market creation request:', {
+      creatorAddr: creatorAddr,
+      isAdmin: isAdmin,
+      title: title,
+      autoApprove: req.body.autoApprove
+    });
+
     if (!title || !creatorAddr) {
       return res.status(400).json({ 
         error: 'Missing required fields',
@@ -668,7 +710,10 @@ app.post('/api/markets', async (req, res) => {
 
     let marketInsert;
     if (isAdmin) {
-      const status = req.body.autoApprove ? 'active' : 'under_review';
+      console.log('Creating admin market (no fees required)');
+      // Admin users can create markets without fees or signatures
+      const status = req.body.autoApprove ? 'active' : 'active'; // Admin markets are auto-approved
+      
       marketInsert = await queryDatabase(`
         INSERT INTO markets (
           title, description, category, creator_address, 
@@ -682,26 +727,34 @@ app.post('/api/markets', async (req, res) => {
         category, 
         creatorAddr, 
         endDate ? new Date(endDate) : null,
-        0,
+        parseFloat(initialLiquidity || 0), // Admin can set any liquidity, including 0
         JSON.stringify(processedOptions),
-        null,
+        creationSignature || 'admin_created', // Admin signature optional
         status,
-        JSON.stringify(metadata)
+        JSON.stringify({
+          ...metadata,
+          admin_created: true,
+          creation_fee: 0, // No fee for admin
+          creation_fee_paid: true
+        })
       ]);
+      
+      console.log('Admin market created successfully:', marketInsert.rows[0].id);
     } else {
+      console.log('Creating non-admin market (fees required)');
       // Market creation fee for non-admin users
       const marketCreationFee = 0.0007803101839841827; // BNB
       const minInitialLiquidity = 0.1;
       
       if (!initialLiquidity || isNaN(initialLiquidity) || parseFloat(initialLiquidity) < minInitialLiquidity) {
         return res.status(400).json({
-          error: `A minimum initial liquidity of ${minInitialLiquidity} BNB is required.`
+          error: `A minimum initial liquidity of ${minInitialLiquidity} BNB is required for non-admin users.`
         });
       }
       
       if (!creationSignature) {
         return res.status(400).json({
-          error: 'A creation signature is required.'
+          error: 'A creation signature is required for non-admin users.'
         });
       }
       
@@ -1091,6 +1144,7 @@ app.get('/api/admin/pending-markets', async (req, res) => {
       return res.status(403).json({ error: 'Admin access required' });
     }
 
+    // Get pending markets (excluding admin-created ones which should auto-approve)
     const result = await queryDatabase(`
       SELECT 
         m.*,
@@ -1099,6 +1153,7 @@ app.get('/api/admin/pending-markets', async (req, res) => {
       FROM markets m 
       LEFT JOIN bets b ON m.id = b.market_id AND b.status = 'confirmed'
       WHERE m.status = 'under_review'
+        AND NOT (m.metadata->>'admin_created' = 'true')
       GROUP BY m.id 
       ORDER BY m.created_at ASC
     `);
@@ -1107,21 +1162,37 @@ app.get('/api/admin/pending-markets', async (req, res) => {
       const options = parseJSONBField(row.options, 'options');
       const metadata = parseJSONBField(row.metadata, 'metadata');
       
+      // Process options to ensure proper image handling
+      const processedOptions = options.map(option => ({
+        name: option.name || 'Unnamed Option',
+        image: option.image || null, // null if no image
+        hasImage: Boolean(option.image)
+      }));
+      
       return {
         ...row,
         total_volume: parseFloat(row.volume || 0),
         total_bets: parseInt(row.bet_count || 0),
-        options: options,
-        metadata: metadata
+        options: processedOptions,
+        metadata: {
+          ...metadata,
+          hasOptionImages: processedOptions.some(opt => opt.hasImage),
+          totalOptions: processedOptions.length
+        },
+        // Additional info for admin review
+        is_admin_created: Boolean(metadata.admin_created),
+        creation_fee_paid: Boolean(metadata.creation_fee_paid),
+        market_image: metadata.marketImage || row.market_image
       };
     });
 
-    console.log(`Admin ${address} requested ${markets.length} pending markets`);
+    console.log(`Admin ${address} requested ${markets.length} pending markets for review`);
 
     res.json({ 
       markets,
       count: markets.length,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      note: 'Admin-created markets are auto-approved and do not appear here'
     });
   } catch (error) {
     console.error('API Error:', error);
@@ -1168,6 +1239,107 @@ app.post('/api/admin/approve-market/:id', async (req, res) => {
     console.error('API Error:', error);
     res.status(500).json({ 
       error: 'Failed to approve market',
+      details: error.message 
+    });
+  }
+});
+
+// Auto-approve admin markets that are stuck in review
+app.post('/api/admin/auto-approve-admin-markets', async (req, res) => {
+  try {
+    const { address } = req.query;
+    
+    if (!isAdminAddress(address)) {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+
+    // Find admin markets that are still under review
+    const result = await queryDatabase(`
+      UPDATE markets 
+      SET 
+        status = 'active',
+        updated_at = CURRENT_TIMESTAMP
+      WHERE status = 'under_review'
+        AND (metadata->>'admin_created' = 'true' 
+             OR creator_address = ANY($1))
+      RETURNING id, title, creator_address
+    `, [[
+      process.env.ADMIN_WALLET || '0x7eCa382995Df91C250896c0EC73c9d2893F7800e',
+      '0x7eCa382995Df91C250896c0EC73c9d2893F7800e'
+    ]]);
+
+    const approvedMarkets = result.rows;
+
+    console.log(`Auto-approved ${approvedMarkets.length} admin markets by ${address}`);
+
+    res.json({ 
+      approved_markets: approvedMarkets,
+      count: approvedMarkets.length,
+      message: 'Admin markets auto-approved successfully'
+    });
+  } catch (error) {
+    console.error('API Error:', error);
+    res.status(500).json({ 
+      error: 'Failed to auto-approve admin markets',
+      details: error.message 
+    });
+  }
+});
+
+// Reject market (admin only)
+app.post('/api/admin/reject-market/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { address } = req.query;
+    const { reason } = req.body;
+    
+    if (!isAdminAddress(address)) {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+
+    const result = await queryDatabase(`
+      UPDATE markets 
+      SET 
+        status = 'rejected',
+        metadata = jsonb_set(
+          COALESCE(metadata, '{}'), 
+          '{rejection_reason}', 
+          to_jsonb($3::text)
+        ),
+        metadata = jsonb_set(
+          metadata, 
+          '{rejected_by}', 
+          to_jsonb($4::text)
+        ),
+        metadata = jsonb_set(
+          metadata, 
+          '{rejected_at}', 
+          to_jsonb($5::text)
+        ),
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = $1 AND status = 'under_review'
+      RETURNING *
+    `, [id, reason || 'No reason provided', address, new Date().toISOString()]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Market not found or already processed' });
+    }
+
+    const market = result.rows[0];
+    market.options = parseJSONBField(market.options, 'options');
+    market.metadata = parseJSONBField(market.metadata, 'metadata');
+
+    console.log(`Market ${id} rejected by admin ${address}: "${market.title}" - Reason: ${reason}`);
+
+    res.json({ 
+      market,
+      message: 'Market rejected successfully',
+      reason: reason
+    });
+  } catch (error) {
+    console.error('API Error:', error);
+    res.status(500).json({ 
+      error: 'Failed to reject market',
       details: error.message 
     });
   }
@@ -1441,6 +1613,11 @@ app.use('/api/*', (req, res) => {
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/favicon.ico', (req, res) => res.status(204).end());
+
+// Admin dashboard route
+app.get('/admin', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+});
 
 // SPA fallback
 app.get('*', (req, res) => {

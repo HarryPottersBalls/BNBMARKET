@@ -337,12 +337,20 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
   <script src="odds-engine.js" onerror="console.warn('Failed to load odds-engine.js')"></script>
-  <script src="lmsr-charts.js" onerror="console.warn('Failed to load lmsr-charts.js - using fallback')"></script>
+  <!-- <script src="lmsr-charts.js" onerror="console.warn('Failed to load lmsr-charts.js - using fallback')"></script> -->
   <script>
     // Define LMSRChartEngine fallback BEFORE any other code
     class LMSRChartEngineFallback {
       constructor() {
         console.log('Using fallback LMSRChartEngine - basic charts enabled');
+        this.chartInstances = {}; // Track chart instances
+      }
+      
+      destroyChart(chartId) {
+        if (this.chartInstances[chartId]) {
+          this.chartInstances[chartId].destroy();
+          delete this.chartInstances[chartId];
+        }
       }
       
       async createProbabilityChart(containerId, marketId) {
@@ -351,6 +359,9 @@
         if (!container) return null;
 
         try {
+          // Destroy existing chart if it exists
+          this.destroyChart('probabilityChart');
+          
           // Get market probabilities
           const response = await fetch(`${window.API_BASE_URL || '/api'}/markets/${marketId}/probabilities`);
           if (!response.ok) throw new Error('Failed to fetch probabilities');
@@ -360,16 +371,13 @@
             throw new Error('No probability data available');
           }
 
-          // Create simple chart using Chart.js
-          const canvas = container.querySelector('canvas') || document.createElement('canvas');
+          // Create fresh canvas
+          container.innerHTML = '';
+          const canvas = document.createElement('canvas');
           canvas.id = 'probabilityChart';
           canvas.width = container.offsetWidth || 400;
           canvas.height = container.offsetHeight || 300;
-          
-          if (!container.querySelector('canvas')) {
-            container.innerHTML = '';
-            container.appendChild(canvas);
-          }
+          container.appendChild(canvas);
 
           if (typeof Chart !== 'undefined') {
             const ctx = canvas.getContext('2d');
@@ -378,7 +386,7 @@
             const market = window.currentMarket;
             const labels = market?.options?.map(opt => opt.name) || ['Option 1', 'Option 2'];
             
-            new Chart(ctx, {
+            const chartInstance = new Chart(ctx, {
               type: 'line',
               data: {
                 labels: ['Initial', 'Current'],
@@ -409,6 +417,9 @@
                 }
               }
             });
+            
+            // Store chart instance for later cleanup
+            this.chartInstances['probabilityChart'] = chartInstance;
           } else {
             container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#9ca3af;font-size:14px;">Chart.js not available</div>';
           }
@@ -425,6 +436,9 @@
         if (!container) return null;
 
         try {
+          // Destroy existing chart if it exists
+          this.destroyChart('distributionChart');
+          
           // Get market probabilities
           const response = await fetch(`${window.API_BASE_URL || '/api'}/markets/${marketId}/probabilities`);
           if (!response.ok) throw new Error('Failed to fetch probabilities');
@@ -434,16 +448,13 @@
             throw new Error('No probability data available');
           }
 
-          // Create simple pie chart using Chart.js
-          const canvas = container.querySelector('canvas') || document.createElement('canvas');
+          // Create fresh canvas
+          container.innerHTML = '';
+          const canvas = document.createElement('canvas');
           canvas.id = 'distributionChart';
           canvas.width = container.offsetWidth || 400;
           canvas.height = container.offsetHeight || 300;
-          
-          if (!container.querySelector('canvas')) {
-            container.innerHTML = '';
-            container.appendChild(canvas);
-          }
+          container.appendChild(canvas);
 
           if (typeof Chart !== 'undefined') {
             const ctx = canvas.getContext('2d');
@@ -452,7 +463,7 @@
             const market = window.currentMarket;
             const labels = market?.options?.map(opt => opt.name) || ['Option 1', 'Option 2'];
             
-            new Chart(ctx, {
+            const chartInstance = new Chart(ctx, {
               type: 'doughnut',
               data: {
                 labels: labels,
@@ -471,6 +482,9 @@
                 }
               }
             });
+            
+            // Store chart instance for later cleanup
+            this.chartInstances['distributionChart'] = chartInstance;
           } else {
             container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#9ca3af;font-size:14px;">Chart.js not available</div>';
           }
@@ -996,11 +1010,14 @@
       // Load chart if not already loaded and chart engine is available
       if (currentMarket && window.lmsrChartEngine) {
         try {
-          if (chartType === 'probability') {
-            window.lmsrChartEngine.createProbabilityChart('probabilityChartContainer', currentMarket.id);
-          } else if (chartType === 'distribution') {
-            window.lmsrChartEngine.createCurrentDistributionChart('distributionChartContainer', currentMarket.id);
-          }
+          // Add a small delay to ensure container is visible
+          setTimeout(() => {
+            if (chartType === 'probability') {
+              window.lmsrChartEngine.createProbabilityChart('probabilityChartContainer', currentMarket.id);
+            } else if (chartType === 'distribution') {
+              window.lmsrChartEngine.createCurrentDistributionChart('distributionChartContainer', currentMarket.id);
+            }
+          }, 100);
         } catch (error) {
           console.error('Chart creation failed:', error);
           const container = document.getElementById(chartType + 'ChartContainer');
@@ -1013,9 +1030,9 @@
 
     // Updated chart rendering function
     function renderChart(market, orderBook) {
-      // Initialize with probability chart
-      setTimeout(() => {
-        if (window.lmsrChartEngine) {
+      // Only initialize probability chart once, with a delay to ensure DOM is ready
+      if (window.lmsrChartEngine && !window.lmsrChartEngine.chartInstances['probabilityChart']) {
+        setTimeout(() => {
           try {
             window.lmsrChartEngine.createProbabilityChart('probabilityChartContainer', market.id);
           } catch (error) {
@@ -1025,14 +1042,14 @@
               container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#ff6b6b;font-size:14px;">⚠️ Chart failed to load</div>';
             }
           }
-        } else {
-          console.warn('Chart engine not available');
-          const container = document.getElementById('probabilityChartContainer');
-          if (container) {
-            container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#9ca3af;font-size:14px;">📊 Charts temporarily unavailable</div>';
-          }
+        }, 200);
+      } else if (!window.lmsrChartEngine) {
+        console.warn('Chart engine not available');
+        const container = document.getElementById('probabilityChartContainer');
+        if (container) {
+          container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#9ca3af;font-size:14px;">📊 Charts temporarily unavailable</div>';
         }
-      }, 100);
+      }
     }
 
     async function loadMarketPage() {

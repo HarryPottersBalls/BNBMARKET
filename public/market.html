@@ -198,6 +198,30 @@
       border: 1px solid #9aff00;
       color: #9aff00;
     }
+
+    /* Chart Tab Styles */
+    .chart-tab {
+      background: transparent;
+      border: none;
+      color: #9ca3af;
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .chart-tab:hover {
+      color: #d1d5db;
+      background: rgba(255, 255, 255, 0.05);
+    }
+    
+    .chart-tab.active {
+      color: #9aff00;
+      background: rgba(154, 255, 0, 0.1);
+      border: 1px solid rgba(154, 255, 0, 0.3);
+    }
   </style>
 </head>
 <body>
@@ -236,7 +260,19 @@
       <div style="margin-bottom:32px;">
         <div style="display: flex; gap: 40px; align-items: flex-start; flex-wrap: wrap; width: 100%;">
           <div style="flex: 2.5; min-width: 420px; background: #181e29; border-radius: 18px; padding: 32px 24px 32px 24px; box-shadow: 0 2px 24px rgba(16,185,129,0.09);">
-            <canvas id="marketChart" height="180"></canvas>
+            <!-- Chart Tabs -->
+            <div style="display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 1px solid #23263a; padding-bottom: 12px;">
+              <button id="probabilityTab" class="chart-tab active" onclick="switchChart('probability')">Probability Over Time</button>
+              <button id="distributionTab" class="chart-tab" onclick="switchChart('distribution')">Current Distribution</button>
+            </div>
+            
+            <!-- Chart Containers -->
+            <div id="probabilityChartContainer" style="height: 300px; position: relative;">
+              <canvas id="probabilityChart"></canvas>
+            </div>
+            <div id="distributionChartContainer" style="height: 300px; position: relative; display: none;">
+              <canvas id="distributionChart"></canvas>
+            </div>
           </div>
           
           <div class="trade-card" style="background:#151926;border:1.5px solid #23263a;border-radius:18px;box-shadow:0 4px 32px rgba(16,185,129,0.09);padding:36px 32px 28px 32px;max-width:440px;width:100%;min-width:340px;margin-top:0;">
@@ -251,6 +287,9 @@
               <button class="btn quick-btn-max" type="button" style="flex:1;min-width:0;background:#23263a;color:#7acc00;border:1.5px solid #7acc00;" title="Max">Max</button>
             </div>
             <input id="tradeAmount" type="number" min="0.01" step="0.01" placeholder="Amount (BNB)" style="width:100%;padding:16px 14px;border-radius:10px;border:2px solid #7acc00;background:#181e29;color:#f3f4f6;font-size:1.2rem;margin-bottom:10px;outline:none;box-shadow:none;">
+            <div id="feeBreakdown" style="color:#f59e0b;font-size:0.95rem;margin-bottom:10px;font-weight:500;background:rgba(245,158,11,0.08);padding:6px 8px;border-radius:6px;display:none;">
+              Platform Fee (1%): <span id="platformFeeAmount">0.000 BNB</span> | Net Bet: <span id="netBetAmount">0.000 BNB</span>
+            </div>
             <div id="profitCalc" style="color:#10b981;font-size:1.08rem;margin-bottom:14px;font-weight:600;background:rgba(16,185,129,0.07);padding:8px 10px;border-radius:8px;"></div>
             <div style="display:flex;gap:10px;margin-bottom:10px;align-items:flex-start;">
               <button id="buyBtn" class="btn" style="flex:1;width:100%;font-size:1.08rem;padding:13px 0;box-shadow:0 2px 8px rgba(154,255,0,0.07);">Buy</button>
@@ -297,6 +336,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
+  <script src="lmsr-charts.js"></script>
   <script>
     // Initialize Web3 and BSC connection
     let web3 = null;
@@ -349,32 +389,42 @@
     })();
 
     // Helper function to get odds from metadata.admin_odds ONLY
-    function getOddsForOption(market, optionIndex) {
-      if (!market || !market.metadata) {
-        console.warn('Market or metadata missing for option', optionIndex);
+    // Helper function to get LMSR probabilities for market
+    async function getLMSRProbabilities(marketId) {
+      try {
+        const response = await fetch(`${API_BASE_URL}/markets/${marketId}/probabilities`);
+        if (response.ok) {
+          return await response.json();
+        }
+      } catch (error) {
+        console.warn('Failed to fetch LMSR probabilities:', error);
+      }
+      return null;
+    }
+
+    // Helper function to calculate implied odds from probability
+    function probabilityToOdds(probability) {
+      if (!probability || probability <= 0) return null;
+      return 1 / probability;
+    }
+
+    // Helper function to get odds from LMSR probabilities (replaces admin odds)
+    async function getOddsForOption(market, optionIndex) {
+      const probData = await getLMSRProbabilities(market.id);
+      if (!probData || !probData.prices || !probData.prices[optionIndex]) {
+        console.warn(`LMSR probabilities not available for option ${optionIndex}`);
         return null;
       }
       
-      if (!Array.isArray(market.metadata.admin_odds)) {
-        console.warn('admin_odds is not an array:', market.metadata.admin_odds);
+      const probability = probData.prices[optionIndex];
+      const odds = probabilityToOdds(probability);
+      
+      if (!odds || odds < 1.1) {
+        console.warn(`Invalid odds calculated for option ${optionIndex}:`, odds);
         return null;
       }
       
-      const oddsValue = market.metadata.admin_odds[optionIndex];
-      
-      if (oddsValue === null || oddsValue === undefined) {
-        console.warn(`Odds not set for option ${optionIndex}`);
-        return null;
-      }
-      
-      const parsedOdds = parseFloat(oddsValue);
-      
-      if (isNaN(parsedOdds) || parsedOdds < 1.1) {
-        console.warn(`Invalid odds value for option ${optionIndex}:`, oddsValue);
-        return null;
-      }
-      
-      return parsedOdds;
+      return odds;
     }
 
     // Globals
@@ -509,23 +559,32 @@
       const optionsDiv = document.getElementById('marketOptions');
       optionsDiv.innerHTML = '';
       
-      (market.options || []).forEach((opt, i) => {
+      // Get LMSR probabilities for the market
+      const probData = await getLMSRProbabilities(market.id);
+      
+      (market.options || []).forEach(async (opt, i) => {
         const el = document.createElement('div');
         el.className = 'option-tab' + (i===selectedOutcome?' active':'');
         el.style = 'background:#23263a;padding:10px 10px 4px 10px;border-radius:10px;min-width:80px;text-align:center;cursor:pointer;border:2px solid '+(i===selectedOutcome?'#9aff00':'#23263a')+';transition:border 0.2s;display:flex;flex-direction:column;align-items:center;justify-content:center;';
         
-        const odds = getOddsForOption(market, i);
-        
         let oddsDisplay = '';
-        if (odds !== null) {
-          oddsDisplay = `<div style='color:#f59e0b;font-size:0.98em;font-weight:600;margin-top:2px;'>x${odds.toFixed(2)}</div>`;
+        let probabilityDisplay = '';
+        
+        if (probData && probData.probabilities && probData.probabilities[i] !== undefined) {
+          const probability = probData.probabilities[i];
+          const odds = probabilityToOdds(probData.prices[i]);
+          probabilityDisplay = `<div style='color:#10b981;font-size:0.9em;font-weight:600;margin-top:2px;'>${probability}%</div>`;
+          if (odds && odds >= 1.1) {
+            oddsDisplay = `<div style='color:#f59e0b;font-size:0.85em;font-weight:500;'>x${odds.toFixed(2)}</div>`;
+          }
         } else {
-          oddsDisplay = `<div style='color:#ef4444;font-size:0.85em;font-weight:600;margin-top:2px;'>Odds not set</div>`;
+          probabilityDisplay = `<div style='color:#9ca3af;font-size:0.85em;font-weight:600;margin-top:2px;'>Loading...</div>`;
         }
         
         el.innerHTML = `
           ${opt.image ? `<img src='${opt.image}' alt='' style='width:38px;height:38px;border-radius:50%;margin-bottom:6px;'>` : ''}
           <div style="font-size:1.05rem;font-weight:700;color:#9aff00;">${opt.name || 'Option ' + (i+1)}</div>
+          ${probabilityDisplay}
           ${oddsDisplay}
         `;
         
@@ -567,17 +626,23 @@
         tabs += `<button class="ob-tab${i===selectedOutcome?' active':''}" data-idx="${i}" style="background:${i===selectedOutcome?'#10b981':'#23263a'};color:${i===selectedOutcome?'#041':'#f3f4f6'};border:2px solid ${i===selectedOutcome?'#10b981':'#374151'};padding:8px 16px;border-radius:8px;font-weight:600;cursor:pointer;transition:all 0.2s;margin-right:6px;">${opt.name}</button>`;
       });
       
-      function rowHtml(order) {
+      async function rowHtml(order) {
         const barW = Math.max(8, 180*(order.amount/maxShares));
         
-        const odds = getOddsForOption(market, selectedOutcome);
-        const displayOdds = odds !== null ? odds : 2.0;
+        // Get current LMSR probabilities for payout calculation
+        const probData = await getLMSRProbabilities(market.id);
+        let displayOdds = 2.0; // Fallback
+        
+        if (probData && probData.prices && probData.prices[selectedOutcome]) {
+          const probability = probData.prices[selectedOutcome];
+          displayOdds = probabilityToOdds(probability) || 2.0;
+        }
         
         let payout = order.amount * displayOdds;
         let buyerCell = '-';
         if (order.transactionSignature) {
           const shortTx = order.transactionSignature.slice(0,4) + '...' + order.transactionSignature.slice(-4);
-          buyerCell = `<a href="https://solscan.io/tx/${order.transactionSignature}" target="_blank" rel="noopener" style="color:#10b981;font-weight:700;text-decoration:none;">${shortTx}</a>`;
+          buyerCell = `<a href="https://bscscan.com/tx/${order.transactionSignature}" target="_blank" rel="noopener" style="color:#10b981;font-weight:700;text-decoration:none;">${shortTx}</a>`;
         }
         return `<tr style="background:rgba(16,185,129,0.08);">
           <td style="position:relative;">
@@ -595,37 +660,56 @@
       </div>`;
       html += `<table style="width:100%;border-radius:10px;overflow:hidden;font-size:1rem;">
         <thead><tr style="background:#23263a;color:#10b981;font-weight:700;"><th style="padding:8px;">Amount (BNB)</th><th>Buyer</th><th>Potential Payout</th></tr></thead>
-        <tbody>`;
-      bids.forEach(order=>{ html+=rowHtml(order); });
+        <tbody id="orderBookRows">`;
+      
       html += '</tbody></table>';
       obDiv.innerHTML = html;
+      
+      // Render rows asynchronously
+      const rowsContainer = document.getElementById('orderBookRows');
+      Promise.all(bids.map(order => rowHtml(order))).then(rows => {
+        rowsContainer.innerHTML = rows.join('');
+      });
+      
       obDiv.querySelectorAll('.ob-tab').forEach(btn=>{
         btn.onclick = ()=>renderOrderBookPro(orderBook,market,parseInt(btn.dataset.idx));
       });
     }
 
-    function updateTradePanel() {
+    async function updateTradePanel() {
       if (!currentMarket || !currentMarket.options) return;
       const opt = currentMarket.options[selectedOutcome];
       
-      const odds = getOddsForOption(currentMarket, selectedOutcome);
-      const displayOdds = odds !== null ? odds : 2.0;
+      // Get LMSR probabilities
+      const probData = await getLMSRProbabilities(currentMarket.id);
+      let displayOdds = 2.0; // Fallback
+      let probabilityText = 'Loading...';
+      
+      if (probData && probData.prices && probData.prices[selectedOutcome]) {
+        const probability = probData.prices[selectedOutcome];
+        const odds = probabilityToOdds(probability);
+        displayOdds = odds && odds >= 1.1 ? odds : 2.0;
+        probabilityText = `${probData.probabilities[selectedOutcome]}% chance`;
+      }
       
       let oddsDisplay = '';
-      if (odds !== null) {
-        oddsDisplay = `<span style='color:#f59e0b;font-size:1.08em;font-weight:700;margin-left:8px;'>x${odds.toFixed(2)}</span>`;
+      if (probData && probData.prices && probData.prices[selectedOutcome]) {
+        oddsDisplay = `<span style='color:#f59e0b;font-size:1.08em;font-weight:700;margin-left:8px;'>x${displayOdds.toFixed(2)}</span>`;
       } else {
-        oddsDisplay = `<span style='color:#ef4444;font-size:0.95em;font-weight:700;margin-left:8px;'>Odds not set</span>`;
+        oddsDisplay = `<span style='color:#9ca3af;font-size:0.95em;font-weight:700;margin-left:8px;'>Loading odds...</span>`;
       }
       
       document.getElementById('tradeOptionName').innerHTML = `<span style='color:#9aff00;'>${opt.name}</span> ${opt.image?`<img src='${opt.image}' style='width:28px;height:28px;border-radius:50%;vertical-align:middle;margin-left:6px;'>`:''} ${oddsDisplay}`;
+      document.getElementById('tradeOdds').textContent = probabilityText;
       document.getElementById('tradeAmount').value = '';
       document.getElementById('tradeMsg').textContent = '';
       
       const amt = parseFloat(document.getElementById('tradeAmount').value);
       let payoutText = '';
       if (amt && amt > 0) {
-        payoutText = `Potential Return: ${(amt * displayOdds).toFixed(3)} BNB`;
+        const platformFee = amt * 0.01;
+        const netBetAmount = amt - platformFee;
+        payoutText = `Potential Return: ${(netBetAmount * displayOdds).toFixed(3)} BNB (1% payout fee will apply)`;
       } else {
         payoutText = `Potential Return: 0.000 BNB`;
       }
@@ -649,10 +733,13 @@
         return;
       }
       
-      const odds = getOddsForOption(currentMarket, selectedOutcome);
-      if (odds === null) {
-        document.getElementById('tradeMsg').textContent = 'Cannot bet - odds not set by admin yet.';
-        return;
+      // Get current LMSR odds for transaction recording
+      const probData = await getLMSRProbabilities(currentMarket.id);
+      let executionOdds = 2.0; // Fallback
+      
+      if (probData && probData.prices && probData.prices[selectedOutcome]) {
+        const probability = probData.prices[selectedOutcome];
+        executionOdds = probabilityToOdds(probability) || 2.0;
       }
       
       document.getElementById('tradeMsg').textContent = 'Processing buy...';
@@ -686,7 +773,7 @@
             amount: amt,
             bettorAddress: walletAddress,
             transactionSignature: transactionHash,
-            executionOdds: odds
+            executionOdds: executionOdds
           })
         });
         
@@ -721,42 +808,34 @@
       }
     }
 
+    // Chart switching functionality
+    function switchChart(chartType) {
+      // Update tab states
+      document.querySelectorAll('.chart-tab').forEach(tab => tab.classList.remove('active'));
+      document.getElementById(chartType + 'Tab').classList.add('active');
+      
+      // Show/hide chart containers
+      document.getElementById('probabilityChartContainer').style.display = chartType === 'probability' ? 'block' : 'none';
+      document.getElementById('distributionChartContainer').style.display = chartType === 'distribution' ? 'block' : 'none';
+      
+      // Load chart if not already loaded
+      if (currentMarket) {
+        if (chartType === 'probability') {
+          window.lmsrChartEngine.createProbabilityChart('probabilityChartContainer', currentMarket.id);
+        } else if (chartType === 'distribution') {
+          window.lmsrChartEngine.createCurrentDistributionChart('distributionChartContainer', currentMarket.id);
+        }
+      }
+    }
+
+    // Updated chart rendering function
     function renderChart(market, orderBook) {
-      const optionTotals = Array((market.options||[]).length).fill(0);
-      (orderBook||[]).forEach(bet => {
-        if (bet.outcomeId !== undefined && bet.amount) {
-          optionTotals[bet.outcomeId] += bet.amount;
+      // Initialize with probability chart
+      setTimeout(() => {
+        if (window.lmsrChartEngine) {
+          window.lmsrChartEngine.createProbabilityChart('probabilityChartContainer', market.id);
         }
-      });
-      const total = optionTotals.reduce((a,b) => a+b, 0);
-      const data = {
-        labels: (market.options||[]).map(opt => opt.name),
-        datasets: [{
-          label: 'Bet Distribution',
-          data: optionTotals.map(x => total ? (x/total*100).toFixed(2) : 0),
-          backgroundColor: '#9aff00',
-          borderColor: '#7acc00',
-          borderWidth: 2
-        }]
-      };
-      const ctx = document.getElementById('marketChart').getContext('2d');
-      if (window.marketChartInstance) window.marketChartInstance.destroy();
-      window.marketChartInstance = new Chart(ctx, {
-        type: 'bar',
-        data,
-        options: {
-          plugins: { legend: { display: false } },
-          scales: {
-            y: {
-              beginAtZero: true,
-              max: 100,
-              title: { display: true, text: '% of Total Bets' },
-              ticks: { color: '#9aff00' }
-            },
-            x: { ticks: { color: '#9aff00' } }
-          }
-        }
-      });
+      }, 100);
     }
 
     async function loadMarketPage() {
@@ -1029,19 +1108,41 @@
         });
     }
 
-    function calculateProfit() {
+    async function calculateProfit() {
       const amt = parseFloat(document.getElementById('tradeAmount').value);
       
-      const odds = getOddsForOption(currentMarket, selectedOutcome);
-      const displayOdds = odds !== null ? odds : 2.0;
+      const feeBreakdownEl = document.getElementById('feeBreakdown');
+      const platformFeeEl = document.getElementById('platformFeeAmount');
+      const netBetEl = document.getElementById('netBetAmount');
       
       if (!amt || amt <= 0) {
         document.getElementById('profitCalc').textContent = `Potential Return: 0.000 BNB`;
+        if (feeBreakdownEl) feeBreakdownEl.style.display = 'none';
         return;
       }
       
-      const payout = amt * displayOdds;
-      document.getElementById('profitCalc').textContent = `Potential Return: ${payout.toFixed(3)} BNB`;
+      // Calculate 1% platform fee on bid
+      const platformFee = amt * 0.01;
+      const netBetAmount = amt - platformFee;
+      
+      // Show fee breakdown
+      if (platformFeeEl) platformFeeEl.textContent = `${platformFee.toFixed(6)} BNB`;
+      if (netBetEl) netBetEl.textContent = `${netBetAmount.toFixed(3)} BNB`;
+      if (feeBreakdownEl) feeBreakdownEl.style.display = 'block';
+      
+      // Get LMSR odds for calculation
+      const probData = await getLMSRProbabilities(currentMarket.id);
+      let displayOdds = 2.0; // Fallback
+      
+      if (probData && probData.prices && probData.prices[selectedOutcome]) {
+        const probability = probData.prices[selectedOutcome];
+        const odds = probabilityToOdds(probability);
+        displayOdds = odds && odds >= 1.1 ? odds : 2.0;
+      }
+      
+      // Calculate potential payout based on net bet amount
+      const payout = netBetAmount * displayOdds;
+      document.getElementById('profitCalc').textContent = `Potential Return: ${payout.toFixed(3)} BNB (1% payout fee will apply)`;
     }
 
     // Event listeners
@@ -1086,6 +1187,7 @@
 
     // Make functions available globally
     window.calculateProfit = calculateProfit;
+    window.switchChart = switchChart;
   </script>
 
   <footer style="text-align:center; margin: 32px 0 16px 0;">

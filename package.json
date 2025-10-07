@@ -5,12 +5,13 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
+    "build": "npm install && node simple-migration.js && node fix-missing-columns.js",
     "dev": "nodemon server.js",
     "db:init": "node init-database.js",
-    "db:migrate": "node scripts/migrate.js",
-    "db:seed": "node scripts/seed.js",
+    "db:migrate": "node simple-migration.js && node fix-missing-columns.js",
     "test": "jest",
-    "test:watch": "jest --watch"
+    "test:watch": "jest --watch",
+    "postinstall": "echo 'Dependencies installed successfully'"
   },
   "dependencies": {
     "web3": "^4.2.2",

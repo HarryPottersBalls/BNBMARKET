@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BNBmarket Admin Dashboard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0b0b0f 0%, #1a1a2e 50%, #16213e 100%);
+            color: #ffffff;
+            min-height: 100vh;
+        }
+        
+        .admin-header {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            border-bottom: 1px solid rgba(154, 255, 0, 0.2);
+            text-align: center;
+        }
+        
+        .admin-header h1 {
+            color: #9aff00;
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+        
+        .wallet-connection {
+            background: rgba(154, 255, 0, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px;
+            text-align: center;
+        }
+        
+        .connect-btn {
+            background: linear-gradient(135deg, #9aff00, #7acc00);
+            color: #0b0b0f;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .connect-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(154, 255, 0, 0.3);
+        }
+        
+        .admin-actions {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .action-btn {
+            background: rgba(154, 255, 0, 0.2);
+            color: #9aff00;
+            border: 1px solid #9aff00;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .action-btn:hover {
+            background: rgba(154, 255, 0, 0.1);
+        }
+        
+        .markets-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .market-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(154, 255, 0, 0.2);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+        }
+        
+        .market-card:hover {
+            border-color: #9aff00;
+            box-shadow: 0 4px 20px rgba(154, 255, 0, 0.1);
+        }
+        
+        .market-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 15px;
+        }
+        
+        .market-title {
+            font-size: 1.4em;
+            color: #9aff00;
+            margin-bottom: 5px;
+        }
+        
+        .market-meta {
+            font-size: 0.9em;
+            color: #aaa;
+        }
+        
+        .market-description {
+            margin: 15px 0;
+            line-height: 1.5;
+        }
+        
+        .market-image {
+            max-width: 200px;
+            max-height: 150px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+        
+        .options-container {
+            margin: 20px 0;
+        }
+        
+        .options-title {
+            color: #9aff00;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+        
+        .option-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+        
+        .option-image {
+            width: 60px;
+            height: 60px;
+            border-radius: 6px;
+            object-fit: cover;
+        }
+        
+        .no-image {
+            width: 60px;
+            height: 60px;
+            border: 2px dashed #555;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #666;
+            font-size: 0.8em;
+        }
+        
+        .option-name {
+            font-weight: 500;
+        }
+        
+        .market-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .approve-btn {
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .approve-btn:hover {
+            transform: scale(1.05);
+        }
+        
+        .reject-btn {
+            background: linear-gradient(135deg, #f44336, #d32f2f);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .reject-btn:hover {
+            transform: scale(1.05);
+        }
+        
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            font-weight: 600;
+        }
+        
+        .status-review {
+            background: rgba(255, 165, 0, 0.2);
+            color: #ffa500;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #9aff00;
+        }
+        
+        .error {
+            background: rgba(244, 67, 54, 0.1);
+            border: 1px solid #f44336;
+            color: #f44336;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px;
+        }
+        
+        .info-panel {
+            background: rgba(154, 255, 0, 0.1);
+            border: 1px solid rgba(154, 255, 0, 0.3);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px;
+        }
+        
+        .stat-card {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 1.5em;
+            color: #9aff00;
+            font-weight: 600;
+        }
+        
+        .stat-label {
+            color: #aaa;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-header">
+        <h1>🛡️ BNBmarket Admin Dashboard</h1>
+        <p>Review and manage prediction markets</p>
+    </div>
+
+    <div class="wallet-connection" id="walletConnection">
+        <button class="connect-btn" id="connectBtn" onclick="connectWallet()">
+            Connect Admin Wallet
+        </button>
+        <div id="walletInfo" style="display: none;">
+            <p>Connected: <span id="walletAddress"></span></p>
+            <p>Status: <span id="adminStatus"></span></p>
+        </div>
+    </div>
+
+    <div class="admin-actions" id="adminActions" style="display: none;">
+        <button class="action-btn" onclick="loadPendingMarkets()">📋 Refresh Pending Markets</button>
+        <button class="action-btn" onclick="autoApproveAdminMarkets()">✅ Auto-Approve Admin Markets</button>
+        <button class="action-btn" onclick="loadStats()">📊 Load Statistics</button>
+    </div>
+
+    <div class="stats-grid" id="statsGrid" style="display: none;">
+        <div class="stat-card">
+            <div class="stat-value" id="pendingCount">-</div>
+            <div class="stat-label">Pending Review</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="totalMarkets">-</div>
+            <div class="stat-label">Total Markets</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="totalBets">-</div>
+            <div class="stat-label">Total Bets</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="totalVolume">-</div>
+            <div class="stat-label">Total Volume (BNB)</div>
+        </div>
+    </div>
+
+    <div class="markets-container">
+        <div id="marketsContent">
+            <div class="info-panel">
+                <h3>Welcome to the Admin Dashboard</h3>
+                <p>Connect your admin wallet to review pending markets, approve/reject submissions, and manage the platform.</p>
+                <ul style="margin-top: 10px; padding-left: 20px;">
+                    <li>Markets with images will show preview thumbnails</li>
+                    <li>Admin-created markets are auto-approved</li>
+                    <li>Review markets for appropriate content before approval</li>
+                    <li>Rejected markets will be hidden from users</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin + '/api';
+        let currentWallet = null;
+        let isAdmin = false;
+
+        async function connectWallet() {
+            if (!window.ethereum) {
+                alert('MetaMask not found! Please install MetaMask.');
+                return;
+            }
+
+            try {
+                const accounts = await window.ethereum.request({
+                    method: 'eth_requestAccounts'
+                });
+
+                if (accounts.length > 0) {
+                    currentWallet = accounts[0];
+                    document.getElementById('walletAddress').textContent = currentWallet;
+                    
+                    // Check admin status
+                    const response = await fetch(`${API_BASE}/admin/check/${currentWallet}`);
+                    const data = await response.json();
+                    
+                    isAdmin = data.isAdmin;
+                    document.getElementById('adminStatus').textContent = isAdmin ? '✅ ADMIN' : '❌ NOT ADMIN';
+                    
+                    if (isAdmin) {
+                        document.getElementById('walletInfo').style.display = 'block';
+                        document.getElementById('adminActions').style.display = 'flex';
+                        document.getElementById('statsGrid').style.display = 'grid';
+                        document.getElementById('connectBtn').style.display = 'none';
+                        
+                        await loadPendingMarkets();
+                        await loadStats();
+                    } else {
+                        alert('Access denied: Admin wallet required');
+                    }
+                }
+            } catch (error) {
+                console.error('Wallet connection error:', error);
+                alert('Failed to connect wallet: ' + error.message);
+            }
+        }
+
+        async function loadPendingMarkets() {
+            if (!isAdmin) return;
+
+            document.getElementById('marketsContent').innerHTML = '<div class="loading">Loading pending markets...</div>';
+
+            try {
+                const response = await fetch(`${API_BASE}/admin/pending-markets?address=${currentWallet}`);
+                const data = await response.json();
+
+                if (data.markets && data.markets.length > 0) {
+                    displayMarkets(data.markets);
+                    document.getElementById('pendingCount').textContent = data.markets.length;
+                } else {
+                    document.getElementById('marketsContent').innerHTML = `
+                        <div class="info-panel">
+                            <h3>No pending markets</h3>
+                            <p>All markets have been reviewed. Admin-created markets are auto-approved.</p>
+                        </div>
+                    `;
+                    document.getElementById('pendingCount').textContent = '0';
+                }
+            } catch (error) {
+                console.error('Error loading markets:', error);
+                document.getElementById('marketsContent').innerHTML = `
+                    <div class="error">
+                        Failed to load pending markets: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        function displayMarkets(markets) {
+            const html = markets.map(market => `
+                <div class="market-card" data-market-id="${market.id}">
+                    <div class="market-header">
+                        <div>
+                            <div class="market-title">${market.title}</div>
+                            <div class="market-meta">
+                                Created: ${new Date(market.created_at).toLocaleDateString()} | 
+                                Category: ${market.category} | 
+                                Creator: ${market.creator_address.substring(0, 10)}...
+                                <span class="status-badge status-review">Under Review</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    ${market.description ? `<div class="market-description">${market.description}</div>` : ''}
+                    
+                    ${market.market_image ? `
+                        <div>
+                            <strong>Market Image:</strong><br>
+                            <img src="${market.market_image}" alt="Market image" class="market-image">
+                        </div>
+                    ` : ''}
+                    
+                    <div class="options-container">
+                        <div class="options-title">Options (${market.options.length}):</div>
+                        ${market.options.map(option => `
+                            <div class="option-item">
+                                ${option.image ? 
+                                    `<img src="${option.image}" alt="${option.name}" class="option-image">` :
+                                    `<div class="no-image">No Image</div>`
+                                }
+                                <div class="option-name">${option.name}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                    
+                    <div style="margin: 10px 0; font-size: 0.9em; color: #aaa;">
+                        <strong>Creation Fee:</strong> ${market.creation_fee_paid ? '✅ Paid' : '❌ Not Paid'} | 
+                        <strong>Initial Liquidity:</strong> ${market.initial_liquidity} BNB |
+                        <strong>Has Images:</strong> ${market.metadata.hasOptionImages ? '✅ Yes' : '❌ No'}
+                    </div>
+                    
+                    <div class="market-actions">
+                        <button class="approve-btn" onclick="approveMarket(${market.id})">
+                            ✅ Approve Market
+                        </button>
+                        <button class="reject-btn" onclick="rejectMarket(${market.id})">
+                            ❌ Reject Market
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+            
+            document.getElementById('marketsContent').innerHTML = html;
+        }
+
+        async function approveMarket(marketId) {
+            if (!confirm('Approve this market? It will become active and available for betting.')) return;
+
+            try {
+                const response = await fetch(`${API_BASE}/admin/approve-market/${marketId}?address=${currentWallet}`, {
+                    method: 'POST'
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    alert('Market approved successfully!');
+                    await loadPendingMarkets();
+                    await loadStats();
+                } else {
+                    alert('Failed to approve market: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Error approving market:', error);
+                alert('Error approving market: ' + error.message);
+            }
+        }
+
+        async function rejectMarket(marketId) {
+            const reason = prompt('Enter rejection reason (optional):');
+            if (reason === null) return; // User cancelled
+
+            try {
+                const response = await fetch(`${API_BASE}/admin/reject-market/${marketId}?address=${currentWallet}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ reason: reason || 'No reason provided' })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    alert('Market rejected successfully!');
+                    await loadPendingMarkets();
+                } else {
+                    alert('Failed to reject market: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Error rejecting market:', error);
+                alert('Error rejecting market: ' + error.message);
+            }
+        }
+
+        async function autoApproveAdminMarkets() {
+            if (!confirm('Auto-approve all admin-created markets that are stuck in review?')) return;
+
+            try {
+                const response = await fetch(`${API_BASE}/admin/auto-approve-admin-markets?address=${currentWallet}`, {
+                    method: 'POST'
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    alert(`Auto-approved ${data.count} admin markets!`);
+                    await loadPendingMarkets();
+                    await loadStats();
+                } else {
+                    alert('Failed to auto-approve: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Error auto-approving:', error);
+                alert('Error auto-approving: ' + error.message);
+            }
+        }
+
+        async function loadStats() {
+            try {
+                const response = await fetch(`${API_BASE}/stats`);
+                const data = await response.json();
+
+                document.getElementById('totalMarkets').textContent = data.totalMarkets;
+                document.getElementById('totalBets').textContent = data.totalBets;
+                document.getElementById('totalVolume').textContent = data.totalVolume.toFixed(4);
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        }
+
+        // Auto-connect if wallet is already connected
+        window.addEventListener('load', async () => {
+            if (window.ethereum) {
+                try {
+                    const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+                    if (accounts.length > 0) {
+                        currentWallet = accounts[0];
+                        await connectWallet();
+                    }
+                } catch (error) {
+                    console.error('Auto-connect error:', error);
+                }
+            }
+        });
+    </script>
+</body>
+</html>

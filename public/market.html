@@ -3786,6 +3786,15 @@
         `;
       }
       
+      // Generate simulated recent trades
+      const recentTrades = [
+        { side: 'YES', amount: 150, timeAgo: 12 },
+        { side: 'NO', amount: 75, timeAgo: 28 },
+        { side: 'YES', amount: 300, timeAgo: 45 },
+        { side: 'NO', amount: 200, timeAgo: 67 },
+        { side: 'YES', amount: 89, timeAgo: 93 }
+      ];
+      
       // Distribution Chart with recent activity
       if (document.getElementById('distributionChartContainer')) {
         document.getElementById('distributionChartContainer').innerHTML = `

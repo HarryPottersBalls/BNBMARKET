@@ -1144,8 +1144,18 @@
         const market = this.markets.get(marketId);
         if (!market) throw new Error('Market not found');
         
+        console.log('🔥 BEFORE TRADE - Market shares:', [...market.shares]);
+        
         const pricing = this.calculateMarketPrices(marketId);
         const pricePerShare = pricing.prices[optionIndex];
+        
+        console.log('💰 Trade details:', {
+          marketId,
+          optionIndex,
+          bnbAmount,
+          pricePerShare,
+          currentProbabilities: pricing.probabilities
+        });
         
         // Calculate shares received
         const sharesReceived = bnbAmount / pricePerShare;
@@ -1158,6 +1168,13 @@
         market.shares[optionIndex] += sharesReceived;
         market.totalVolume += bnbAmount;
         market.volume24h += bnbAmount;
+        
+        console.log('🔥 AFTER TRADE - Market shares:', [...market.shares]);
+        console.log('📊 Shares added to option', optionIndex, ':', sharesReceived);
+        
+        // Calculate new probabilities after the trade
+        const newPricing = this.calculateMarketPrices(marketId);
+        console.log('📈 NEW PROBABILITIES after trade:', newPricing.probabilities);
         
         // Update user position
         const userKey = `${userAddress}-${marketId}`;
@@ -1563,11 +1580,14 @@
       // Update charts after a trade is executed
       updateChartsAfterTrade() {
         try {
+          console.log('🔄 Starting chart update after trade...');
+          
           // Show visual feedback that charts are updating
           this.showChartUpdateIndicator();
           
           // Get updated market pricing from prediction market engine
           const marketDepth = window.predictionMarket.getMarketDepth(this.currentMarket.id);
+          console.log('📊 Market depth after trade:', marketDepth);
           
           if (marketDepth && window.lmsrChartEngine) {
             // Update the current market data with new probabilities
@@ -1581,13 +1601,17 @@
             
             // Store globally for chart access
             window.currentMarket = updatedMarket;
+            console.log('✅ Updated global market data:', updatedMarket);
             
             // Recreate charts with updated data
             console.log('🔄 Refreshing charts with new probabilities:', marketDepth.probabilities);
             
             // Add slight delay for visual effect
             setTimeout(() => {
+              console.log('📊 Creating probability chart...');
               window.lmsrChartEngine.createProbabilityChart('probabilityChartContainer', this.currentMarket.id);
+              
+              console.log('📊 Creating distribution chart...');
               window.lmsrChartEngine.createCurrentDistributionChart('distributionChartContainer', this.currentMarket.id);
               
               // Hide update indicator
@@ -1595,6 +1619,8 @@
               
               // Show probability change notification
               this.showProbabilityChangeNotification(marketDepth.probabilities);
+              
+              console.log('✅ Charts update completed');
             }, 500);
             
             // Also update any volume charts if they exist
@@ -1603,6 +1629,11 @@
                 window.lmsrChartEngine.createVolumeChart('volumeChartContainer', this.currentMarket.id);
               }, 600);
             }
+          } else {
+            console.error('❌ Missing market depth or chart engine:', { 
+              marketDepth: !!marketDepth, 
+              chartEngine: !!window.lmsrChartEngine 
+            });
           }
         } catch (error) {
           console.error('Error updating charts after trade:', error);
@@ -3327,6 +3358,24 @@
       setTimeout(() => {
         if (window.enhancedOrderBook) {
           window.enhancedOrderBook.renderOrderBook(demoMarket);
+        }
+        
+        // CRITICAL: Initialize charts with the prediction market data
+        if (window.lmsrChartEngine) {
+          console.log('🎯 Initializing charts with demo market...');
+          
+          // Initialize the prediction market first
+          window.predictionMarket.initializeMarket(demoMarket.id, demoMarket.options);
+          
+          // Set global market reference for charts
+          window.currentMarket = demoMarket;
+          
+          // Create initial charts
+          setTimeout(() => {
+            window.lmsrChartEngine.createProbabilityChart('probabilityChartContainer', demoMarket.id);
+            window.lmsrChartEngine.createCurrentDistributionChart('distributionChartContainer', demoMarket.id);
+            console.log('📊 Charts initialized successfully');
+          }, 100);
         }
       }, 200);
       

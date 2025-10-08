@@ -3722,9 +3722,8 @@
       }
       
       // Distribution Chart with recent activity
-      const distContainer = document.getElementById('distributionChartContainer');
-      if (distContainer) {
-        distContainer.innerHTML = `
+      if (document.getElementById('distributionChartContainer')) {
+        document.getElementById('distributionChartContainer').innerHTML = `
           <div style="display:flex;flex-direction:column;height:100%;background:rgba(31,41,55,0.5);border-radius:8px;padding:20px;">
             <div style="color:#e5e7eb;font-weight:600;text-align:center;margin-bottom:12px;">📊 Live Market Activity</div>
             
@@ -5251,7 +5250,16 @@
       initializeWeb3();
 
       document.getElementById('tradeAmount').oninput = calculateProfit;
-      loadMarketPage();
+      
+      // Ensure API_BASE_URL is available before loading market
+      setTimeout(() => {
+        if (typeof API_BASE_URL !== 'undefined') {
+          loadMarketPage();
+        } else {
+          console.error('API_BASE_URL not defined, retrying...');
+          setTimeout(() => loadMarketPage(), 1000);
+        }
+      }, 100);
     });
 
     // Function to show My Bets section

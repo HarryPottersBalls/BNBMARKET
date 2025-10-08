@@ -441,6 +441,48 @@
             <div id="tradeMsg" style="margin-top:0;color:#9ca3af;font-size:1.05rem;min-height:22px;"></div>
           </div>
         </div>
+        
+        <!-- Enhanced Yin Yang Order Book -->
+        <div id="yinYangOrderBook" style="margin-top:40px;background:linear-gradient(135deg, #0f172a, #1e293b);border-radius:18px;padding:32px 24px;box-shadow:0 4px 32px rgba(0,0,0,0.2);border:1px solid #334155;position:relative;">
+          <!-- Yin Yang background symbol -->
+          <div style="position:absolute;top:20px;right:30px;font-size:2rem;opacity:0.08;color:#06b6d4;pointer-events:none;">☯</div>
+          
+          <div style="margin-bottom:24px;">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
+              <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(45deg, #f8fafc, #9ca3af);"></div>
+              <div>
+                <h2 style="color:#f8fafc;font-size:1.5rem;font-weight:800;margin:0;">陰陽市場 Order Book</h2>
+                <p style="color:#94a3b8;font-size:0.9rem;margin:0;">Balance • Harmony • Truth</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Market Info Header -->
+          <div style="background:rgba(51,65,85,0.3);border:1px solid #475569;border-radius:12px;padding:24px;margin-bottom:24px;">
+            <h3 style="color:#f8fafc;font-size:1.25rem;font-weight:700;margin-bottom:8px;">Market Outcome Ranges</h3>
+            <p style="color:#94a3b8;font-size:0.9rem;margin-bottom:16px;">Select an outcome range to place your prediction</p>
+            <div style="display:grid;grid-template-columns:2fr 1fr 2fr;gap:32px;font-size:0.85rem;color:#64748b;font-weight:600;">
+              <span style="color:#06b6d4;">OUTCOME</span>
+              <span style="text-align:center;color:#9ca3af;">% CHANCE</span>
+              <span style="text-align:right;color:#9ca3af;">ACTIONS</span>
+            </div>
+          </div>
+
+          <!-- Order Book Entries -->
+          <div id="orderBookEntries" style="display:flex;flex-direction:column;gap:8px;">
+            <!-- Will be populated by JavaScript -->
+          </div>
+
+          <!-- Selection Feedback -->
+          <div id="selectionFeedback" style="margin-top:24px;background:rgba(51,65,85,0.3);border:1px solid #475569;border-radius:12px;padding:16px;display:none;">
+            <div style="font-size:0.9rem;color:#94a3b8;">
+              Last selection: <span id="selectedRange" style="color:#f8fafc;font-weight:700;"></span> • 
+              <span id="selectedSide" style="color:#f8fafc;"></span> • 
+              <span id="selectedPrice" style="color:#06b6d4;"></span>
+            </div>
+          </div>
+        </div>
+        
         <div id="orderBook" style="margin-top:32px;"></div>
       </div>
       
@@ -1044,6 +1086,268 @@
 
     // ========================================
     // CHART ENGINE WITH LMSR INTEGRATION
+    // ========================================
+    // Enhanced Yin Yang Order Book System
+    // ========================================
+    
+    class YinYangOrderBookSystem {
+      constructor() {
+        this.selectedOutcome = null;
+        this.selectedSide = null;
+        this.outcomes = [];
+        this.isInitialized = false;
+      }
+      
+      // Generate dynamic outcome ranges based on current market
+      generateOutcomeRanges(market) {
+        if (!market || !market.options) return [];
+        
+        const ranges = [];
+        
+        // If market has specific volume ranges, use those
+        if (market.volumeRanges) {
+          return market.volumeRanges;
+        }
+        
+        // Generate ranges based on market options
+        market.options.forEach((option, index) => {
+          const volume = Math.random() * 500000 + 50000; // $50k - $550k
+          const probability = Math.random() * 95 + 1; // 1-96%
+          const change = (Math.random() - 0.5) * 40; // -20% to +20%
+          const yesPrice = (probability / 100).toFixed(3);
+          const noPrice = ((100 - probability) / 100).toFixed(3);
+          
+          ranges.push({
+            range: option.name,
+            volume: `$${(volume / 1000).toFixed(0)}k Vol.`,
+            probability: Math.round(probability),
+            change: Math.round(change),
+            yesPrice: `${yesPrice}¢`,
+            noPrice: `${noPrice}¢`,
+            optionIndex: index,
+            isYang: option.isYang || option.name.toLowerCase().includes('yes') || index === 0
+          });
+        });
+        
+        return ranges;
+      }
+      
+      // Render the order book interface
+      renderOrderBook(market) {
+        if (!market) return;
+        
+        this.outcomes = this.generateOutcomeRanges(market);
+        const container = document.getElementById('orderBookEntries');
+        if (!container) return;
+        
+        container.innerHTML = '';
+        
+        this.outcomes.forEach((outcome, index) => {
+          const entryDiv = document.createElement('div');
+          entryDiv.className = 'order-book-entry';
+          entryDiv.style.cssText = `
+            background: rgba(51,65,85,0.2);
+            border: 1px solid #475569;
+            border-radius: 12px;
+            padding: 16px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+          `;
+          
+          entryDiv.onmouseenter = () => {
+            entryDiv.style.borderColor = '#64748b';
+            entryDiv.style.background = 'rgba(51,65,85,0.4)';
+          };
+          
+          entryDiv.onmouseleave = () => {
+            entryDiv.style.borderColor = '#475569';
+            entryDiv.style.background = 'rgba(51,65,85,0.2)';
+          };
+          
+          entryDiv.innerHTML = `
+            <div style="display:grid;grid-template-columns:2fr 1fr 2fr;gap:16px;align-items:center;">
+              <!-- Left: Outcome Info -->
+              <div>
+                <div style="color:#f8fafc;font-weight:700;font-size:1.1rem;margin-bottom:4px;">${outcome.range}</div>
+                <div style="color:#64748b;font-size:0.85rem;display:flex;align-items:center;gap:4px;">
+                  ${outcome.volume}
+                  <svg style="width:12px;height:12px;" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/>
+                    <path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"/>
+                  </svg>
+                </div>
+              </div>
+
+              <!-- Middle: Probability -->
+              <div style="text-align:center;">
+                <div style="display:flex;align-items:center;justify-content:center;gap:8px;">
+                  <span style="color:#f8fafc;font-weight:800;font-size:1.5rem;">${outcome.probability}%</span>
+                  <span style="font-size:0.85rem;font-weight:700;color:${outcome.change > 0 ? '#10b981' : '#ef4444'};">
+                    ${outcome.change > 0 ? '+' : ''}${outcome.change}%
+                  </span>
+                </div>
+              </div>
+
+              <!-- Right: Buy Buttons -->
+              <div style="display:flex;gap:12px;">
+                <!-- YES Button - Yang (Light) -->
+                <button 
+                  onclick="window.yinYangOrderBook.handleBuy(${index}, 'yes')"
+                  style="flex:1;background:linear-gradient(135deg, #f1f5f9, #e2e8f0);color:#0f172a;font-weight:700;padding:12px 16px;border-radius:8px;border:2px solid #cbd5e1;transition:all 0.3s ease;box-shadow:0 2px 8px rgba(241,245,249,0.3);"
+                  onmouseover="this.style.background='linear-gradient(135deg, #ffffff, #f1f5f9)';this.style.borderColor='#94a3b8';this.style.transform='translateY(-1px) scale(1.02)';"
+                  onmouseout="this.style.background='linear-gradient(135deg, #f1f5f9, #e2e8f0)';this.style.borderColor='#cbd5e1';this.style.transform='none';"
+                >
+                  <div style="font-size:0.75rem;color:#475569;margin-bottom:2px;">陽 Buy Yes</div>
+                  <div style="font-size:1.1rem;font-weight:800;">${outcome.yesPrice}</div>
+                </button>
+
+                <!-- NO Button - Yin (Dark) -->
+                <button 
+                  onclick="window.yinYangOrderBook.handleBuy(${index}, 'no')"
+                  style="flex:1;background:linear-gradient(135deg, #1e293b, #0f172a);color:#f1f5f9;font-weight:700;padding:12px 16px;border-radius:8px;border:2px solid #475569;transition:all 0.3s ease;box-shadow:0 2px 8px rgba(30,41,59,0.5);"
+                  onmouseover="this.style.background='linear-gradient(135deg, #334155, #1e293b)';this.style.borderColor='#64748b';this.style.transform='translateY(-1px) scale(1.02)';"
+                  onmouseout="this.style.background='linear-gradient(135deg, #1e293b, #0f172a)';this.style.borderColor='#475569';this.style.transform='none';"
+                >
+                  <div style="font-size:0.75rem;color:#94a3b8;margin-bottom:2px;">陰 Buy No</div>
+                  <div style="font-size:1.1rem;font-weight:800;">${outcome.noPrice}</div>
+                </button>
+              </div>
+            </div>
+          `;
+          
+          container.appendChild(entryDiv);
+        });
+        
+        this.isInitialized = true;
+      }
+      
+      // Handle buy button clicks
+      handleBuy(outcomeIndex, side) {
+        const outcome = this.outcomes[outcomeIndex];
+        if (!outcome) return;
+        
+        this.selectedOutcome = outcome;
+        this.selectedSide = side;
+        
+        // Update selection feedback
+        this.updateSelectionFeedback();
+        
+        // Simulate the buy in our trading system
+        this.executeBuy(outcome, side);
+        
+        console.log(`Buying ${side} for ${outcome.range} at ${side === 'yes' ? outcome.yesPrice : outcome.noPrice}`);
+      }
+      
+      // Execute the buy and update charts
+      async executeBuy(outcome, side) {
+        if (!currentMarket) return;
+        
+        // Determine the option index
+        const optionIndex = outcome.optionIndex !== undefined ? outcome.optionIndex : 0;
+        
+        // If side is 'no', we need to find the opposing option or create one
+        let targetOptionIndex = optionIndex;
+        if (side === 'no') {
+          // For NO bets, either use a specific NO option or the opposing option
+          const noOption = currentMarket.options.find(opt => 
+            opt.name.toLowerCase().includes('no') || 
+            opt.name.toLowerCase().includes('false') ||
+            opt.name.toLowerCase().includes('反對')
+          );
+          if (noOption) {
+            targetOptionIndex = currentMarket.options.indexOf(noOption);
+          } else {
+            // Use the next option as the opposing choice
+            targetOptionIndex = (optionIndex + 1) % currentMarket.options.length;
+          }
+        }
+        
+        // Random amount between 0.1 and 2 BNB for simulation
+        const amount = 0.1 + Math.random() * 1.9;
+        
+        try {
+          // Execute the trade using our enhanced trading system
+          const tradeResult = await window.enhancedTrading.executeTrade(
+            currentMarket.id,
+            targetOptionIndex,
+            amount,
+            walletAddress || 'simulation_user'
+          );
+          
+          if (tradeResult.success) {
+            // Update the outcome probability based on the trade
+            const impact = Math.min(amount * 5, 15); // Limit impact to 15%
+            
+            if (side === 'yes') {
+              outcome.probability = Math.min(95, outcome.probability + impact);
+            } else {
+              outcome.probability = Math.max(5, outcome.probability - impact);
+            }
+            
+            // Update price based on new probability
+            outcome.yesPrice = `${(outcome.probability / 100).toFixed(3)}¢`;
+            outcome.noPrice = `${((100 - outcome.probability) / 100).toFixed(3)}¢`;
+            
+            // Re-render the order book with updated data
+            this.renderOrderBook(currentMarket);
+            
+            // Force update charts
+            this.refreshCharts();
+            
+            // Show success message
+            this.showTradeMessage(`✅ Simulated ${side.toUpperCase()} trade for ${outcome.range}`, 'success');
+          }
+        } catch (error) {
+          console.error('Order book trade error:', error);
+          this.showTradeMessage(`❌ Trade failed: ${error.message}`, 'error');
+        }
+      }
+      
+      // Update selection feedback display
+      updateSelectionFeedback() {
+        const feedback = document.getElementById('selectionFeedback');
+        const selectedRange = document.getElementById('selectedRange');
+        const selectedSide = document.getElementById('selectedSide');
+        const selectedPrice = document.getElementById('selectedPrice');
+        
+        if (feedback && this.selectedOutcome && this.selectedSide) {
+          selectedRange.textContent = this.selectedOutcome.range;
+          selectedSide.textContent = this.selectedSide === 'yes' ? '陽 YES' : '陰 NO';
+          selectedPrice.textContent = this.selectedSide === 'yes' ? this.selectedOutcome.yesPrice : this.selectedOutcome.noPrice;
+          feedback.style.display = 'block';
+        }
+      }
+      
+      // Refresh charts after trade
+      refreshCharts() {
+        if (currentMarket && window.lmsrChartEngine) {
+          setTimeout(() => {
+            // Refresh both charts
+            window.lmsrChartEngine.createProbabilityChart('probabilityChartContainer', currentMarket.id);
+            window.lmsrChartEngine.createCurrentDistributionChart('distributionChartContainer', currentMarket.id);
+            
+            // Update market info
+            renderMarketInfo(currentMarket);
+            updateTradePanel();
+          }, 500);
+        }
+      }
+      
+      // Show trade message
+      showTradeMessage(message, type) {
+        const messageEl = document.getElementById('tradeMsg');
+        if (messageEl) {
+          messageEl.innerHTML = `<div style="color:${type === 'success' ? '#10b981' : '#ef4444'};font-weight:600;">${message}</div>`;
+          setTimeout(() => {
+            messageEl.innerHTML = '';
+          }, 3000);
+        }
+      }
+    }
+    
+    // Initialize the order book system
+    window.yinYangOrderBook = new YinYangOrderBookSystem();
+
     // ========================================
     // Market Simulation and Enhanced Trading Logic
     // ========================================
@@ -1988,6 +2292,11 @@
         html += market.options.map((opt,i)=>`${opt.name}: <span style='color:#9ca3af;'>${totals[i]}</span>`).join(' &nbsp; ');
         document.getElementById('totalBuys').innerHTML = html;
       }
+      
+      // Render the enhanced order book
+      if (window.yinYangOrderBook) {
+        window.yinYangOrderBook.renderOrderBook(market);
+      }
     }
 
     function renderOrderBookPro(orderBook, market, selectedOutcome) {
@@ -2187,6 +2496,14 @@
             renderOrderBookPro(currentOrderBook, currentMarket, selectedOutcome);
             updateTradePanel();
             calculateProfit();
+            
+            // Force refresh charts with new data
+            if (window.lmsrChartEngine) {
+              window.lmsrChartEngine.createProbabilityChart('probabilityChartContainer', currentMarket.id);
+              if (document.getElementById('distributionChartContainer').style.display !== 'none') {
+                window.lmsrChartEngine.createCurrentDistributionChart('distributionChartContainer', currentMarket.id);
+              }
+            }
           }, 500);
           
           // Add to order book simulation
@@ -2295,10 +2612,51 @@
       }
     }
 
+    // Create a demo market for testing
+    function createDemoMarket() {
+      return {
+        id: 'demo-market-1',
+        title: '2024 BNB Price Prediction - Will BNB reach $1000?',
+        description: 'Predict whether BNB will reach $1000 by end of 2024',
+        created_at: new Date().toISOString(),
+        resolved: false,
+        options: [
+          {
+            name: 'YES - BNB hits $1000 ☀️',
+            image: null,
+            isYang: true
+          },
+          {
+            name: 'NO - BNB stays under $1000 🌙',
+            image: null,
+            isYang: false
+          },
+          {
+            name: 'MAYBE - BNB hits $800-999',
+            image: null,
+            isYang: null
+          },
+          {
+            name: 'UNLIKELY - BNB drops below $300',
+            image: null,
+            isYang: false
+          }
+        ],
+        metadata: {
+          admin_odds: [0.4, 0.3, 0.2, 0.1]
+        }
+      };
+    }
+
     async function loadMarketPage() {
       const marketId = getMarketId();
       if (!marketId) {
-        document.getElementById('marketSection').innerHTML = '<div style="color:#ef4444;">Invalid market ID.</div>';
+        // Create a demo market for testing the enhanced order book
+        currentMarket = createDemoMarket();
+        currentOrderBook = [];
+        renderMarketInfo(currentMarket);
+        renderChart(currentMarket, currentOrderBook);
+        updateTradePanel();
         return;
       }
       

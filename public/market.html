@@ -2068,6 +2068,15 @@
           );
           
           if (result.success) {
+            console.log('🎯 Trade executed successfully, forcing immediate chart update...');
+            
+            // Get the updated market data immediately
+            const updatedDepth = window.predictionMarket.getMarketDepth(this.currentMarket.id);
+            console.log('📊 Updated market depth:', updatedDepth);
+            
+            // Force immediate chart recreation
+            this.forceChartsRefresh(updatedDepth);
+            
             // Update UI
             this.renderOrderBook(this.currentMarket);
             this.closeTradePanel();
@@ -2077,15 +2086,113 @@
               `✅ Successfully bought ${result.trade.shares.toFixed(3)} shares for ${amount} BNB`,
               'success'
             );
-            
-            // Update charts
-            setTimeout(() => {
-              console.log('🔄 About to call updateChartsAfterTrade...');
-              this.updateChartsAfterTrade();
-            }, 300);
           }
         } catch (error) {
           alert(`Trade failed: ${error.message}`);
+        }
+      }
+      
+      // Force immediate chart refresh with new data
+      forceChartsRefresh(marketDepth) {
+        console.log('🔄 Force refreshing charts with data:', marketDepth);
+        
+        // Destroy existing charts completely
+        if (window.Chart && window.Chart.instances) {
+          Object.values(window.Chart.instances).forEach(chart => {
+            if (chart) chart.destroy();
+          });
+        }
+        
+        // Clear chart containers
+        const probContainer = document.getElementById('probabilityChartContainer');
+        const distContainer = document.getElementById('distributionChartContainer');
+        
+        if (probContainer) probContainer.innerHTML = '';
+        if (distContainer) distContainer.innerHTML = '';
+        
+        // Create new charts with live data
+        setTimeout(() => {
+          this.createLiveChart('probabilityChartContainer', marketDepth, 'line');
+          this.createLiveChart('distributionChartContainer', marketDepth, 'doughnut');
+          console.log('✅ Charts forcibly refreshed with new probabilities');
+        }, 100);
+      }
+      
+      // Create chart directly with live market data
+      createLiveChart(containerId, marketDepth, chartType) {
+        const container = document.getElementById(containerId);
+        if (!container || !marketDepth) return;
+        
+        const canvas = document.createElement('canvas');
+        container.appendChild(canvas);
+        
+        if (typeof Chart !== 'undefined') {
+          const ctx = canvas.getContext('2d');
+          const options = this.currentMarket.options;
+          
+          let chartConfig;
+          
+          if (chartType === 'line') {
+            chartConfig = {
+              type: 'line',
+              data: {
+                labels: ['Start', 'Current'],
+                datasets: options.map((option, index) => ({
+                  label: `${option.name} (${marketDepth.probabilities[index].toFixed(1)}%)`,
+                  data: [50, marketDepth.probabilities[index]], // Show change from 50% to current
+                  borderColor: index === 0 ? '#10b981' : '#ef4444',
+                  backgroundColor: index === 0 ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)',
+                  tension: 0.4
+                }))
+              },
+              options: {
+                responsive: true,
+                plugins: {
+                  title: { display: true, text: 'Market Probabilities', color: '#f8fafc' },
+                  legend: { labels: { color: '#f8fafc' } }
+                },
+                scales: {
+                  y: { 
+                    beginAtZero: true, 
+                    max: 100,
+                    ticks: { color: '#94a3b8' },
+                    grid: { color: 'rgba(148,163,184,0.1)' }
+                  },
+                  x: { 
+                    ticks: { color: '#94a3b8' },
+                    grid: { color: 'rgba(148,163,184,0.1)' }
+                  }
+                }
+              }
+            };
+          } else {
+            chartConfig = {
+              type: 'doughnut',
+              data: {
+                labels: options.map((option, index) => 
+                  `${option.name} (${marketDepth.probabilities[index].toFixed(1)}%)`
+                ),
+                datasets: [{
+                  data: marketDepth.probabilities,
+                  backgroundColor: options.map((_, index) => 
+                    index === 0 ? '#10b981' : '#ef4444'
+                  ),
+                  borderWidth: 2,
+                  borderColor: '#1e293b'
+                }]
+              },
+              options: {
+                responsive: true,
+                plugins: {
+                  title: { display: true, text: 'Current Distribution', color: '#f8fafc' },
+                  legend: { labels: { color: '#f8fafc' } }
+                }
+              }
+            };
+          }
+          
+          new Chart(ctx, chartConfig);
+          console.log(`📊 Created ${chartType} chart with probabilities:`, marketDepth.probabilities);
         }
       }
     }

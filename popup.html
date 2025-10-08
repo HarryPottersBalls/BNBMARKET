@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>陰陽市場 - Yin Yang Market</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header class="market-header">
+            <h1 class="main-title">陰陽市場</h1>
+            <p class="subtitle">Balance + Harmony - Truth</p>
+
+            <div class="balance-section">
+                <div class="balance-item">
+                    <h3>Balance</h3>
+                    <p>Harmony</p>
+                    <p>Flow</p>
+                    <p>Wisdom</p>
+                </div>
+            </div>
+
+            <div class="wallet-section">
+                <div class="binance-price">Binance<br>$8,888.00</div>
+                <button class="connect-btn" id="connectWallet">Connect Wallet</button>
+            </div>
+        </header>
+
+        <div class="divider"></div>
+
+        <div class="stats-grid">
+            <div class="stat-card yin">
+                <div class="stat-value">¥9.2M</div>
+                <div class="stat-label">Yin Volume</div>
+            </div>
+
+            <div class="stat-card balanced">
+                <div class="stat-value">¥18.6M</div>
+                <div class="stat-label">Total Harmony</div>
+            </div>
+
+            <div class="stat-card yang">
+                <div class="stat-value">¥9.4M</div>
+                <div class="stat-label">Yang Volume</div>
+            </div>
+        </div>
+
+        <section class="predictions-section">
+            <h3>Flow of Markets</h3>
+
+            <div class="prediction-card yang">
+                <div class="prediction-header">
+                    <p class="prediction-question">Will Bitcoin reach $100k by end of 2025?</p>
+                    <span class="volume-badge yang">Volume: ¥2.4M</span>
+                </div>
+                <div class="vote-section">
+                    <div class="vote-option">
+                        <button class="vote-btn yes">YES</button>
+                        <div class="vote-count">684</div>
+                    </div>
+                    <div class="vote-option">
+                        <button class="vote-btn no">NO</button>
+                        <div class="vote-count">324</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="prediction-card balanced">
+                <div class="prediction-header">
+                    <p class="prediction-question">Chinese GDP growth exceeds 5.5% this year?</p>
+                    <span class="volume-badge balanced">Volume: ¥1.8M</span>
+                </div>
+                <div class="vote-section">
+                    <div class="vote-option">
+                        <button class="vote-btn yes">YES</button>
+                        <div class="vote-count">554</div>
+                    </div>
+                    <div class="vote-option">
+                        <button class="vote-btn no">NO</button>
+                        <div class="vote-count">454</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script src="popup.js"></script>
+</body>
+</html>

@@ -1,0 +1,89 @@
+name: Deploy Prediction Market Contract
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/contracts/**'
+      - 'scripts/**'
+      - 'hardhat.config.js'
+
+jobs:
+  deploy-testnet:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18.x'
+
+    - name: Install Dependencies
+      run: |
+        npm install
+        npm install -g hardhat
+
+    - name: Compile Contracts
+      run: npx hardhat compile
+
+    - name: Deploy to BSC Testnet
+      env:
+        PRIVATE_KEY: ${{ secrets.BSC_TESTNET_PRIVATE_KEY }}
+        BSCSCAN_API_KEY: ${{ secrets.BSCSCAN_API_KEY }}
+      run: npx hardhat run scripts/deploy.js --network bscTestnet
+
+    - name: Verify Contract on BscScan
+      env:
+        PRIVATE_KEY: ${{ secrets.BSC_TESTNET_PRIVATE_KEY }}
+        BSCSCAN_API_KEY: ${{ secrets.BSCSCAN_API_KEY }}
+      run: npx hardhat verify --network bscTestnet ${CONTRACT_ADDRESS}
+
+    - name: Notify Deployment
+      uses: 8398a7/action-slack@v3
+      with:
+        status: ${{ job.status }}
+        text: Prediction Market Contract deployed to BSC Testnet
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+
+  deploy-mainnet:
+    needs: deploy-testnet
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18.x'
+
+    - name: Install Dependencies
+      run: |
+        npm install
+        npm install -g hardhat
+
+    - name: Compile Contracts
+      run: npx hardhat compile
+
+    - name: Deploy to BSC Mainnet
+      env:
+        PRIVATE_KEY: ${{ secrets.BSC_MAINNET_PRIVATE_KEY }}
+        BSCSCAN_API_KEY: ${{ secrets.BSCSCAN_API_KEY }}
+      run: npx hardhat run scripts/deploy.js --network bscMainnet
+
+    - name: Verify Contract on BscScan
+      env:
+        PRIVATE_KEY: ${{ secrets.BSC_MAINNET_PRIVATE_KEY }}
+        BSCSCAN_API_KEY: ${{ secrets.BSCSCAN_API_KEY }}
+      run: npx hardhat verify --network bscMainnet ${CONTRACT_ADDRESS}
+
+    - name: Notify Deployment
+      uses: 8398a7/action-slack@v3
+      with:
+        status: ${{ job.status }}
+        text: Prediction Market Contract deployed to BSC Mainnet
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}

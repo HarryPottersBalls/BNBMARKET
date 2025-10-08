@@ -1,0 +1,31 @@
+[package]
+name = "rust-lmsr"
+version = "0.1.0"
+edition = "2021"
+description = "Logarithmic Market Scoring Rule (LMSR) Engine for WebAssembly"
+license = "MIT"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[features]
+default = ["console_error_panic_hook"]
+
+[dependencies]
+wasm-bindgen = "0.2.84"
+wasm-bindgen-futures = "0.4.37"
+console_error_panic_hook = { version = "0.1.7", optional = true }
+web-sys = { version = "0.3.61", features = ["console"] }
+rust_decimal = { version = "1.33.1", features = ["serde"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+thiserror = "1.0"
+chrono = { version = "0.4", features = ["serde"] }
+
+[dev-dependencies]
+wasm-bindgen-test = "0.3.34"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1

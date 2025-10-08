@@ -1,0 +1,47 @@
+name: CI/CD Pipeline
+
+on: [push]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18' # Use Node.js 18
+
+    - name: Install Backend Dependencies
+      run: npm install
+      working-directory: ./BNBMARKET
+
+    - name: Install Frontend Dependencies
+      run: npm install
+      working-directory: ./BNBMARKET/client
+
+    - name: Run Tests
+      run: npm test
+      working-directory: ./BNBMARKET
+      env:
+        # Pass test environment variables securely
+        TEST_DATABASE_URL: ${{ secrets.TEST_DATABASE_URL }}
+        ADMIN_WALLET: ${{ secrets.ADMIN_WALLET }}
+
+    - name: Build Frontend
+      run: npm run build
+      working-directory: ./BNBMARKET/client
+
+    # Optional: Add steps for Docker build and deployment here
+    # - name: Build Docker Image
+    #   run: docker build -t bnbmarket .
+    #   working-directory: ./BNBMARKET
+
+    # - name: Deploy to Render (example)
+    #   if: github.ref == 'refs/heads/main'
+    #   run: |
+    #     # Your deployment commands here
+    #     # e.g., render-cli deploy --service bnbmarket-backend

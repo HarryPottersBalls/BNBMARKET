@@ -1,0 +1,28 @@
+{
+  "manifest_version": 3,
+  "name": "陰陽市場 - Yin Yang Market",
+  "version": "1.0.0",
+  "description": "Balance + Harmony - Truth - Market prediction on BSC",
+  "permissions": [
+    "storage",
+    "activeTab",
+    "https://api.yinyangmarket.com/*"
+  ],
+  "host_permissions": [
+    "https://api.yinyangmarket.com/*"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "陰陽市場",
+    "default_icon": {
+      "16": "icons/icon16.txt",
+      "48": "icons/icon48.txt",
+      "128": "icons/icon128.txt"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.txt",
+    "48": "icons/icon48.txt",
+    "128": "icons/icon128.txt"
+  }
+}

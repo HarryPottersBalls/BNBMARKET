@@ -1,0 +1,214 @@
+:root {
+    --dark-bg: #1A202C;
+    --yin-color: #4A5568;
+    --yang-color: #E53E3E;
+    --balanced-color: #38A169;
+    --neutral-color: #718096;
+    --text-light: #FFFFFF;
+    --text-dark: #1A202C;
+    --card-bg: #2D3748;
+}
+
+body {
+    width: 380px;
+    height: 580px;
+    margin: 0;
+    padding: 0;
+    background: var(--dark-bg);
+    color: var(--text-light);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    overflow-x: hidden;
+}
+
+.container {
+    padding: 20px;
+}
+
+/* Header Styles */
+.market-header {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.main-title {
+    font-size: 2.2rem;
+    font-weight: bold;
+    margin: 0;
+    background: linear-gradient(45deg, var(--yang-color), var(--balanced-color), var(--yin-color));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.subtitle {
+    color: var(--balanced-color);
+    font-size: 0.9rem;
+    margin: 5px 0 15px 0;
+}
+
+.balance-section {
+    display: flex;
+    justify-content: center;
+    gap: 25px;
+    margin-bottom: 20px;
+}
+
+.balance-item h3 {
+    color: var(--balanced-color);
+    margin: 0 0 8px 0;
+    font-size: 0.9rem;
+}
+
+.wallet-section {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--card-bg);
+    padding: 15px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+}
+
+.binance-price {
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: var(--yang-color);
+}
+
+.connect-btn {
+    background: var(--yang-color);
+    color: var(--text-dark);
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+}
+
+.connect-btn:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+}
+
+.divider {
+    height: 1px;
+    background: var(--neutral-color);
+    margin: 15px 0;
+    opacity: 0.3;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.stat-card {
+    padding: 12px 8px;
+    border-radius: 8px;
+    text-align: center;
+    transition: transform 0.2s ease;
+}
+
+.stat-card.yin {
+    background: var(--yin-color);
+    color: var(--text-light);
+}
+
+.stat-card.balanced {
+    background: var(--balanced-color);
+    color: var(--text-light);
+}
+
+.stat-card.yang {
+    background: var(--yang-color);
+    color: var(--text-dark);
+}
+
+.stat-value {
+    font-size: 1.1rem;
+    font-weight: bold;
+    margin: 5px 0;
+}
+
+.stat-label {
+    font-size: 0.7rem;
+    opacity: 0.9;
+}
+
+.predictions-section h3 {
+    text-align: center;
+    margin: 0 0 15px 0;
+    font-size: 1.2rem;
+    color: var(--text-light);
+}
+
+.prediction-card {
+    background: var(--card-bg);
+    padding: 15px;
+    border-radius: 10px;
+    margin-bottom: 12px;
+    border-left: 4px solid var(--neutral-color);
+}
+
+.prediction-card.yang { border-left-color: var(--yang-color); }
+.prediction-card.balanced { border-left-color: var(--balanced-color); }
+.prediction-card.yin { border-left-color: var(--yin-color); }
+
+.prediction-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+}
+
+.prediction-question {
+    flex: 1;
+    font-size: 0.9rem;
+    font-weight: 500;
+    margin: 0;
+    line-height: 1.3;
+}
+
+.volume-badge {
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: bold;
+    margin-left: 10px;
+    white-space: nowrap;
+}
+
+.vote-section {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.vote-option {
+    flex: 1;
+    text-align: center;
+}
+
+.vote-btn {
+    width: 100%;
+    padding: 6px 0;
+    border: none;
+    border-radius: 6px;
+    font-weight: bold;
+    font-size: 0.8rem;
+    cursor: pointer;
+}
+
+.vote-btn.yes {
+    background: var(--yang-color);
+    color: var(--text-dark);
+}
+
+.vote-btn.no {
+    background: var(--yin-color);
+    color: var(--text-light);
+}

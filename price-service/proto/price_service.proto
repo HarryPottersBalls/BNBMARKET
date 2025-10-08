@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+package priceservice;
+
+service PriceService {
+  // Unary RPC for fetching current prices
+  rpc GetCurrentPrices(PriceRequest) returns (PriceResponse) {}
+
+  // Server streaming RPC for real-time price updates
+  rpc SubscribePriceUpdates(SubscriptionRequest) returns (stream PriceUpdate) {}
+}
+
+// Request for specific tokens
+message PriceRequest {
+  repeated string tokens = 1;  // e.g., ["BNB", "ETH", "USDT"]
+}
+
+// Price response
+message PriceResponse {
+  map<string, TokenPrice> prices = 1;
+  int64 timestamp = 2;
+}
+
+// Single token price
+message TokenPrice {
+  double price = 1;
+  string source = 2;  // Price source (e.g., "binance", "coingecko")
+}
+
+// Subscription request
+message SubscriptionRequest {
+  repeated string tokens = 1;
+  int32 update_interval_ms = 2;  // Desired update frequency
+}
+
+// Real-time price update
+message PriceUpdate {
+  string token = 1;
+  double price = 2;
+  int64 timestamp = 3;
+}

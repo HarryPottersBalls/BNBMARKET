@@ -1,73 +1,52 @@
-# BNBmarket - Decentralized Prediction Markets
+# BNBMarket Backend
 
-A decentralized prediction market platform built on Binance Smart Chain, allowing users to create and trade on prediction markets using BNB.
+## Project Status
+![Continuous Integration](https://github.com/yourusername/bnbmarket-backend/actions/workflows/ci.yml/badge.svg)
+[![Coverage](https://codecov.io/gh/yourusername/bnbmarket-backend/branch/main/graph/badge.svg)](https://codecov.io/gh/yourusername/bnbmarket-backend)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=bnbmarket-backend&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=bnbmarket-backend)
 
-## 🚀 Features
+## Overview
+BNBMarket is a prediction market platform built on the Binance Smart Chain.
 
-- **Create Markets**: Create prediction markets on any topic with custom options and images
-- **Place Bets**: Bet BNB on outcomes with transparent, blockchain-based odds
-- **Real-time Charts**: Price and volume charts showing market dynamics
-- **Admin Panel**: Market review and odds management system
-- **Treasury System**: Secure fund management on BSC
-- **MetaMask Integration**: Connect with MetaMask wallet for BSC transactions
-
-## 🏗️ Tech Stack
-
-### Frontend
-- **HTML/CSS/JavaScript**: Pure web technologies, no frameworks
-- **Web3.js**: For Binance Smart Chain interactions
-- **Chart.js**: Real-time market visualization
-- **MetaMask**: Wallet connection and transaction signing
-
-### Backend
-- **Node.js + Express**: RESTful API server
-- **PostgreSQL**: Market and betting data storage
-- **Cloudinary**: Image upload and storage
-- **Web3**: BSC blockchain interactions
-
-### Blockchain
-- **Binance Smart Chain**: Primary blockchain network
-- **BNB**: Native token for all transactions
-- **Smart Contracts**: Custom contracts for market logic (future implementation)
-
-## 📋 Prerequisites
-
+## Prerequisites
 - Node.js 18+
-- PostgreSQL database
-- MetaMask wallet extension
-- Cloudinary account (for image uploads)
+- npm 9+
 
-## 🛠️ Installation
-
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/YOUR-USERNAME/bnbmarket.git
-   cd bnbmarket
+## Installation
+1. Clone the repository
+2. Install dependencies:
    ```
-
-2. **Install dependencies**
-   ```bash
    npm install
    ```
 
-3. **Environment setup**
-   Create a `.env` file in the root directory:
-   ```env
-   DATABASE_URL=your_postgresql_connection_string
-   CLOUDINARY_CLOUD_NAME=your_cloudinary_cloud_name
-   CLOUDINARY_API_KEY=your_cloudinary_api_key
-   CLOUDINARY_API_SECRET=your_cloudinary_api_secret
-   BSC_RPC_URL=https://bsc-dataseed1.binance.org/
-   PORT=3001
-   ```
+## Running the Application
+- Development: `npm run dev`
+- Production: `npm start`
 
-4. **Database setup**
-   The database tables will be automatically created when you start the server.
+## Testing
+- Run tests: `npm test`
+- Run with coverage: `npm run test:coverage`
 
-5. **Start the server**
-   ```bash
-   npm start
-   ```
+## Contributing
+1. Fork the repository
+2. Create your feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
 
-6. **Access the application**
-   Open your browser and navigate to `http://localhost:3001`
+## Code Quality
+- Linting: `npm run lint`
+- Formatting: `npm run format`
+
+## Environment Variables
+Create a `.env` file with the following variables:
+- `DATABASE_URL`
+- `PORT`
+- `NODE_ENV`
+
+## Docker Support
+Build: `docker build -t bnbmarket-backend .`
+Run: `docker run -p 3000:3000 bnbmarket-backend`
+
+## License
+[Insert License Here]

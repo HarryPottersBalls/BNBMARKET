@@ -1,0 +1,56 @@
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+echo "🔍 Running pre-commit security checks..."
+
+# Check for .env files being committed
+if git diff --cached --name-only | grep -q "^\.env$\|^\.env\."; then
+    echo "🚫 ERROR: Attempting to commit .env file!"
+    echo "   Files found:"
+    git diff --cached --name-only | grep "^\.env"
+    echo ""
+    echo "   Please remove .env from staging:"
+    echo "   git reset HEAD .env"
+    echo "   git reset HEAD .env.*"
+    exit 1
+fi
+
+# Check for potential API keys and secrets in staged files
+SUSPICIOUS_PATTERNS="(api[_-]?key|api[_-]?secret|password|token|private[_-]?key|bearer|authorization|secret[_-]?key)"
+
+if git diff --cached --diff-filter=ACM | grep -iE "$SUSPICIOUS_PATTERNS" | grep -v ".env.example" | grep -q ""; then
+    echo "⚠️  WARNING: Potential secrets detected in staged files!"
+    echo ""
+    echo "   Found suspicious patterns in:"
+    git diff --cached --diff-filter=ACM --name-only | while read file; do
+        if git diff --cached "$file" | grep -iE "$SUSPICIOUS_PATTERNS" | grep -q ""; then
+            echo "   - $file"
+        fi
+    done
+    echo ""
+    echo "   Please review these files carefully before committing."
+    echo "   If these are actual secrets, remove them and use environment variables instead."
+    echo ""
+    read -p "   Do you want to proceed with the commit anyway? (y/N): " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        echo "   Commit aborted."
+        exit 1
+    fi
+fi
+
+# Check for hardcoded credentials (specific patterns)
+if git diff --cached --diff-filter=ACM | grep -E "cloudinary://[^/]+/[^/]+@|[0-9]{32,}" | grep -v ".env.example" | grep -q ""; then
+    echo "⚠️  WARNING: Potential hardcoded credentials detected!"
+    echo "   Found patterns that look like API credentials or IDs."
+    echo "   Please ensure you're using environment variables instead."
+    echo ""
+    read -p "   Do you want to proceed with the commit anyway? (y/N): " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        echo "   Commit aborted."
+        exit 1
+    fi
+fi
+
+echo "✅ Pre-commit security checks passed!"

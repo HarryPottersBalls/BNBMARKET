@@ -1,0 +1,51 @@
+# Production Dockerfile for BNBMarket
+
+# Use official Node.js LTS image
+FROM node:18-alpine AS build
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install dependencies
+RUN npm ci --only=production
+
+# Copy application code
+COPY . .
+
+# Install Rust and wasm-pack
+RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
+ENV PATH="/root/.cargo/bin:${PATH}"
+RUN rustup target add wasm32-unknown-unknown
+RUN cargo install wasm-pack
+
+# Build WebAssembly module
+WORKDIR /app/wasm-lmsr
+RUN wasm-pack build --target web
+
+# Return to main app directory
+WORKDIR /app
+
+# Build production assets
+RUN npm run build
+
+# Production stage
+FROM node:18-alpine
+
+# Install production dependencies
+WORKDIR /app
+COPY --from=build /app/package*.json ./
+COPY --from=build /app/node_modules ./node_modules
+COPY --from=build /app/dist ./dist
+COPY --from=build /app/wasm-lmsr/pkg ./wasm-lmsr/pkg
+
+# Expose port (adjust as needed)
+EXPOSE 3000
+
+# Set environment to production
+ENV NODE_ENV=production
+
+# Start command
+CMD ["npm", "start"]

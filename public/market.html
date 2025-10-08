@@ -404,10 +404,14 @@
             
             <!-- Chart Containers - Show LMSR Analysis immediately -->
             <div id="probabilityChartContainer" style="height: 300px; position: relative;">
-              <canvas id="probabilityChart"></canvas>
+              <div style="display:flex;align-items:center;justify-content:center;height:100%;color:#9ca3af;font-size:14px;">
+                🔄 Loading LMSR Trade Analysis...
+              </div>
             </div>
             <div id="distributionChartContainer" style="height: 300px; position: relative;">
-              <canvas id="distributionChart"></canvas>
+              <div style="display:flex;align-items:center;justify-content:center;height:100%;color:#9ca3af;font-size:14px;">
+                🔄 Loading Continuous Purchase Analysis...
+              </div>
             </div>
           </div>
           
@@ -5199,6 +5203,10 @@
 
       // Initialize Web3 and MetaMask
       initializeWeb3();
+
+      // Initialize LMSR Charts immediately
+      console.log('🚀 Initializing LMSR Trade Analysis Charts...');
+      initializeSimpleCharts();
 
       document.getElementById('tradeAmount').oninput = calculateProfit;
       

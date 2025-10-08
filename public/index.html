@@ -15,20 +15,17 @@
       position: relative;
     }
 
-    /* Animated background pattern */
+    /* Professional background pattern */
     body::before {
-      content: '☯ ☯ ☯ ☯ ☯ ☯ ☯ ☯ ☯ ☯ ☯ ☯ ☯ ☯ ☯ ☯ ☯ ☯ ☯ ☯';
+      content: '';
       position: fixed;
       inset: 0;
-      opacity: 0.02;
-      font-size: 48px;
-      line-height: 80px;
-      word-spacing: 40px;
+      background: 
+        radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.03) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.03) 0%, transparent 50%),
+        radial-gradient(circle at 40% 40%, rgba(120, 119, 198, 0.02) 0%, transparent 50%);
+      z-index: -2;
       pointer-events: none;
-      z-index: -1;
-      overflow: hidden;
-      transform: rotate(-15deg);
-      color: #9ca3af;
     }
 
     /* Decorative Yin Yang elements */
@@ -764,11 +761,11 @@
         <!-- Language Switcher -->
         <div class="language-switcher" style="margin-right:12px;position:relative;display:inline-block;">
           <button id="langBtn" class="lang-btn" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#e6eef8;padding:8px 12px;border-radius:6px;font-size:13px;cursor:pointer;transition:all 0.2s;">
-            🌍 EN
+            EN
           </button>
           <div id="langDropdown" class="lang-dropdown" style="display:none;position:absolute;top:100%;right:0;background:#23263a;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:4px;margin-top:4px;box-shadow:0 4px 12px rgba(0,0,0,0.3);z-index:1000;min-width:120px;">
-            <button class="lang-option" data-lang="en" style="display:block;width:100%;text-align:left;background:none;border:none;color:#e6eef8;padding:8px 12px;border-radius:4px;cursor:pointer;font-size:13px;transition:background 0.2s;">🇺🇸 English</button>
-            <button class="lang-option" data-lang="zh-CN" style="display:block;width:100%;text-align:left;background:none;border:none;color:#e6eef8;padding:8px 12px;border-radius:4px;cursor:pointer;font-size:13px;transition:background 0.2s;">🇨🇳 中文</button>
+            <button class="lang-option" data-lang="en" style="display:block;width:100%;text-align:left;background:none;border:none;color:#e6eef8;padding:8px 12px;border-radius:4px;cursor:pointer;font-size:13px;transition:background 0.2s;">English</button>
+            <button class="lang-option" data-lang="zh-CN" style="display:block;width:100%;text-align:left;background:none;border:none;color:#e6eef8;padding:8px 12px;border-radius:4px;cursor:pointer;font-size:13px;transition:background 0.2s;">中文</button>
           </div>
         </div>
         <div class="balance" id="balanceDisplay" style="display:none">

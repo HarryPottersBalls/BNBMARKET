@@ -3416,9 +3416,20 @@
     let bnbBalance = 0;
     let isAdmin = false;
     
-    // LMSR Chart initialization with simulated trading and USD pricing
+    // LMSR Chart initialization with trade sequence analysis
     function initializeSimpleCharts() {
-      console.log('Initializing LMSR charts with trade sequence analysis...');
+      console.log('🔥 STARTING LMSR CHARTS - NO EXCUSES!');
+      
+      // Force find chart containers
+      const probContainer = document.getElementById('probabilityChartContainer');
+      const distContainer = document.getElementById('distributionChartContainer');
+      
+      console.log('Chart containers found:', !!probContainer, !!distContainer);
+      
+      if (!probContainer || !distContainer) {
+        console.error('❌ CHART CONTAINERS NOT FOUND!');
+        return;
+      }
       
       // Trade sequence to analyze
       const tradeSequence = [1, 5, 10, 50, 100, 20, 10, 200, 500, 1000];
@@ -3493,11 +3504,12 @@
       const yesPercentage = Math.round(currentPrice * 100);
       const noPercentage = 100 - yesPercentage;
       
+      // Define colors and names for all charts
+      const liquidityColors = {10: '#ef4444', 100: '#eab308', 1000: '#10b981'};
+      const liquidityNames = {10: 'Thin', 100: 'Medium', 1000: 'Deep'};
+      
       // Probability Chart with Trade Sequence Results
-      const probContainer = document.getElementById('probabilityChartContainer');
       if (probContainer) {
-        const liquidityColors = {10: '#ef4444', 100: '#eab308', 1000: '#10b981'};
-        const liquidityNames = {10: 'Thin', 100: 'Medium', 1000: 'Deep'};
         
         probContainer.innerHTML = `
           <div style="display:flex;flex-direction:column;height:100%;background:rgba(31,41,55,0.5);border-radius:8px;padding:20px;">
@@ -3562,7 +3574,6 @@
       }
       
       // Distribution Chart with Continuous Purchase Simulation
-      const distContainer = document.getElementById('distributionChartContainer');
       if (distContainer) {
         // Simulate continuous $1000 purchase in 50 steps
         const totalAmount = 1000;

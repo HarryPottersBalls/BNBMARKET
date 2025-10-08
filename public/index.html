@@ -864,6 +864,7 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
+  <script src="router.js"></script>
   <script>
     // ========================================
     // INTERNATIONALIZATION SYSTEM
@@ -2128,9 +2129,34 @@
       div.textContent = text;
       return div.innerHTML;
     }
+
+// Generate SEO-friendly URL from market title
+function generateMarketSlug(title, id) {
+  if (!title) return `market-${id}`;
+  
+  return title
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '') // Remove special characters
+    .replace(/\s+/g, '-') // Replace spaces with hyphens
+    .replace(/-+/g, '-') // Replace multiple hyphens with single
+    .replace(/^-|-$/g, '') // Remove leading/trailing hyphens
+    .substring(0, 60) // Limit length
+    + '-' + id; // Add ID for uniqueness
+}
+
 function showMarketDetail(marketId) {
-  // Instead of opening a modal, redirect to the market detail page
-  window.location.href = `market.html?id=${marketId}`;
+  // Try to get market data to generate SEO URL
+  const markets = JSON.parse(localStorage.getItem('markets') || '[]');
+  const market = markets.find(m => m.id == marketId);
+  
+  if (market && market.title) {
+    const slug = generateMarketSlug(market.title, marketId);
+    // Use SEO-friendly URL
+    window.location.href = `/market/${slug}`;
+  } else {
+    // Fallback to original URL
+    window.location.href = `market.html?id=${marketId}`;
+  }
 }
 
     // Market creation functions

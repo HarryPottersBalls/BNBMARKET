@@ -3489,18 +3489,6 @@
   <script>
     // Helper function to get LIVE market probabilities from prediction market engine
     // This is a TRUE prediction market - no admin manipulation!
-    async function getLMSRProbabilities(marketId) {
-      try {
-        const response = await fetch(`${API_BASE_URL}/markets/${marketId}/probabilities`);
-        if (response.ok) {
-          return await response.json();
-        }
-      } catch (error) {
-        console.warn('Failed to fetch LMSR probabilities:', error);
-      }
-      return null;
-    }
-
     // Helper function to calculate implied odds from probability
     function probabilityToOdds(probability) {
       if (!probability || probability <= 0) return null;
@@ -4539,7 +4527,6 @@
                 <span style="color:#d1d5db;font-size:11px;" title="${trade.market}">${trade.market}</span>
                 <span style="color:${trade.side === 'YES' ? '#10b981' : '#ef4444'};font-weight:600;background:rgba(${trade.side === 'YES' ? '16,185,129' : '239,68,68'},0.1);padding:2px 6px;border-radius:3px;text-align:center;font-size:11px;">${trade.side}</span>
                 <span style="color:#e5e7eb;">$${trade.amount.toFixed(2)}</span>
-                <span style="color:#d1d5db;">$${trade.currentValue.toFixed(2)}</span>
                 <span style="color:${trade.isProfit ? '#10b981' : '#ef4444'};font-weight:600;font-size:11px;">${trade.isProfit ? '+' : ''}$${trade.pnl.toFixed(2)}</span>
               </div>
             `).join('');
@@ -4571,7 +4558,7 @@
             <div style="text-align:center;padding:40px;color:#ef4444;">
               <div style="font-size:24px;margin-bottom:8px;">⚠️</div>
               <div style="font-size:14px;margin-bottom:4px;">Failed to load trading data</div>
-              <div style="font-size:12px;">Check your connection and try again</div>
+              <div style="color:#e6eef8;font-size:12px;">Check your connection and try again</div>
             </div>
           `;
         }
@@ -4592,182 +4579,6 @@
       if (volumeElement) volumeElement.textContent = `$${totalVolume.toFixed(0)}`;
       if (tradesElement) tradesElement.textContent = activeTrades.toString();
       if (winRateElement) winRateElement.textContent = `${winRate.toFixed(1)}%`;
-    }
-            let optionName = '';
-            let optionImage = '';
-            let allOptions = [];
-            let market = null;
-            
-            if (bet.optionId !== undefined && bet.market_id) {
-              try {
-                const res = await fetch(`${API_BASE_URL}/markets/${bet.market_id}`);
-                if (res.ok) {
-                  market = (await res.json()).market;
-                  if (market && market.options) {
-                    allOptions = market.options;
-                    if (market.options[bet.optionId]) {
-                      optionName = market.options[bet.optionId].name || '';
-                      optionImage = market.options[bet.optionId].image || '';
-                    }
-                  }
-                }
-              } catch (error) {
-                console.warn('Failed to load market option data:', error);
-              }
-            }
-
-            // Calculate shares and PNL
-            let sharesHtml = '';
-            let pnlHtml = '';
-            
-            const originalAmount = parseFloat(bet.amount || 0);
-            const platformFee = originalAmount * 0.01; // 1% platform fee
-            const netInvestment = originalAmount - platformFee;
-            const executionPrice = bet.execution_odds || 0.5; // Price per share at purchase
-            const sharesOwned = executionPrice > 0 ? netInvestment / executionPrice : 0;
-            
-            // Update portfolio totals
-            totalInvested += netInvestment;
-            totalShares += sharesOwned;
-            if (market && market.status !== 'resolved') activeBets++;
-            
-            if (sharesOwned > 0) {
-              sharesHtml = `<div style="background:rgba(154,255,0,0.08);padding:8px 12px;border-radius:8px;margin:8px 0;">
-                <div style="color:#9ca3af;font-weight:700;font-size:1.05rem;">Portfolio Position</div>
-                <div style="color:#e6eef8;margin:4px 0;">
-                  <span style="color:#9ca3af;font-weight:600;">${sharesOwned.toFixed(1)}</span> shares @ 
-                  <span style="color:#06b6d4;">${executionPrice.toFixed(3)} BNB/share</span>
-                </div>
-                <div style="color:#9ca3af;font-size:0.9rem;">Net Investment: ${netInvestment.toFixed(3)} BNB (after 1% fee)</div>
-              </div>`;
-              
-              // Get current market probabilities for PNL calculation
-              try {
-                const probData = await getLMSRProbabilities(bet.market_id);
-                if (probData && probData.prices && probData.prices[bet.optionId] !== undefined) {
-                  const currentPrice = probData.prices[bet.optionId];
-                  const currentProbability = probData.probabilities[bet.optionId];
-                  const currentValue = sharesOwned * currentPrice;
-                  const unrealizedPnL = currentValue - netInvestment;
-                  const pnlPercentage = ((unrealizedPnL / netInvestment) * 100).toFixed(1);
-                  
-                  // Update total current value
-                  totalCurrentValue += currentValue;
-                  
-                  const pnlColor = unrealizedPnL >= 0 ? '#06b6d4' : '#9ca3af';
-                  const pnlSign = unrealizedPnL >= 0 ? '+' : '';
-                  
-                  pnlHtml = `<div style="background:rgba(${unrealizedPnL >= 0 ? '16,185,129' : '255,107,107'},0.08);padding:8px 12px;border-radius:8px;margin:8px 0;">
-                    <div style="color:${pnlColor};font-weight:700;font-size:1.05rem;">
-                      ${unrealizedPnL >= 0 ? '📈' : '📉'} P&L: ${pnlSign}${unrealizedPnL.toFixed(3)} BNB (${pnlSign}${pnlPercentage}%)
-                    </div>
-                    <div style="color:#e6eef8;margin:4px 0;">
-                      Current Value: <span style="color:#06b6d4;">${currentValue.toFixed(3)} BNB</span> 
-                      (${currentPrice.toFixed(3)} BNB/share)
-                    </div>
-                    <div style="color:#9ca3af;font-size:0.9rem;">
-                      Market Confidence: ${currentProbability}% | 
-                      ${market?.status === 'resolved' ? 'Market Resolved' : 'Live Market'}
-                    </div>
-                  </div>`;
-                } else {
-                  // Use fallback current value if no price data
-                  totalCurrentValue += netInvestment; // Conservative estimate
-                  pnlHtml = `<div style="background:rgba(156,163,175,0.08);padding:8px 12px;border-radius:8px;margin:8px 0;">
-                    <div style="color:#9ca3af;font-size:0.95rem;">📊 Current market data loading...</div>
-                  </div>`;
-                }
-              } catch (error) {
-                console.warn('Failed to calculate PNL for bet:', error);
-                totalCurrentValue += netInvestment; // Conservative estimate
-                pnlHtml = `<div style="background:rgba(156,163,175,0.08);padding:8px 12px;border-radius:8px;margin:8px 0;">
-                  <div style="color:#9ca3af;font-size:0.95rem;">⚠️ Unable to calculate current P&L</div>
-                </div>`;
-              }
-            }
-            
-            let optionsHtml = '';
-            if (allOptions.length > 0) {
-              optionsHtml = `<div style="display:flex;gap:12px;margin-top:8px;">` +
-                allOptions.map((opt, idx) => {
-                  const picked = idx === bet.optionId;
-                  return `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6px 10px;border-radius:10px;min-width:70px;background:${picked ? '#9ca3af' : '#374151'};color:${picked ? '#111827' : '#e5e7eb'};border:2px solid ${picked ? '#9ca3af' : '#374151'};font-weight:${picked ? '800' : '600'};box-shadow:${picked ? '0 2px 8px rgba(156,163,175,0.13)' : 'none'};transition:all 0.2s;">
-                    ${opt.image ? `<img src='${opt.image}' alt='' style='width:22px;height:22px;border-radius:50%;background:#1f2937;margin-bottom:4px;'>` : ''}
-                    <span style="font-size:1.01rem;">${opt.name || 'Option ' + (idx+1)}</span>
-                    ${picked ? '<span style=\'margin-top:3px;font-size:0.92em;font-weight:700;color:#6b7280;\'>&#10003; Picked</span>' : ''}
-                  </div>`;
-                }).join('') + `</div>`;
-            } else if (optionName) {
-              optionsHtml = `<span style='display:flex;align-items:center;gap:6px;background:#374151;padding:4px 10px;border-radius:8px;border:1.5px solid #9ca3af;font-weight:700;color:#9ca3af;'>${optionImage ? `<img src='${optionImage}' alt='' style='width:22px;height:22px;border-radius:50%;background:#1f2937;'>` : ''}<span>${optionName}</span></span>`;
-            }
-            
-            return `<div class="admin-card" style="background:linear-gradient(135deg, #1f2937, #374151);border:1px solid #4b5563;margin-bottom:18px;padding:18px 16px;border-radius:12px;box-shadow:0 4px 14px rgba(75,85,99,0.2);">
-              <div class="market-title" style="font-weight:700;font-size:1.1rem;color:#9ca3af;">${bet.market_title || 'Unknown Market'}</div>
-              <div style="display:flex;align-items:center;gap:10px;margin:8px 0;"><span style="color: #9ca3af; font-weight: 700;">Original Purchase: ${originalAmount.toFixed(3)} BNB</span></div>
-              ${optionsHtml}
-              ${sharesHtml}
-              ${pnlHtml}
-            return {
-              time: new Date(bet.created_at).toLocaleTimeString('en-US', { 
-                hour12: false, 
-                hour: '2-digit', 
-                minute: '2-digit' 
-              }),
-              market: marketTitle,
-              side: bet.side || 'UNKNOWN',
-              amount: amount,
-              currentValue: currentValue,
-              pnl: pnl,
-              status: bet.status || 'active',
-              isProfit: pnl > 0
-            };
-          }));
-          
-          // Update trading history display
-          if (realTradingHistory) {
-            realTradingHistory.innerHTML = tradingRows.map(trade => `
-              <div style="display:grid;grid-template-columns:100px 120px 100px 100px 120px 80px;gap:12px;font-size:12px;padding:8px;margin-bottom:4px;background:rgba(55,65,81,0.3);border-radius:4px;align-items:center;">
-                <span style="color:#9ca3af;">${trade.time}</span>
-                <span style="color:#d1d5db;font-size:11px;" title="${trade.market}">${trade.market}</span>
-                <span style="color:${trade.side === 'YES' ? '#10b981' : '#ef4444'};font-weight:600;background:rgba(${trade.side === 'YES' ? '16,185,129' : '239,68,68'},0.1);padding:2px 6px;border-radius:3px;text-align:center;font-size:11px;">${trade.side}</span>
-                <span style="color:#e5e7eb;">$${trade.amount.toFixed(2)}</span>
-                <span style="color:#d1d5db;">$${trade.currentValue.toFixed(2)}</span>
-                <span style="color:${trade.isProfit ? '#10b981' : '#ef4444'};font-weight:600;font-size:11px;">${trade.isProfit ? '+' : ''}$${trade.pnl.toFixed(2)}</span>
-              </div>
-            `).join('');
-          }
-          
-          // Calculate win rate
-          const winRate = resolvedBets > 0 ? ((wonBets / resolvedBets) * 100) : 0;
-          const totalPnL = totalCurrentValue - totalInvested;
-          
-          updateRealPortfolioStats(totalPnL, totalInvested, activeBets, winRate);
-          
-          console.log('✅ Real trading data loaded:', {
-            totalBets: bets.length,
-            activeBets,
-            totalInvested,
-            totalCurrentValue,
-            totalPnL,
-            winRate: winRate.toFixed(1) + '%'
-          });
-        }
-        
-        // Auto-refresh every 30 seconds
-        setTimeout(() => loadMyBets(), 30000);
-        
-      } catch (error) {
-        console.error('❌ Failed to load real trading data:', error);
-        if (realTradingHistory) {
-          realTradingHistory.innerHTML = `
-            <div style="text-align:center;padding:40px;color:#ef4444;">
-              <div style="font-size:24px;margin-bottom:8px;">⚠️</div>
-              <div style="font-size:14px;margin-bottom:4px;">Failed to load trading data</div>
-              <div style="font-size:12px;">Check your connection and try again</div>
-            </div>
-          `;
-        }
-      }
     }
 
     async function loadCommentsForMarket(marketId) {
@@ -5126,4 +4937,3 @@
   </footer>
 </body>
 </html>
-

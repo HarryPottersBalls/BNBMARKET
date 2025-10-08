@@ -3677,6 +3677,15 @@
         `;
       }
       
+      // Calculate current pricing for 1 share
+      const yesCostBNB = calculateTradeCost(qYes, qNo, 1, currentB);
+      const yesCostUSD = yesCostBNB * BNB_USD_RATE;
+      const yesProfitUSD = BNB_USD_RATE - yesCostUSD; // Profit if you win
+      
+      const noCostBNB = calculateTradeCost(qNo, qYes, 1, currentB);
+      const noCostUSD = noCostBNB * BNB_USD_RATE;
+      const noProfitUSD = BNB_USD_RATE - noCostUSD;
+      
       console.log(`✅ LMSR trade analysis initialized with b=${currentB}`);
       if (probContainer) {
         probContainer.innerHTML = `
@@ -5052,6 +5061,12 @@
       if (feeBreakdownEl) feeBreakdownEl.style.display = 'block';
       
       // Get LMSR data for proper calculation
+      if (!currentMarket || !currentMarket.id) {
+        console.warn('No market data available for profit calculation');
+        document.getElementById('profitCalc').textContent = `${window.i18n.t('expectedReturn')}: calculation unavailable`;
+        return;
+      }
+      
       const probData = await getLMSRProbabilities(currentMarket.id);
       let probability = 50; // Fallback probability
       let sharesReceived = 0;

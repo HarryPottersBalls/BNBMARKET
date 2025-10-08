@@ -2138,7 +2138,14 @@
         
         if (typeof Chart !== 'undefined') {
           const ctx = canvas.getContext('2d');
-          const options = this.currentMarket.options;
+          // Use global currentMarket instead of this.currentMarket
+          const market = window.currentMarket || currentMarket;
+          const options = market ? market.options : [
+            { name: 'Yes' },
+            { name: 'No' }
+          ];
+          
+          console.log('📊 Creating chart with market options:', options);
           
           let chartConfig;
           
@@ -2201,8 +2208,12 @@
             };
           }
           
-          new Chart(ctx, chartConfig);
-          console.log(`📊 Created ${chartType} chart with probabilities:`, marketDepth.probabilities);
+          console.log(`🎨 Creating ${chartType} chart with config:`, chartConfig);
+          const newChart = new Chart(ctx, chartConfig);
+          console.log(`📊 Successfully created ${chartType} chart with probabilities:`, marketDepth.probabilities);
+          console.log('📈 Chart instance:', newChart);
+        } else {
+          console.warn('⚠️ Chart.js not available for chart creation');
         }
       }
     }

@@ -2482,7 +2482,34 @@
           // BEFORE TRADE STATE
           console.log(`📊 BEFORE TRADE - Probability: ${outcome.probability}%`);
           
-          // Execute the trade using our enhanced trading system
+          // FIRST: Submit a real bet to the server to update probabilities
+          const simulatedBetData = {
+            marketId: currentMarket.id,
+            bettorAddress: walletAddress || 'simulation_user_' + Date.now(),
+            optionId: targetOptionIndex,
+            amount: amount,
+            transactionSignature: 'simulation_' + Date.now() + '_' + Math.random().toString(36)
+          };
+          
+          console.log('🚀 SUBMITTING SIMULATED BET TO SERVER:', simulatedBetData);
+          
+          // Submit bet to server to update the database
+          const betResponse = await fetch(`${API_BASE_URL}/bets`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(simulatedBetData)
+          });
+          
+          let serverBetResult;
+          if (betResponse.ok) {
+            serverBetResult = await betResponse.json();
+            console.log('✅ Server bet submitted successfully:', serverBetResult);
+          } else {
+            console.warn('⚠️ Server bet submission failed, continuing with local simulation');
+            serverBetResult = { success: false };
+          }
+          
+          // Execute the trade using our enhanced trading system (for compatibility)
           const tradeResult = await window.enhancedTrading.executeTrade(
             currentMarket.id,
             targetOptionIndex,
@@ -2490,9 +2517,9 @@
             walletAddress || 'simulation_user'
           );
           
-          console.log('💼 Trade result:', tradeResult);
+          console.log('💼 Local trade result:', tradeResult);
           
-          if (tradeResult.success) {
+          if (tradeResult.success || serverBetResult.bet) {
             // Update the outcome probability based on the trade
             const impact = Math.min(amount * 5, 15); // Limit impact to 15%
             console.log(`📈 Calculated impact: ${impact}%`);
@@ -2516,36 +2543,74 @@
             // Re-render the order book with updated data
             this.renderOrderBook(currentMarket);
             
-            // Force update charts with new market data
-            const updatedDepth = {
-              probabilities: currentMarket.options.map((_, i) => 
-                i === targetOptionIndex ? outcome.probability : (100 - outcome.probability)
-              ),
-              prices: currentMarket.options.map((_, i) => 
-                i === targetOptionIndex ? outcome.probability / 100 : (100 - outcome.probability) / 100
-              ),
-              shares: currentMarket.options.map((_, i) => 
-                i === targetOptionIndex ? tradeResult.shares_bought || 1000 + amount * 10 : 1000 - amount * 10
-              ),
-              totalVolume: tradeResult.new_volume || 1000 + amount
-            };
+            // CRITICAL: Fetch fresh data from server after bet submission
+            console.log('🔄 FETCHING FRESH DATA FROM SERVER AFTER TRADE...');
             
-            console.log(`🔄 FORCING CHART REFRESH WITH DATA:`, updatedDepth);
-            
-            // Flash the chart containers to show something is happening
-            const probContainer = document.getElementById('probabilityChartContainer');
-            const distContainer = document.getElementById('distributionChartContainer');
-            if (probContainer) {
-              probContainer.style.border = "3px solid #00ff00";
-              setTimeout(() => probContainer.style.border = "none", 2000);
-            }
-            if (distContainer) {
-              distContainer.style.border = "3px solid #00ff00";
-              setTimeout(() => distContainer.style.border = "none", 2000);
-            }
-            
-            // Use the enhanced order book's force chart refresh
-            window.enhancedOrderBook.forceChartsRefresh(updatedDepth);
+            setTimeout(async () => {
+              try {
+                // Get updated probabilities from server
+                const freshData = await getLMSRProbabilities(currentMarket.id);
+                console.log('📊 FRESH SERVER DATA:', freshData);
+                
+                if (freshData && freshData.probabilities) {
+                  const updatedDepth = {
+                    probabilities: freshData.probabilities,
+                    prices: freshData.prices,
+                    shares: freshData.volumes || [1000, 1000],
+                    totalVolume: freshData.total_volume || 1000
+                  };
+                  
+                  console.log(`🔄 FORCING CHART REFRESH WITH FRESH SERVER DATA:`, updatedDepth);
+                  
+                  // Flash the chart containers to show something is happening
+                  const probContainer = document.getElementById('probabilityChartContainer');
+                  const distContainer = document.getElementById('distributionChartContainer');
+                  if (probContainer) {
+                    probContainer.style.border = "3px solid #00ff00";
+                    setTimeout(() => probContainer.style.border = "none", 2000);
+                  }
+                  if (distContainer) {
+                    distContainer.style.border = "3px solid #00ff00";
+                    setTimeout(() => distContainer.style.border = "none", 2000);
+                  }
+                  
+                  // Use the enhanced order book's force chart refresh with server data
+                  window.enhancedOrderBook.forceChartsRefresh(updatedDepth);
+                } else {
+                  console.warn('⚠️ No fresh data received from server, using fallback');
+                  // Fallback to old method
+                  const updatedDepth = {
+                    probabilities: currentMarket.options.map((_, i) => 
+                      i === targetOptionIndex ? outcome.probability : (100 - outcome.probability)
+                    ),
+                    prices: currentMarket.options.map((_, i) => 
+                      i === targetOptionIndex ? outcome.probability / 100 : (100 - outcome.probability) / 100
+                    ),
+                    shares: currentMarket.options.map((_, i) => 
+                      i === targetOptionIndex ? 1000 + amount * 10 : 1000 - amount * 10
+                    ),
+                    totalVolume: 1000 + amount
+                  };
+                  window.enhancedOrderBook.forceChartsRefresh(updatedDepth);
+                }
+              } catch (error) {
+                console.error('❌ Failed to fetch fresh server data:', error);
+                // Fallback to local calculation
+                const updatedDepth = {
+                  probabilities: currentMarket.options.map((_, i) => 
+                    i === targetOptionIndex ? outcome.probability : (100 - outcome.probability)
+                  ),
+                  prices: currentMarket.options.map((_, i) => 
+                    i === targetOptionIndex ? outcome.probability / 100 : (100 - outcome.probability) / 100
+                  ),
+                  shares: currentMarket.options.map((_, i) => 
+                    i === targetOptionIndex ? 1000 + amount * 10 : 1000 - amount * 10
+                  ),
+                  totalVolume: 1000 + amount
+                };
+                window.enhancedOrderBook.forceChartsRefresh(updatedDepth);
+              }
+            }, 1000); // Wait 1 second for server to process the bet
             
             // Show success message
             this.showTradeMessage(`✅ Simulated ${side.toUpperCase()} trade for ${outcome.range}`, 'success');

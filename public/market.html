@@ -1296,9 +1296,32 @@
 
     // Utility
     function getMarketId() {
+      // First try URL parameters (?id=123)
       const params = new URLSearchParams(window.location.search);
-      const id = params.get('id');
-      return id ? parseInt(id) : null;
+      const paramId = params.get('id');
+      if (paramId) {
+        return parseInt(paramId);
+      }
+      
+      // Then try SEO-friendly URL path (/market/title-123 or /title-123)
+      const path = window.location.pathname;
+      let slug = '';
+      
+      if (path.startsWith('/market/')) {
+        slug = path.replace('/market/', '');
+      } else if (path !== '/' && path !== '/market.html') {
+        slug = path.replace('/', '');
+      }
+      
+      if (slug) {
+        // Extract ID from slug (last number after hyphen)
+        const matches = slug.match(/-(\d+)$/);
+        if (matches) {
+          return parseInt(matches[1]);
+        }
+      }
+      
+      return null;
     }
 
     // UI Rendering

@@ -1786,9 +1786,20 @@
             // Recreate charts with updated data
             console.log('🔄 Refreshing charts with new probabilities:', marketDepth.probabilities);
             
-            // Add slight delay for visual effect
+            // Add slight delay for visual effect and force chart refresh
             setTimeout(() => {
               console.log('📊 Creating probability chart...');
+              
+              // Force destroy and recreate for immediate update
+              if (window.lmsrChartEngine.chartInstances && window.lmsrChartEngine.chartInstances['probabilityChart']) {
+                window.lmsrChartEngine.chartInstances['probabilityChart'].destroy();
+                delete window.lmsrChartEngine.chartInstances['probabilityChart'];
+              }
+              if (window.lmsrChartEngine.chartInstances && window.lmsrChartEngine.chartInstances['distributionChart']) {
+                window.lmsrChartEngine.chartInstances['distributionChart'].destroy();
+                delete window.lmsrChartEngine.chartInstances['distributionChart'];
+              }
+              
               window.lmsrChartEngine.createProbabilityChart('probabilityChartContainer', this.currentMarket.id);
               
               console.log('📊 Creating distribution chart...');
@@ -1800,7 +1811,7 @@
               // Show probability change notification
               this.showProbabilityChangeNotification(marketDepth.probabilities);
               
-              console.log('✅ Charts update completed');
+              console.log('✅ Charts update completed - forced refresh with live data');
             }, 500);
             
             // Also update any volume charts if they exist
@@ -2674,22 +2685,17 @@
             const timeLabels = [];
             const timeSeriesData = [];
             
-            // Generate 20 time points for smooth visualization
+            // Generate 20 time points for smooth visualization using LIVE data
             for (let i = 0; i < 20; i++) {
               const time = new Date(Date.now() - (19 - i) * 60000); // Last 20 minutes
               timeLabels.push(time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }));
               
-              // For visual effect, show gradual progression to current probabilities
-              const factor = i / 19;
-              const baseProbs = market.options.map((_, idx) => 100 / market.options.length);
-              const currentProbs = probabilities;
-              
-              const interpolatedProbs = baseProbs.map((base, idx) => 
-                base + (currentProbs[idx] - base) * factor
-              );
-              
-              timeSeriesData.push(interpolatedProbs);
+              // Use LIVE probabilities for all time points (real-time market state)
+              timeSeriesData.push([...probabilities]); // Use current live probabilities
             }
+            
+            console.log('📈 Chart will show probabilities:', probabilities);
+            console.log('📊 Time series data points:', timeSeriesData.length);
             
             const chartInstance = new Chart(ctx, {
               type: 'line',
@@ -2889,7 +2895,7 @@
                                     index === 1;
                   
                   const symbol = isYangOption ? '☀️' : (isYinOption ? '🌙' : '⚡');
-                  return `${symbol} ${option.name}`;
+                  return `${symbol} ${option.name} (${probabilities[index].toFixed(1)}%)`;
                 }),
                 datasets: [{
                   data: probabilities,
@@ -3716,6 +3722,20 @@
             // Test the market data connection
             const testDepth = window.predictionMarket.getMarketDepth(demoMarket.id);
             console.log('🧪 Test market depth:', testDepth);
+          }, 100);
+        } else {
+          console.warn('⚠️ lmsrChartEngine not available, initializing fallback charts...');
+          
+          // Initialize prediction market anyway
+          window.predictionMarket.initializeMarket(demoMarket.id, demoMarket.options);
+          window.currentMarket = demoMarket;
+          
+          // Try to create charts with alternative method
+          setTimeout(() => {
+            if (window.fallbackChartEngine) {
+              window.fallbackChartEngine.createProbabilityChart('probabilityChartContainer', demoMarket.id);
+              window.fallbackChartEngine.createCurrentDistributionChart('distributionChartContainer', demoMarket.id);
+            }
           }, 100);
         }
       }, 200);

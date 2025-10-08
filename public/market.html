@@ -770,7 +770,7 @@
         // Trading
         buyShares: "Buy",
         cancelPrediction: "Cancel Prediction",
-        requestRefund: "Request Refund",
+        requestRefund: "Cancel Prediction",
         amount: "Amount",
         platformFee: "Platform Fee",
         netInvestment: "Net Investment",
@@ -804,7 +804,7 @@
         purchaseCompleted: "Purchase completed!",
         purchaseFailed: "Purchase failed",
         received: "Received",
-        cancellationRequested: "Cancellation request sent. Refunds are processed within 24 hours.",
+        cancellationRequested: "Prediction cancellation requested. Refunds are processed within 24 hours.",
         cancellationFailed: "Cancellation failed",
         
         // My Bets Section
@@ -883,7 +883,7 @@
         // Trading
         buyShares: "购买",
         cancelPrediction: "取消预测",
-        requestRefund: "申请退款",
+        requestRefund: "取消预测",
         amount: "金额",
         platformFee: "平台费用",
         netInvestment: "净投资",
@@ -985,7 +985,7 @@
       constructor() {
         this.translations = translations;
         this.currentLanguage = this.detectLanguage();
-        console.log(`🌍 I18n initialized with language: ${this.currentLanguage}`);
+        console.log(`I18n initialized with language: ${this.currentLanguage}`);
       }
       
       /**
@@ -1034,7 +1034,7 @@
         this.currentLanguage = lang;
         localStorage.setItem('bnbmarket_language', lang);
         this.updateAllTexts();
-        console.log(`🌍 Language switched to: ${lang}`);
+        console.log(`Language switched to: ${lang}`);
       }
       
       /**
@@ -1315,6 +1315,12 @@
       
       // Initialize market with proper prediction market mechanics
       initializeMarket(marketId, options) {
+        // Check if market is already initialized to prevent duplicates
+        if (this.markets.has(marketId)) {
+          console.log(`Market ${marketId} already initialized, skipping duplicate initialization`);
+          return this.markets.get(marketId);
+        }
+        
         const market = {
           id: marketId,
           options: options,
@@ -1329,10 +1335,10 @@
         this.orderBook.set(marketId, { bids: [], asks: [] });
         this.tradeHistory.set(marketId, []);
         
-        console.log(`🎯 TRUE PREDICTION MARKET initialized: ${marketId}`);
-        console.log(`📊 Starting probabilities: ${options.map(() => (100/options.length).toFixed(1)).join('%, ')}%`);
-        console.log(`💰 Initial liquidity: ${market.totalLiquidity} BNB`);
-        console.log(`📈 Market will adjust based on trading activity only!`);
+        console.log(`PREDICTION MARKET initialized: ${marketId}`);
+        console.log(`Starting probabilities: ${options.map(() => (100/options.length).toFixed(1)).join('%, ')}%`);
+        console.log(`Initial liquidity: ${market.totalLiquidity} BNB`);
+        console.log(`Market will adjust based on trading activity only!`);
         
         return market;
       }
@@ -1369,7 +1375,7 @@
         const pricing = this.calculateMarketPrices(marketId);
         const pricePerShare = pricing.prices[optionIndex];
         
-        console.log('💰 Trade details:', {
+        console.log('Trade details:', {
           marketId,
           optionIndex,
           bnbAmount,
@@ -1390,12 +1396,12 @@
         market.volume24h += bnbAmount;
         
         console.log('🔥 AFTER TRADE - Market shares:', [...market.shares]);
-        console.log('📊 Shares added to option', optionIndex, ':', sharesReceived);
+        console.log('Shares added to option', optionIndex, ':', sharesReceived);
         
         // Calculate new probabilities after the trade
         const newPricing = this.calculateMarketPrices(marketId);
         console.log('📈 NEW PROBABILITIES after trade:', newPricing.probabilities);
-        console.log('💰 NEW PRICES after trade:', newPricing.prices);
+        console.log('NEW PRICES after trade:', newPricing.prices);
         
         // Verify the market state changed
         console.log('🔍 Market state verification:');
@@ -4172,7 +4178,7 @@
             bettorAddress: walletAddress.toString()
           })
         });
-        document.getElementById('tradeMsg').textContent = 'Cancellation request sent. Refunds are processed within 24 hours.';
+        document.getElementById('tradeMsg').textContent = 'Prediction cancellation requested. Refunds are processed within 24 hours.';
       } catch (e) {
         document.getElementById('tradeMsg').textContent = 'Cancellation failed: ' + (e.message || e);
       }

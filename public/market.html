@@ -307,9 +307,9 @@
       <div id="marketInfo">
         <h2 id="marketTitle" class="primary" style="margin-bottom:8px;font-size:2rem;font-weight:800;"></h2>
         <div id="marketMeta" style="color:#9ca3af;font-size:1rem;margin-bottom:8px;"></div>
-        <div id="marketVolume" style="color:#f59e0b;font-size:1.08rem;font-weight:700;margin-bottom:8px;"></div>
+        <div id="marketVolume" style="color:#06b6d4;font-size:1.08rem;font-weight:700;margin-bottom:8px;"></div>
         <div id="marketOptions" style="display:flex;gap:18px;margin-bottom:32px;"></div>
-        <div id="totalBuys" style="color:#10b981;font-size:1.1rem;font-weight:600;margin-bottom:18px;"></div>
+        <div id="totalBuys" style="color:#9ca3af;font-size:1.1rem;font-weight:600;margin-bottom:18px;"></div>
       </div>
       
       <div style="margin-bottom:32px;">
@@ -352,8 +352,8 @@
             <div style="display:flex;gap:10px;margin-bottom:10px;align-items:flex-start;">
               <button id="cancelBtn" class="btn" style="flex:1;width:100%;background:#ef4444;color:#fff;font-size:1.08rem;padding:13px 0;box-shadow:0 2px 8px rgba(239,68,68,0.13);border:1.5px solid #ef4444;" data-i18n="requestRefund">Request Refund</button>
             </div>
-            <hr style="border:none;border-top:1px solid #23263a;margin:12px 0 10px 0;">
-            <div id="tradeMsg" style="margin-top:0;color:#10b981;font-size:1.05rem;min-height:22px;"></div>
+            <hr style="border:none;border-top:1px solid #4b5563;margin:12px 0 10px 0;">
+            <div id="tradeMsg" style="margin-top:0;color:#9ca3af;font-size:1.05rem;min-height:22px;"></div>
           </div>
         </div>
         <div id="orderBook" style="margin-top:32px;"></div>
@@ -366,7 +366,7 @@
         <div id="commentBoxContainer" style="display:none;">
           <textarea id="commentInput" rows="3" maxlength="300" placeholder="Write a comment..." data-i18n-placeholder="writeComment" style="width:100%;padding:12px 10px;border-radius:8px;border:1.5px solid #7acc00;background:#151926;color:#e6eef8;font-size:1.08rem;resize:vertical;margin-bottom:8px;"></textarea>
           <div style="display:flex;align-items:center;justify-content:space-between;">
-            <span id="commentWarning" style="color:#f59e0b;font-size:0.98rem;" data-i18n="warningScammers">Do not click any links beware of scammers.</span>
+            <span id="commentWarning" style="color:#fbbf24;font-size:0.98rem;" data-i18n="warningScammers">Do not click any links beware of scammers.</span>
             <button id="postCommentBtn" class="btn" style="padding:8px 18px;font-size:1rem;" data-i18n="postComment">Post</button>
           </div>
           <div id="commentMsg" style="color:#ff6b6b;font-size:0.98rem;margin-top:6px;min-height:18px;"></div>
@@ -1364,7 +1364,7 @@
         }
       }
       
-      document.getElementById('marketVolume').innerHTML = `Total Volume: <span style='color:#10b981;'>${totalVolume.toFixed(3)} BNB</span>`;
+      document.getElementById('marketVolume').innerHTML = `Total Volume: <span style='color:#06b6d4;'>${totalVolume.toFixed(3)} BNB</span>`;
       
       const optionsDiv = document.getElementById('marketOptions');
       optionsDiv.innerHTML = '';
@@ -1414,7 +1414,7 @@
         let html = '<span style="color:#9ca3af;">Total Buys:</span> ';
         const totals = Array(market.options.length).fill(0);
         currentOrderBook.forEach(b=>{ if(b.option_id!==undefined) totals[b.option_id]+=1; });
-        html += market.options.map((opt,i)=>`${opt.name}: <span style='color:#10b981;'>${totals[i]}</span>`).join(' &nbsp; ');
+        html += market.options.map((opt,i)=>`${opt.name}: <span style='color:#9ca3af;'>${totals[i]}</span>`).join(' &nbsp; ');
         document.getElementById('totalBuys').innerHTML = html;
       }
     }
@@ -1434,7 +1434,7 @@
       
       let tabs = '';
       (market.options||[]).forEach((opt,i)=>{
-        tabs += `<button class="ob-tab${i===selectedOutcome?' active':''}" data-idx="${i}" style="background:${i===selectedOutcome?'#10b981':'#23263a'};color:${i===selectedOutcome?'#041':'#f3f4f6'};border:2px solid ${i===selectedOutcome?'#10b981':'#374151'};padding:8px 16px;border-radius:8px;font-weight:600;cursor:pointer;transition:all 0.2s;margin-right:6px;">${opt.name}</button>`;
+        tabs += `<button class="ob-tab${i===selectedOutcome?' active':''}" data-idx="${i}" style="background:${i===selectedOutcome?'#9ca3af':'#374151'};color:${i===selectedOutcome?'#111827':'#e5e7eb'};border:2px solid ${i===selectedOutcome?'#9ca3af':'#4b5563'};padding:8px 16px;border-radius:8px;font-weight:600;cursor:pointer;transition:all 0.2s;margin-right:6px;">${opt.name}</button>`;
       });
       
       async function rowHtml(order) {
@@ -1461,12 +1461,12 @@
         let buyerCell = '-';
         if (order.transaction_signature) {
           const shortTx = order.transaction_signature.slice(0,4) + '...' + order.transaction_signature.slice(-4);
-          buyerCell = `<a href="https://bscscan.com/tx/${order.transaction_signature}" target="_blank" rel="noopener" style="color:#10b981;font-weight:700;text-decoration:none;">${shortTx}</a>`;
+          buyerCell = `<a href="https://bscscan.com/tx/${order.transaction_signature}" target="_blank" rel="noopener" style="color:#06b6d4;font-weight:700;text-decoration:none;">${shortTx}</a>`;
         }
         return `<tr style="background:rgba(16,185,129,0.08);">
           <td style="position:relative;">
             <div style="position:absolute;left:0;top:0;height:100%;width:${barW}px;background:rgba(16,185,129,0.13);"></div>
-            <span style="position:relative;z-index:2;font-weight:600;color:#10b981;">${parseFloat(order.amount).toFixed(3)}</span>
+            <span style="position:relative;z-index:2;font-weight:600;color:#06b6d4;">${parseFloat(order.amount).toFixed(3)}</span>
           </td>
           <td style="position:relative;z-index:2;">${buyerCell}</td>
           <td style="position:relative;z-index:2;color:#f3f4f6;">${sharesOwned.toFixed(1)} shares (${potentialReturn.toFixed(3)} BNB)</td>
@@ -1478,7 +1478,7 @@
         <div>${tabs}</div>
       </div>`;
       html += `<table style="width:100%;border-radius:10px;overflow:hidden;font-size:1rem;">
-        <thead><tr style="background:#23263a;color:#10b981;font-weight:700;"><th style="padding:8px;">Amount (BNB)</th><th>Buyer</th><th>Shares & Potential Return</th></tr></thead>
+        <thead><tr style="background:#374151;color:#9ca3af;font-weight:700;"><th style="padding:8px;">Amount (BNB)</th><th>Buyer</th><th>Shares & Potential Return</th></tr></thead>
         <tbody id="orderBookRows">`;
       
       html += '</tbody></table>';
@@ -1516,7 +1516,7 @@
       // Show price per share instead of odds
       let priceDisplay = '';
       if (probData && probData.prices && probData.prices[selectedOutcome]) {
-        priceDisplay = `<span style='color:#f59e0b;font-size:1.08em;font-weight:700;margin-left:8px;'>${pricePerShare.toFixed(3)} BNB/share</span>`;
+        priceDisplay = `<span style='color:#9ca3af;font-size:1.08em;font-weight:700;margin-left:8px;'>${pricePerShare.toFixed(3)} BNB/share</span>`;
       } else {
         priceDisplay = `<span style='color:#9ca3af;font-size:0.95em;font-weight:700;margin-left:8px;'>Loading price...</span>`;
       }
@@ -1858,8 +1858,8 @@
               sharesHtml = `<div style="background:rgba(154,255,0,0.08);padding:8px 12px;border-radius:8px;margin:8px 0;">
                 <div style="color:#9ca3af;font-weight:700;font-size:1.05rem;">Portfolio Position</div>
                 <div style="color:#e6eef8;margin:4px 0;">
-                  <span style="color:#10b981;font-weight:600;">${sharesOwned.toFixed(1)}</span> shares @ 
-                  <span style="color:#f59e0b;">${executionPrice.toFixed(3)} BNB/share</span>
+                  <span style="color:#9ca3af;font-weight:600;">${sharesOwned.toFixed(1)}</span> shares @ 
+                  <span style="color:#06b6d4;">${executionPrice.toFixed(3)} BNB/share</span>
                 </div>
                 <div style="color:#9ca3af;font-size:0.9rem;">Net Investment: ${netInvestment.toFixed(3)} BNB (after 1% fee)</div>
               </div>`;
@@ -1877,7 +1877,7 @@
                   // Update total current value
                   totalCurrentValue += currentValue;
                   
-                  const pnlColor = unrealizedPnL >= 0 ? '#10b981' : '#ff6b6b';
+                  const pnlColor = unrealizedPnL >= 0 ? '#06b6d4' : '#9ca3af';
                   const pnlSign = unrealizedPnL >= 0 ? '+' : '';
                   
                   pnlHtml = `<div style="background:rgba(${unrealizedPnL >= 0 ? '16,185,129' : '255,107,107'},0.08);padding:8px 12px;border-radius:8px;margin:8px 0;">
@@ -1885,7 +1885,7 @@
                       ${unrealizedPnL >= 0 ? '📈' : '📉'} P&L: ${pnlSign}${unrealizedPnL.toFixed(3)} BNB (${pnlSign}${pnlPercentage}%)
                     </div>
                     <div style="color:#e6eef8;margin:4px 0;">
-                      Current Value: <span style="color:#f59e0b;">${currentValue.toFixed(3)} BNB</span> 
+                      Current Value: <span style="color:#06b6d4;">${currentValue.toFixed(3)} BNB</span> 
                       (${currentPrice.toFixed(3)} BNB/share)
                     </div>
                     <div style="color:#9ca3af;font-size:0.9rem;">
@@ -1937,25 +1937,25 @@
           // Display portfolio summary
           const totalPnL = totalCurrentValue - totalInvested;
           const pnlPercentage = totalInvested > 0 ? ((totalPnL / totalInvested) * 100).toFixed(1) : '0.0';
-          const pnlColor = totalPnL >= 0 ? '#10b981' : '#ff6b6b';
+          const pnlColor = totalPnL >= 0 ? '#06b6d4' : '#9ca3af';
           const pnlSign = totalPnL >= 0 ? '+' : '';
           
           if (portfolioSummaryContainer) {
             portfolioSummaryContainer.innerHTML = `
-              <div style="background:#23263a;padding:16px 20px;border-radius:12px;border:1.5px solid rgba(154,255,0,0.3);min-width:180px;">
-                <div style="color:#9aff00;font-weight:700;font-size:0.9rem;margin-bottom:6px;">${window.i18n.t('totalInvested')}</div>
-                <div style="color:#e6eef8;font-size:1.4rem;font-weight:800;">${window.i18n.formatCurrency(totalInvested)}</div>
+              <div style="background:#374151;padding:16px 20px;border-radius:12px;border:1.5px solid rgba(156,163,175,0.3);min-width:180px;">
+                <div style="color:#9ca3af;font-weight:700;font-size:0.9rem;margin-bottom:6px;">${window.i18n.t('totalInvested')}</div>
+                <div style="color:#e5e7eb;font-size:1.4rem;font-weight:800;">${window.i18n.formatCurrency(totalInvested)}</div>
               </div>
-              <div style="background:#23263a;padding:16px 20px;border-radius:12px;border:1.5px solid rgba(245,158,11,0.3);min-width:180px;">
-                <div style="color:#f59e0b;font-weight:700;font-size:0.9rem;margin-bottom:6px;">${window.i18n.t('currentValue')}</div>
-                <div style="color:#e6eef8;font-size:1.4rem;font-weight:800;">${window.i18n.formatCurrency(totalCurrentValue)}</div>
+              <div style="background:#374151;padding:16px 20px;border-radius:12px;border:1.5px solid rgba(6,182,212,0.3);min-width:180px;">
+                <div style="color:#06b6d4;font-weight:700;font-size:0.9rem;margin-bottom:6px;">${window.i18n.t('currentValue')}</div>
+                <div style="color:#e5e7eb;font-size:1.4rem;font-weight:800;">${window.i18n.formatCurrency(totalCurrentValue)}</div>
               </div>
-              <div style="background:#23263a;padding:16px 20px;border-radius:12px;border:1.5px solid ${totalPnL >= 0 ? 'rgba(16,185,129,0.3)' : 'rgba(255,107,107,0.3)'};min-width:180px;">
+              <div style="background:#374151;padding:16px 20px;border-radius:12px;border:1.5px solid ${totalPnL >= 0 ? 'rgba(6,182,212,0.3)' : 'rgba(156,163,175,0.3)'};min-width:180px;">
                 <div style="color:${pnlColor};font-weight:700;font-size:0.9rem;margin-bottom:6px;">${window.i18n.t('totalPnL')}</div>
                 <div style="color:${pnlColor};font-size:1.4rem;font-weight:800;">${pnlSign}${window.i18n.formatCurrency(totalPnL)}</div>
                 <div style="color:${pnlColor};font-size:0.9rem;font-weight:600;">(${pnlSign}${pnlPercentage}%)</div>
               </div>
-              <div style="background:#23263a;padding:16px 20px;border-radius:12px;border:1.5px solid rgba(156,163,175,0.3);min-width:160px;">
+              <div style="background:#374151;padding:16px 20px;border-radius:12px;border:1.5px solid rgba(156,163,175,0.3);min-width:160px;">
                 <div style="color:#9ca3af;font-weight:700;font-size:0.9rem;margin-bottom:6px;">${window.i18n.t('portfolioStats')}</div>
                 <div style="color:#e6eef8;font-size:1.1rem;font-weight:600;">${totalShares.toFixed(0)} ${window.i18n.t('shares')}</div>
                 <div style="color:#e6eef8;font-size:1.1rem;font-weight:600;">${activeBets} ${window.i18n.t('activeBets')}</div>
@@ -2011,12 +2011,12 @@
       }
       listDiv.innerHTML = comments.map(c => {
         const shortAddr = c.user_address.slice(0,4) + '...' + c.user_address.slice(-4);
-        const pfp = `<span style="display:inline-block;width:32px;height:32px;border-radius:50%;background:#23263a;margin-right:10px;text-align:center;line-height:32px;font-weight:700;font-size:1.1rem;color:#9aff00;">${c.user_address[0]}</span>`;
+        const pfp = `<span style="display:inline-block;width:32px;height:32px;border-radius:50%;background:#374151;margin-right:10px;text-align:center;line-height:32px;font-weight:700;font-size:1.1rem;color:#9ca3af;">${c.user_address[0]}</span>`;
         const cleanText = removeLinks(escapeHtml(c.comment_text));
         return `<div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:14px;">
           ${pfp}
           <div style="flex:1;">
-            <a href="https://solscan.io/address/${c.user_address}" target="_blank" rel="noopener" style="font-weight:700;color:#9aff00;font-size:1.01rem;text-decoration:none;cursor:pointer;">${shortAddr}</a>
+            <a href="https://solscan.io/address/${c.user_address}" target="_blank" rel="noopener" style="font-weight:700;color:#06b6d4;font-size:1.01rem;text-decoration:none;cursor:pointer;">${shortAddr}</a>
             <div style="color:#e6eef8;font-size:1.07rem;margin:2px 0 2px 0;white-space:pre-line;">${cleanText}</div>
             <div style="color:#bcd3e6;font-size:0.97rem;">${new Date(c.created_at).toLocaleString()}</div>
           </div>

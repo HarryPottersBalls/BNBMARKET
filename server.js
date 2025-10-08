@@ -88,9 +88,13 @@ pool.on('error', (err) => {
 function isAdminAddress(address) {
   if (!address) return false;
   
+  // Your confirmed admin wallet address
+  const YOUR_ADMIN_WALLET = "0x7eCa382995Df91C250896c0EC73c9d2893F7800e";
+  
   const adminAddresses = [
-    process.env.ADMIN_WALLET || '0x7eCa382995Df91C250896c0EC73c9d2893F7800e',
-    '0x7eCa382995Df91C250896c0EC73c9d2893F7800e' // Fallback admin wallet
+    process.env.ADMIN_WALLET || YOUR_ADMIN_WALLET,
+    YOUR_ADMIN_WALLET, // Your actual admin wallet
+    '0x7eCa382995Df91C250896c0EC73c9d2893F7800e' // Same wallet as backup
   ];
   
   // Normalize all addresses to lowercase for comparison
@@ -99,12 +103,13 @@ function isAdminAddress(address) {
   
   const isAdmin = normalizedAdminAddresses.includes(normalizedAddress);
   
-  // Debug logging
-  console.log('Admin check:', {
+  // Enhanced debug logging
+  console.log('🔐 Admin check for:', {
     providedAddress: address,
     normalizedAddress: normalizedAddress,
     adminAddresses: normalizedAdminAddresses,
-    isAdmin: isAdmin
+    isAdmin: isAdmin,
+    matchFound: normalizedAdminAddresses.find(addr => addr === normalizedAddress) || 'none'
   });
   
   return isAdmin;
@@ -1617,6 +1622,40 @@ app.get('/favicon.ico', (req, res) => res.status(204).end());
 // Admin dashboard route
 app.get('/admin', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+});
+
+// SEO-friendly market routes
+app.get('/market/:slug', (req, res) => {
+  const slug = req.params.slug;
+  
+  // Extract market ID from slug (assumes format: title-words-ID)
+  const idMatch = slug.match(/-(\d+)$/);
+  const marketId = idMatch ? idMatch[1] : null;
+  
+  if (marketId) {
+    // Serve market.html - the client-side JS will handle the ID
+    res.sendFile(path.join(__dirname, 'public', 'market.html'));
+  } else {
+    res.status(404).sendFile(path.join(__dirname, 'public', 'index.html'));
+  }
+});
+
+// Root-level market routes (shorter URLs)
+app.get('/:slug', (req, res) => {
+  const slug = req.params.slug;
+  
+  // Skip if it's a known file or API route
+  if (slug.includes('.') || slug.startsWith('api/') || slug === 'admin') {
+    return res.status(404).sendFile(path.join(__dirname, 'public', 'index.html'));
+  }
+  
+  // Check if it looks like a market slug (ends with -number)
+  const idMatch = slug.match(/-(\d+)$/);
+  if (idMatch) {
+    res.sendFile(path.join(__dirname, 'public', 'market.html'));
+  } else {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  }
 });
 
 // SPA fallback

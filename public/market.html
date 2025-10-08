@@ -3037,7 +3037,7 @@
       }
       
       async createProbabilityChart(containerId, marketId) {
-        console.log('Creating enhanced Yin Yang probability chart for market', marketId);
+        console.log('Creating simple probability chart for market', marketId);
         const container = document.getElementById(containerId) || document.querySelector(`#${containerId}`);
         if (!container) return null;
 
@@ -3239,7 +3239,7 @@
       }
       
       async createCurrentDistributionChart(containerId, marketId) {
-        console.log('Creating enhanced Yin Yang distribution chart for market', marketId);
+        console.log('Creating simple distribution chart for market', marketId);
         const container = document.getElementById(containerId) || document.querySelector(`#${containerId}`);
         if (!container) return null;
 
@@ -3417,6 +3417,104 @@
     let wallet = null;
     let bnbBalance = 0;
     let isAdmin = false;
+    
+    // Simple chart initialization function
+    function initializeSimpleCharts() {
+      console.log('Initializing simple charts with real market data...');
+      
+      // Get current market data
+      let yesPercentage = 50;
+      let noPercentage = 50;
+      let totalBets = 0;
+      let yesAmount = 0;
+      let noAmount = 0;
+      
+      // Try to get real market data
+      if (window.currentMarket && window.predictionMarket) {
+        const marketId = window.currentMarket.id;
+        const marketDepth = window.predictionMarket.getMarketDepth(marketId);
+        
+        if (marketDepth && marketDepth.probabilities) {
+          yesPercentage = Math.round(marketDepth.probabilities[0] * 100);
+          noPercentage = Math.round(marketDepth.probabilities[1] * 100);
+        }
+        
+        // Get bet amounts if available
+        if (marketDepth && marketDepth.totalShares) {
+          yesAmount = marketDepth.totalShares[0] || 0;
+          noAmount = marketDepth.totalShares[1] || 0;
+          totalBets = yesAmount + noAmount;
+        }
+      }
+      
+      // Probability Chart
+      const probContainer = document.getElementById('probabilityChartContainer');
+      if (probContainer) {
+        probContainer.innerHTML = `
+          <div style="display:flex;flex-direction:column;height:100%;background:rgba(31,41,55,0.5);border-radius:8px;padding:20px;">
+            <div style="color:#e5e7eb;font-weight:600;text-align:center;margin-bottom:20px;">📈 Live Market Sentiment</div>
+            <div style="flex:1;display:flex;align-items:center;justify-content:space-between;">
+              <div style="text-align:center;flex:1;">
+                <div style="color:#10b981;font-size:36px;font-weight:700;margin-bottom:8px;">${yesPercentage}%</div>
+                <div style="color:#9ca3af;font-size:16px;margin-bottom:8px;">YES Probability</div>
+                <div style="color:#10b981;font-size:14px;">${yesAmount.toFixed(3)} BNB</div>
+              </div>
+              <div style="width:2px;height:60px;background:linear-gradient(to bottom, #10b981, #ef4444);margin:0 20px;"></div>
+              <div style="text-align:center;flex:1;">
+                <div style="color:#ef4444;font-size:36px;font-weight:700;margin-bottom:8px;">${noPercentage}%</div>
+                <div style="color:#9ca3af;font-size:16px;margin-bottom:8px;">NO Probability</div>
+                <div style="color:#ef4444;font-size:14px;">${noAmount.toFixed(3)} BNB</div>
+              </div>
+            </div>
+            <div style="text-align:center;color:#6b7280;font-size:12px;margin-top:12px;">
+              Total Volume: ${totalBets.toFixed(3)} BNB
+            </div>
+          </div>
+        `;
+      }
+      
+      // Distribution Chart  
+      const distContainer = document.getElementById('distributionChartContainer');
+      if (distContainer) {
+        distContainer.innerHTML = `
+          <div style="display:flex;flex-direction:column;height:100%;background:rgba(31,41,55,0.5);border-radius:8px;padding:20px;">
+            <div style="color:#e5e7eb;font-weight:600;text-align:center;margin-bottom:20px;">📊 Market Distribution</div>
+            <div style="flex:1;display:flex;align-items:center;justify-content:center;">
+              <div style="display:flex;gap:40px;align-items:center;">
+                <div style="text-align:center;">
+                  <div style="width:${Math.max(60, yesPercentage)}px;height:${Math.max(60, yesPercentage)}px;border-radius:50%;background:linear-gradient(135deg, #10b981, #059669);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;position:relative;">
+                    <span style="color:white;font-weight:700;font-size:16px;">${yesPercentage}%</span>
+                  </div>
+                  <div style="color:#10b981;font-size:16px;font-weight:600;">YES</div>
+                  <div style="color:#9ca3af;font-size:12px;">${yesAmount.toFixed(2)} BNB</div>
+                </div>
+                <div style="text-align:center;">
+                  <div style="width:${Math.max(60, noPercentage)}px;height:${Math.max(60, noPercentage)}px;border-radius:50%;background:linear-gradient(135deg, #ef4444, #dc2626);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;">
+                    <span style="color:white;font-weight:700;font-size:16px;">${noPercentage}%</span>
+                  </div>
+                  <div style="color:#ef4444;font-size:16px;font-weight:600;">NO</div>
+                  <div style="color:#9ca3af;font-size:12px;">${noAmount.toFixed(2)} BNB</div>
+                </div>
+              </div>
+            </div>
+            <div style="text-align:center;margin-top:16px;">
+              <div style="height:8px;background:#374151;border-radius:4px;overflow:hidden;">
+                <div style="height:100%;width:${yesPercentage}%;background:linear-gradient(90deg, #10b981, #059669);float:left;"></div>
+              </div>
+              <div style="color:#6b7280;font-size:11px;margin-top:4px;">Market Share Distribution</div>
+            </div>
+          </div>
+        `;
+      }
+      
+      console.log('✅ Live market charts initialized with real data');
+    }
+    
+    // Run chart initialization immediately and refresh every 30 seconds
+    setTimeout(initializeSimpleCharts, 500); // Quick initial load
+    setInterval(initializeSimpleCharts, 30000); // Refresh every 30 seconds
+
+    // Initialize Web3 and BSC connection
     
     // BSC Configuration
     const TREASURY_WALLET = '0x7eCa382995Df91C250896c0EC73c9d2893F7800e';

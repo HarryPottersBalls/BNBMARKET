@@ -19,56 +19,153 @@ const path = require('path');
 // Create HTTP server
 const server = http.createServer(app);
 
-// WebSocket Server Configuration
-const wss = new WebSocket.Server({ server });
+// Advanced WebSocket Server Configuration
+const WebSocketServer = require('ws');
+const wss = new WebSocketServer.Server({ server });
 
-// WebSocket Clients Management
-const clients = new Set();
+// Secure WebSocket Connection Management
+class SecureWebSocketManager {
+  constructor(wss) {
+    this.wss = wss;
+    this.clients = new Set();
+    this.marketSubscriptions = new Map();
+    this.logger = console;  // Replace with proper logging mechanism
+    this.rateLimiter = this.createRateLimiter();
 
-// Market Update Broadcaster
-function broadcastMarketUpdate(marketId, updateData) {
-  const message = JSON.stringify({
-    type: 'market_update',
-    marketId,
-    data: updateData
-  });
+    this.setupConnectionHandlers();
+  }
 
-  clients.forEach(client => {
-    if (client.readyState === WebSocket.OPEN) {
-      client.send(message);
+  createRateLimiter(options = {}) {
+    const {
+      windowMs = 15 * 60 * 1000,  // 15 minutes
+      max = 100,  // Limit each IP to 100 requests per windowMs
+    } = options;
+
+    const hits = new Map();
+
+    return (ip) => {
+      const now = Date.now();
+
+      // Clean up old hits
+      for (const [key, timestamp] of hits.entries()) {
+        if (now - timestamp > windowMs) {
+          hits.delete(key);
+        }
+      }
+
+      const currentHits = hits.get(ip) || 0;
+      if (currentHits >= max) {
+        return false;
+      }
+
+      hits.set(ip, currentHits + 1);
+      return true;
+    };
+  }
+
+  setupConnectionHandlers() {
+    this.wss.on('connection', (ws, req) => {
+      const clientIp = req.socket.remoteAddress;
+
+      // Rate limiting
+      if (!this.rateLimiter(clientIp)) {
+        ws.close(1008, 'Rate limit exceeded');
+        return;
+      }
+
+      this.clients.add(ws);
+
+      ws.on('message', (rawMessage) => {
+        try {
+          const message = JSON.parse(rawMessage);
+          this.handleMessage(ws, message);
+        } catch (error) {
+          this.logger.error('WebSocket message error', {
+            error: error.message,
+            rawMessage
+          });
+          ws.send(JSON.stringify({
+            type: 'error',
+            message: 'Invalid message format'
+          }));
+        }
+      });
+
+      ws.on('close', () => {
+        this.clients.delete(ws);
+        this.cleanupSubscriptions(ws);
+      });
+
+      ws.on('error', (error) => {
+        this.logger.error('WebSocket error', {
+          error: error.message,
+          clientIp
+        });
+      });
+    });
+  }
+
+  handleMessage(ws, message) {
+    switch (message.type) {
+      case 'subscribe_market':
+        this.subscribeToMarket(ws, message.marketId);
+        break;
+      case 'unsubscribe_market':
+        this.unsubscribeFromMarket(ws, message.marketId);
+        break;
+      default:
+        this.logger.warn('Unknown message type', { type: message.type });
     }
-  });
+  }
+
+  subscribeToMarket(ws, marketId) {
+    if (!this.marketSubscriptions.has(marketId)) {
+      this.marketSubscriptions.set(marketId, new Set());
+    }
+    this.marketSubscriptions.get(marketId).add(ws);
+  }
+
+  unsubscribeFromMarket(ws, marketId) {
+    const marketSubscribers = this.marketSubscriptions.get(marketId);
+    if (marketSubscribers) {
+      marketSubscribers.delete(ws);
+    }
+  }
+
+  cleanupSubscriptions(ws) {
+    for (const [marketId, subscribers] of this.marketSubscriptions.entries()) {
+      subscribers.delete(ws);
+      if (subscribers.size === 0) {
+        this.marketSubscriptions.delete(marketId);
+      }
+    }
+  }
+
+  broadcastMarketUpdate(marketId, updateData) {
+    const subscribers = this.marketSubscriptions.get(marketId);
+    if (!subscribers) return;
+
+    const message = JSON.stringify({
+      type: 'market_update',
+      marketId,
+      data: updateData
+    });
+
+    subscribers.forEach(client => {
+      if (client.readyState === WebSocketServer.OPEN) {
+        client.send(message);
+      }
+    });
+  }
 }
 
-// WebSocket Connection Handler
-wss.on('connection', (ws, req) => {
-  // Add client to tracking set
-  clients.add(ws);
+// Initialize Secure WebSocket Manager
+const wsManager = new SecureWebSocketManager(wss);
 
-  // Client-specific market subscription
-  ws.on('message', (message) => {
-    try {
-      const parsedMessage = JSON.parse(message);
-
-      switch (parsedMessage.type) {
-        case 'subscribe_market':
-          ws.subscribedMarket = parsedMessage.marketId;
-          break;
-
-        case 'unsubscribe_market':
-          delete ws.subscribedMarket;
-          break;
-      }
-    } catch (error) {
-      console.error('WebSocket message parsing error:', error);
-    }
-  });
-
-  // Remove client on close
-  ws.on('close', () => {
-    clients.delete(ws);
-  });
-});
+// Global Broadcast Function
+function broadcastMarketUpdate(marketId, updateData) {
+  wsManager.broadcastMarketUpdate(marketId, updateData);
+}
 
 // Production CORS configuration
 const allowedOrigins = [

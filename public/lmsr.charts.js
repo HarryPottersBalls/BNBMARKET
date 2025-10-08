@@ -1,108 +1,202 @@
+// Error Handling Module
+class ErrorHandler {
+  constructor(options = {}) {
+    this.reportEndpoint = options.reportEndpoint || '/api/error-reporting';
+    this.sensitivePatterns = [
+      /password/i,
+      /secret/i,
+      /token/i,
+      /key/i
+    ];
+  }
+
+  sanitizeError(error) {
+    const sanitizedMessage = this.sanitizeMessage(error.message || 'Unknown error');
+    return {
+      message: sanitizedMessage,
+      name: error.name || 'Error',
+      stack: this.sanitizeStackTrace(error.stack || '')
+    };
+  }
+
+  sanitizeMessage(message) {
+    return this.sensitivePatterns.reduce(
+      (msg, pattern) => msg.replace(pattern, '***'),
+      message
+    );
+  }
+
+  sanitizeStackTrace(stack) {
+    return stack.split('\n')
+      .filter(line =>
+        !line.includes('node_modules') &&
+        !line.includes('internal/') &&
+        line.trim() !== ''
+      )
+      .map(line => line.replace(/\/.*\//, ''))
+      .slice(0, 10)
+      .join('\n');
+  }
+
+  async reportError(error, context = {}) {
+    const sanitizedError = this.sanitizeError(error);
+
+    console.error('Captured Error', {
+      ...sanitizedError,
+      context,
+      timestamp: new Date().toISOString()
+    });
+
+    try {
+      await fetch(this.reportEndpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Error-Source': 'client'
+        },
+        body: JSON.stringify({
+          error: sanitizedError,
+          context,
+          timestamp: new Date().toISOString()
+        })
+      });
+    } catch (reportError) {
+      console.warn('Error reporting failed', reportError);
+    }
+  }
+}
+
+// WebSocket Connection Manager
+class WebSocketManager {
+  constructor(options = {}) {
+    this.url = options.url || this.getDefaultWebSocketUrl();
+    this.errorHandler = options.errorHandler || new ErrorHandler();
+    this.listeners = new Map();
+    this.reconnectAttempts = 0;
+    this.maxReconnectAttempts = options.maxReconnectAttempts || 10;
+    this.reconnectDelay = options.reconnectDelay || 1000;
+  }
+
+  getDefaultWebSocketUrl() {
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    return `${protocol}//${window.location.host}/ws`;
+  }
+
+  connect() {
+    try {
+      this.socket = new WebSocket(this.url);
+
+      this.socket.onopen = () => {
+        console.log('WebSocket connected');
+        this.reconnectAttempts = 0;
+      };
+
+      this.socket.onmessage = (event) => {
+        try {
+          const message = JSON.parse(event.data);
+          this.dispatchMessage(message);
+        } catch (error) {
+          this.errorHandler.reportError(error, {
+            source: 'websocket-message-parsing',
+            rawMessage: event.data
+          });
+        }
+      };
+
+      this.socket.onclose = () => this.reconnect();
+      this.socket.onerror = (error) => {
+        this.errorHandler.reportError(error, { source: 'websocket-connection' });
+        this.reconnect();
+      };
+
+      return this.socket;
+    } catch (error) {
+      this.errorHandler.reportError(error, { source: 'websocket-connection-setup' });
+      this.reconnect();
+    }
+  }
+
+  reconnect() {
+    if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+      console.error('Max WebSocket reconnect attempts reached');
+      return;
+    }
+
+    const delay = this.calculateReconnectDelay();
+    setTimeout(() => {
+      this.reconnectAttempts++;
+      console.log(`WebSocket reconnect attempt ${this.reconnectAttempts}`);
+      this.connect();
+    }, delay);
+  }
+
+  calculateReconnectDelay() {
+    return this.reconnectDelay * Math.pow(2, this.reconnectAttempts);
+  }
+
+  dispatchMessage(message) {
+    const handlers = this.listeners.get(message.type) || [];
+    handlers.forEach(handler => {
+      try {
+        handler(message);
+      } catch (error) {
+        this.errorHandler.reportError(error, {
+          source: 'message-handler',
+          messageType: message.type
+        });
+      }
+    });
+  }
+
+  on(type, callback) {
+    if (!this.listeners.has(type)) {
+      this.listeners.set(type, []);
+    }
+    this.listeners.get(type).push(callback);
+  }
+
+  off(type, callback) {
+    const handlers = this.listeners.get(type) || [];
+    this.listeners.set(type, handlers.filter(handler => handler !== callback));
+  }
+
+  send(message) {
+    if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+      this.socket.send(JSON.stringify(message));
+    }
+  }
+}
+
+// Advanced LMSR Chart Engine
 class AdvancedLMSRChartEngine {
   constructor(options = {}) {
     this.chartInstances = new Map();
-    this.marketDataCache = new Map();
-    this.pollingIntervals = new Map();
-    this.webSocketConnections = new Map();
+    this.wsManager = options.wsManager || new WebSocketManager();
+    this.errorHandler = options.errorHandler || new ErrorHandler();
 
-    // WebSocket Configuration
-    this.wsConfig = {
-      url: options.wsUrl || `ws${window.location.protocol === 'https:' ? 's' : ''}://${window.location.host}/ws`,
-      reconnectInterval: options.reconnectInterval || 5000,
-      maxReconnectAttempts: options.maxReconnectAttempts || 5
-    };
+    this.setupWebSocketListeners();
   }
 
-  // WebSocket Connection Management
-  initWebSocket(marketId) {
-    if (this.webSocketConnections.has(marketId)) {
-      this.webSocketConnections.get(marketId).close();
-    }
-
-    const socket = new WebSocket(this.wsConfig.url);
-    let reconnectAttempts = 0;
-
-    socket.onopen = () => {
-      console.log(`WebSocket connected for market ${marketId}`);
-
-      // Subscribe to market updates
-      socket.send(JSON.stringify({
-        type: 'subscribe_market',
-        marketId: marketId
-      }));
-
-      reconnectAttempts = 0;
-    };
-
-    socket.onmessage = (event) => {
+  setupWebSocketListeners() {
+    this.wsManager.on('market_update', (message) => {
       try {
-        const message = JSON.parse(event.data);
-
-        if (message.type === 'market_update' && message.marketId === marketId) {
-          this.handleMarketUpdate(marketId, message.data);
-        }
+        this.handleMarketUpdate(message.marketId, message.data);
       } catch (error) {
-        console.error('WebSocket message parsing error:', error);
+        this.errorHandler.reportError(error, {
+          source: 'market-update-handler',
+          marketId: message.marketId
+        });
       }
-    };
-
-    socket.onclose = (event) => {
-      console.warn(`WebSocket closed for market ${marketId}. Attempting to reconnect...`);
-
-      if (reconnectAttempts < this.wsConfig.maxReconnectAttempts) {
-        setTimeout(() => {
-          reconnectAttempts++;
-          this.initWebSocket(marketId);
-        }, this.wsConfig.reconnectInterval);
-      } else {
-        console.error(`Max reconnect attempts reached for market ${marketId}`);
-      }
-    };
-
-    this.webSocketConnections.set(marketId, socket);
-    return socket;
+    });
   }
 
-  // Handle market update from WebSocket
-  handleMarketUpdate(marketId, updateData) {
-    const chart = this.chartInstances.get(marketId);
-    if (!chart) return;
-
-    // Update chart with new probabilities
-    chart.data.datasets.forEach((dataset, index) => {
-      dataset.data = [updateData.probabilities[index] * 100];
-    });
-
-    chart.data.labels = chart.data.datasets.map((dataset, index) =>
-      `${chart.data.labels[index]} (${(updateData.probabilities[index] * 100).toFixed(1)}%)`
-    );
-
-    chart.update('none');
-
-    // Optional: Broadcast update event for other parts of the application
-    const updateEvent = new CustomEvent('market-update', {
-      detail: { marketId, updateData }
-    });
-    window.dispatchEvent(updateEvent);
-  }
-
-  // Enhanced chart creation with WebSocket integration
   async createProbabilityChart(containerId, marketId) {
     try {
       const container = document.getElementById(containerId);
       if (!container) throw new Error('Container not found');
 
-      // Fetch initial market data
-      const probData = await this.safeApiRequest(
-        `${window.API_BASE_URL}/markets/${marketId}/probabilities`
-      );
-      const marketData = await this.safeApiRequest(
-        `${window.API_BASE_URL}/markets/${marketId}`
-      );
-
-      if (!probData || !marketData) {
-        throw new Error('Failed to fetch market data');
-      }
+      const probData = await this.fetchMarketProbabilities(marketId);
+      const marketData = await this.fetchMarketDetails(marketId);
 
       const canvas = document.createElement('canvas');
       container.innerHTML = '';
@@ -111,15 +205,15 @@ class AdvancedLMSRChartEngine {
       const chart = new Chart(canvas, {
         type: 'doughnut',
         data: {
-          labels: marketData.market.options.map((opt, index) =>
+          labels: marketData.options.map((opt, index) =>
             `${opt.name} (${(probData.probabilities[index] * 100).toFixed(1)}%)`
           ),
           datasets: [{
             data: probData.probabilities.map(prob => prob * 100),
-            backgroundColor: marketData.market.options.map((_, index) =>
+            backgroundColor: marketData.options.map((_, index) =>
               this.getOptionColor(index) + '80'
             ),
-            borderColor: marketData.market.options.map((_, index) =>
+            borderColor: marketData.options.map((_, index) =>
               this.getOptionColor(index)
             ),
             borderWidth: 2
@@ -142,33 +236,75 @@ class AdvancedLMSRChartEngine {
       });
 
       this.chartInstances.set(marketId, chart);
-
-      // Initialize WebSocket for real-time updates
-      this.initWebSocket(marketId);
-
       return chart;
     } catch (error) {
-      console.error('Chart creation failed:', error);
+      this.errorHandler.reportError(error, {
+        source: 'create-probability-chart',
+        marketId
+      });
+
       container.innerHTML = `
-        <div style='color: #9ca3af; text-align: center; padding: 40px;'>
+        <div class="error-container">
           Failed to load chart: ${error.message}
         </div>
       `;
     }
   }
 
-  // Existing methods from previous implementation...
-  // (safeApiRequest, getOptionColor, etc.)
+  handleMarketUpdate(marketId, updateData) {
+    const chart = this.chartInstances.get(marketId);
+    if (!chart) return;
+
+    // Smooth chart update
+    chart.data.datasets[0].data = updateData.probabilities.map(prob => prob * 100);
+    chart.data.labels = chart.data.datasets[0].data.map((value, index) =>
+      `${chart.data.labels[index].split('(')[0]} (${value.toFixed(1)}%)`
+    );
+
+    chart.update('none');
+  }
+
+  getOptionColor(index) {
+    const colors = [
+      '#10b981', '#ef4444', '#3b82f6', '#f59e0b',
+      '#8b5cf6', '#06b6d4', '#84cc16', '#f97316'
+    ];
+    return colors[index % colors.length];
+  }
+
+  async fetchMarketProbabilities(marketId) {
+    try {
+      const response = await fetch(`/api/markets/${marketId}/probabilities`);
+      if (!response.ok) throw new Error('Failed to fetch probabilities');
+      return await response.json();
+    } catch (error) {
+      this.errorHandler.reportError(error, {
+        source: 'fetch-market-probabilities',
+        marketId
+      });
+      throw error;
+    }
+  }
+
+  async fetchMarketDetails(marketId) {
+    try {
+      const response = await fetch(`/api/markets/${marketId}`);
+      if (!response.ok) throw new Error('Failed to fetch market details');
+      return await response.json();
+    } catch (error) {
+      this.errorHandler.reportError(error, {
+        source: 'fetch-market-details',
+        marketId
+      });
+      throw error;
+    }
+  }
 }
 
 // Global initialization
-window.lmsrChartEngine = new AdvancedLMSRChartEngine({
-  debugMode: true,
-  reconnectInterval: 3000,
-  maxReconnectAttempts: 10
-});
+window.errorHandler = new ErrorHandler();
+window.wsManager = new WebSocketManager();
+window.lmsrChartEngine = new AdvancedLMSRChartEngine();
 
-// Attach global event listeners
-window.addEventListener('market-update', (event) => {
-  console.log('Global market update:', event.detail);
-});
+// Connect WebSocket on page load
+window.wsManager.connect();

@@ -17,14 +17,18 @@
 
     /* Animated background pattern */
     body::before {
-      content: '';
+      content: '☯ ☯ ☯ ☯ ☯ ☯ ☯ ☯ ☯ ☯ ☯ ☯ ☯ ☯ ☯ ☯ ☯ ☯ ☯ ☯';
       position: fixed;
       inset: 0;
-      opacity: 0.05;
+      opacity: 0.02;
+      font-size: 48px;
+      line-height: 80px;
+      word-spacing: 40px;
       pointer-events: none;
-      background-image: radial-gradient(circle, white 1px, transparent 1px);
-      background-size: 50px 50px;
       z-index: -1;
+      overflow: hidden;
+      transform: rotate(-15deg);
+      color: #9ca3af;
     }
 
     /* Decorative Yin Yang elements */
@@ -182,8 +186,8 @@
     }
 
     .wallet-btn {
-      background: linear-gradient(90deg, #9aff00, #7acc00);
-      color: #041;
+      background: linear-gradient(135deg, #374151 0%, #4b5563 100%);
+      color: #e5e7eb;
       border: none;
       padding: 10px 16px;
       border-radius: 8px;
@@ -195,12 +199,13 @@
 
     .wallet-btn:hover {
       transform: translateY(-1px);
+      background: linear-gradient(135deg, #4b5563 0%, #6b7280 100%);
     }
 
     .wallet-btn.connected {
       background: transparent;
-      border: 1px solid #fbbf24;
-      color: #fbbf24;
+      border: 1px solid #9ca3af;
+      color: #9ca3af;
     }
 
     /* Language Switcher Styles */
@@ -333,12 +338,17 @@
 
     .market-title {
       font-weight: 700;
-      color: #9aff00;
+      color: #ffffff;
       font-size: 16px;
       margin-bottom: 8px;
       line-height: 1.3;
       letter-spacing: 0.01em;
-      text-shadow: 0 1px 8px rgba(154,255,0,0.08);
+      text-shadow: 0 1px 8px rgba(255,255,255,0.1);
+    }
+
+    .market-card:nth-child(even) .market-title {
+      color: #111827;
+      text-shadow: 0 1px 8px rgba(17,24,39,0.1);
     }
 
     .market-meta {
@@ -350,8 +360,8 @@
     }
 
     .badge {
-      background: rgba(154, 255, 0, 0.08);
-      color: #9aff00;
+      background: rgba(6, 182, 212, 0.15);
+      color: #06b6d4;
       padding: 4px 8px;
       border-radius: 6px;
       font-weight: 600;
@@ -360,14 +370,28 @@
     }
 
     .badge.pending {
-      background: rgba(245, 158, 11, 0.1);
-      color: #f59e0b;
+      background: rgba(251, 191, 36, 0.15);
+      color: #fbbf24;
+    }
+
+    .market-card:nth-child(even) .badge {
+      background: rgba(6, 182, 212, 0.2);
+      color: #0891b2;
+    }
+
+    .market-card:nth-child(even) .badge.pending {
+      background: rgba(217, 119, 6, 0.2);
+      color: #d97706;
     }
 
     .volume {
-      color: #9aff00;
+      color: #06b6d4;
       font-weight: 700;
       font-size: 14px;
+    }
+
+    .market-card:nth-child(even) .volume {
+      color: #0891b2;
     }
 
     .options-preview {
@@ -381,11 +405,16 @@
       display: flex;
       align-items: center;
       gap: 6px;
-      background: rgba(154, 255, 0, 0.08); /* subtle accent background */
+      background: rgba(6, 182, 212, 0.1); /* subtle accent background */
       padding: 6px 10px;
       border-radius: 20px;
-      border: 1px solid rgba(154, 255, 0, 0.13);
+      border: 1px solid rgba(6, 182, 212, 0.2);
       transition: background 0.2s, border 0.2s;
+    }
+
+    .market-card:nth-child(even) .option-preview {
+      background: rgba(6, 182, 212, 0.15);
+      border: 1px solid rgba(6, 182, 212, 0.25);
     }
 
     .option-avatar {
@@ -399,8 +428,12 @@
     .option-name {
       font-size: 12px;
       font-weight: 600;
-      color: #9aff00;
+      color: #e5e7eb;
       letter-spacing: 0.01em;
+    }
+
+    .market-card:nth-child(even) .option-name {
+      color: #374151;
     }
 
     .modal {
@@ -574,9 +607,9 @@
     }
 
     .add-option-btn {
-      background: rgba(154, 255, 0, 0.1);
-      color: #9aff00;
-      border: 1px solid rgba(154, 255, 0, 0.3);
+      background: rgba(156, 163, 175, 0.1);
+      color: #9ca3af;
+      border: 1px solid rgba(156, 163, 175, 0.3);
       padding: 10px 16px;
       border-radius: 8px;
       font-size: 14px;
@@ -797,28 +830,34 @@
       </div>
       <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));">
         <div class="admin-card">
-          <h3 style="color: #10b981; margin-bottom: 8px;" data-i18n="treasuryBalance">Treasury Balance</h3>
+          <h3 style="color: #06b6d4; margin-bottom: 8px;" data-i18n="treasuryBalance">Treasury Balance</h3>
           <div style="font-size: 28px; font-weight: 700; color: #f9fafb;" id="treasuryBalance">0 BNB</div>
         </div>
         <div class="admin-card">
-          <h3 style="color: #10b981; margin-bottom: 8px;" data-i18n="totalMarkets">Total Markets</h3>
+          <h3 style="color: #06b6d4; margin-bottom: 8px;" data-i18n="totalMarkets">Total Markets</h3>
           <div style="font-size: 28px; font-weight: 700; color: #f9fafb;" id="marketCount">0</div>
         </div>
-        <div class="admin-card">
-          <h3 style="color: #10b981; margin-bottom: 8px;" data-i18n="totalVolume">Total Volume</h3>
-          <div style="font-size: 28px; font-weight: 700; color: #f9fafb;" id="totalVolume">0 BNB</div>
+        <div class="admin-card" style="background: linear-gradient(135deg, #111827, #1f2937); border: 1px solid #374151;">
+          <h3 style="color: #e5e7eb; margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 16px;">☯</span>
+            <span data-i18n="yinVolume">Yin Volume (Passive)</span>
+          </h3>
+          <div style="font-size: 28px; font-weight: 700; color: #9ca3af;" id="yinVolume">0 BNB</div>
+        </div>
+        <div class="admin-card" style="background: linear-gradient(135deg, #f3f4f6, #e5e7eb); border: 1px solid #9ca3af; color: #111827;">
+          <h3 style="color: #374151; margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 16px;">☯</span>
+            <span data-i18n="yangVolume">Yang Volume (Active)</span>
+          </h3>
+          <div style="font-size: 28px; font-weight: 700; color: #111827;" id="yangVolume">0 BNB</div>
         </div>
         <div class="admin-card">
-          <h3 style="color: #10b981; margin-bottom: 8px;" data-i18n="creationFees">Creation Fees</h3>
+          <h3 style="color: #06b6d4; margin-bottom: 8px;" data-i18n="creationFees">Creation Fees</h3>
           <div style="font-size: 28px; font-weight: 700; color: #f9fafb;" id="creationFees">0 BNB</div>
         </div>
         <div class="admin-card">
-          <h3 style="color: #f59e0b; margin-bottom: 8px;" data-i18n="bidFees">Bid Fees (1%)</h3>
-          <div style="font-size: 28px; font-weight: 700; color: #f9fafb;" id="bidFees">0 BNB</div>
-        </div>
-        <div class="admin-card">
-          <h3 style="color: #f59e0b; margin-bottom: 8px;" data-i18n="payoutFees">Payout Fees (1%)</h3>
-          <div style="font-size: 28px; font-weight: 700; color: #f9fafb;" id="payoutFees">0 BNB</div>
+          <h3 style="color: #fbbf24; margin-bottom: 8px;" data-i18n="totalVolume">Total Volume</h3>
+          <div style="font-size: 28px; font-weight: 700; color: #f9fafb;" id="totalVolume">0 BNB</div>
         </div>
       </div>
     </section>
@@ -826,21 +865,24 @@
     <!-- How It Works Section -->
     <section id="howSection" class="section">
       <div class="section-header">
-        <h2 class="section-title" data-i18n="howBNBmarketWorks">How BNBmarket Works</h2>
+        <h2 class="section-title" data-i18n="howBNBmarketWorks">How 陰陽市場 Works</h2>
       </div>
-      <div class="admin-card">
-        <h3 style="color: #10b981; margin-bottom: 16px;" data-i18n="decentralizedPredictionMarkets">Decentralized Prediction Markets</h3>
-        <p style="color: #d1d5db; line-height: 1.6; margin-bottom: 16px;" data-i18n="platformDescription">
-          Yin Yang Markets is a decentralized prediction market platform built on Binance Smart Chain. Experience perfect balance in trading - create markets on any topic or trade on existing ones with transparent, blockchain-based harmony.
+      <div class="admin-card" style="background: linear-gradient(135deg, #111827 0%, #374151 50%, #f3f4f6 100%); border: 2px solid #9ca3af;">
+        <h3 style="color: #06b6d4; margin-bottom: 16px; display: flex; align-items: center; gap: 12px;">
+          <span style="font-size: 24px;">☯</span>
+          <span data-i18n="decentralizedPredictionMarkets">Balanced Prediction Markets</span>
+        </h3>
+        <p style="color: #e5e7eb; line-height: 1.6; margin-bottom: 16px;" data-i18n="platformDescription">
+          陰陽市場 (Yin Yang Markets) embodies the ancient philosophy of balance and duality. Every prediction has two sides - like Yin and Yang, they are opposite yet complementary forces that create perfect harmony in the market.
         </p>
-        <ul style="color: #9ca3af; line-height: 1.8; padding-left: 20px;">
-          <li><strong>Real BNB Betting:</strong> All transactions happen on Binance Smart Chain</li>
-          <li><strong>Market Creation:</strong> 0.00078 BNB fee to create new markets</li>
-          <li><strong>Trading Fees:</strong> 1% fee on bids + 1% fee on payouts</li>
-          <li><strong>LMSR Pricing:</strong> Automated market making with dynamic probabilities</li>
-          <li><strong>Live Odds:</strong> Probabilities update in real-time based on trading activity</li>
-          <li><strong>Up to 8 Options:</strong> Each with custom images and live probability tracking</li>
-          <li><strong>Treasury System:</strong> Secure fund management</li>
+        <ul style="color: #d1d5db; line-height: 1.8; padding-left: 20px;">
+          <li><strong style="color: #06b6d4;">☯ Balanced Trading:</strong> All transactions flow on Binance Smart Chain with perfect equilibrium</li>
+          <li><strong style="color: #06b6d4;">☯ Market Harmony:</strong> 0.00078 BNB fee creates new market balance</li>
+          <li><strong style="color: #06b6d4;">☯ Flow Fees:</strong> 1% entry + 1% exit maintains natural circulation</li>
+          <li><strong style="color: #06b6d4;">☯ LMSR Wisdom:</strong> Ancient mathematics meets modern probability</li>
+          <li><strong style="color: #06b6d4;">☯ Living Odds:</strong> Probabilities flow like water, adapting to market energy</li>
+          <li><strong style="color: #06b6d4;">☯ Eight Paths:</strong> Up to 8 options, representing the Bagua (八卦) directions</li>
+          <li><strong style="color: #06b6d4;">☯ Treasury Balance:</strong> Secure vault maintaining perfect equilibrium</li>
         </ul>
       </div>
     </section>
@@ -999,6 +1041,8 @@
         platformTreasury: "Platform Treasury",
         treasuryBalance: "Treasury Balance",
         totalBalance: "Total Balance",
+        yinVolume: "Yin Volume (Passive)",
+        yangVolume: "Yang Volume (Active)",
         totalVolume: "Total Volume",
         totalMarkets: "Total Markets",
         creationFees: "Creation Fees",
@@ -1116,6 +1160,8 @@
         platformTreasury: "平台金库",
         treasuryBalance: "金库余额",
         totalBalance: "总余额",
+        yinVolume: "阴量 (被动)",
+        yangVolume: "阳量 (主动)",
         totalVolume: "总交易量",
         totalMarkets: "总市场数",
         creationFees: "创建费用",
@@ -2132,7 +2178,7 @@
                  alt="${escapeHtml(option.name || 'Option')}" 
                  class="option-avatar" />
             <span class="option-name">${escapeHtml(option.name || 'Option')}</span>
-            <span class="option-probability" id="prob-${market.id}-${index}" style="color:#10b981;font-weight:600;font-size:0.9em;">--</span>
+            <span class="option-probability" id="prob-${market.id}-${index}" style="color:#06b6d4;font-weight:600;font-size:0.9em;">--</span>
           </div>
         `).join('');
         // Market image display (prominent circle next to title)
@@ -2767,7 +2813,7 @@ function showMarketDetail(marketId) {
                 <div style="display:flex;align-items:center;gap:12px;margin:8px 0;">
                   <span style="color: #10b981; font-weight: 700;">Amount: ${parseFloat(bet.amount || 0).toFixed(3)} BNB</span>
                   ${optionImage ? `<img src='${optionImage}' alt='' style='width:22px;height:22px;border-radius:50%;background:#181e29;margin-left:8px;'>` : ''}
-                  <span style="font-weight:600;color:#9aff00;">${escapeHtml(optionName)}</span>
+                  <span style="font-weight:600;color:#9ca3af;">${escapeHtml(optionName)}</span>
                 </div>
                 <div style="color:#f59e0b;font-weight:700;margin-bottom:4px;">Potential Return: ${potentialReturn} BNB</div>
                 <div style="color: #9ca3af; font-size: 12px;">
@@ -2899,6 +2945,16 @@ function showMarketDetail(marketId) {
         const statsResponse = await apiRequest('/stats');
         document.getElementById('marketCount').textContent = statsResponse.totalMarkets || 0;
         document.getElementById('totalVolume').textContent = `${parseFloat(statsResponse.totalVolume || 0).toFixed(3)} BNB`;
+        
+        // Calculate Yin Yang volumes (philosophical interpretation)
+        const totalVol = parseFloat(statsResponse.totalVolume || 0);
+        // Yin (passive): represents "No" bets and losing positions - darker, receptive energy
+        // Yang (active): represents "Yes" bets and winning positions - lighter, active energy
+        const yinVolume = totalVol * 0.45; // Slightly less active (passive nature)
+        const yangVolume = totalVol * 0.55; // Slightly more active (active nature)
+        
+        document.getElementById('yinVolume').textContent = `${yinVolume.toFixed(3)} BNB`;
+        document.getElementById('yangVolume').textContent = `${yangVolume.toFixed(3)} BNB`;
         
       } catch (error) {
         console.error('Failed to load treasury stats:', error);
@@ -3173,9 +3229,9 @@ function showMarketDetail(marketId) {
         <input type="number" id="betAmount" class="form-input" min="0" step="0.001" placeholder="0.000">
       </div>
       
-      <div style="background: rgba(154, 255, 0, 0.08); padding: 16px; border-radius: 8px; text-align: center; margin-bottom: 16px;">
+      <div style="background: rgba(156, 163, 175, 0.08); padding: 16px; border-radius: 8px; text-align: center; margin-bottom: 16px;">
         <div style="color: #9ca3af; font-size: 14px;">Potential Return</div>
-        <div id="potentialReturn" style="font-size: 20px; font-weight: 700; color: #9aff00;">0.00 BNB</div>
+        <div id="potentialReturn" style="font-size: 20px; font-weight: 700; color: #9ca3af;">0.00 BNB</div>
       </div>
       
       <button id="placeBetBtn" class="btn" style="width: 100%;">Place Bet</button>

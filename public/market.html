@@ -455,10 +455,10 @@
             </div>
             <div id="profitCalc" style="color:#9ca3af;font-size:1.08rem;margin-bottom:14px;font-weight:600;background:rgba(156,163,175,0.07);padding:8px 10px;border-radius:8px;"></div>
             <div style="display:flex;gap:10px;margin-bottom:10px;align-items:flex-start;">
-              <button id="buyBtn" class="btn yang-primary" style="flex:1;width:100%;font-size:1.08rem;padding:13px 0;box-shadow:0 2px 8px rgba(156,163,175,0.07);" data-i18n="purchaseShares">Purchase Shares</button>
+              <button id="buyBtn" class="btn yang-primary" style="flex:1;width:100%;font-size:1.08rem;padding:13px 0;box-shadow:0 2px 8px rgba(156,163,175,0.07);" data-i18n="buyShares">Buy</button>
             </div>
             <div style="display:flex;gap:10px;margin-bottom:10px;align-items:flex-start;">
-              <button id="cancelBtn" class="btn" style="flex:1;width:100%;background:#ef4444;color:#fff;font-size:1.08rem;padding:13px 0;box-shadow:0 2px 8px rgba(239,68,68,0.13);border:1.5px solid #ef4444;" data-i18n="requestRefund">Request Refund</button>
+              <button id="cancelBtn" class="btn" style="flex:1;width:100%;background:#ef4444;color:#fff;font-size:1.08rem;padding:13px 0;box-shadow:0 2px 8px rgba(239,68,68,0.13);border:1.5px solid #ef4444;" data-i18n="cancelPrediction">Cancel Prediction</button>
             </div>
             <hr style="border:none;border-top:1px solid #4b5563;margin:12px 0 10px 0;">
             <div id="tradeMsg" style="margin-top:0;color:#9ca3af;font-size:1.05rem;min-height:22px;"></div>
@@ -768,7 +768,8 @@
         totalBuys: "Total Buys",
         
         // Trading
-        purchaseShares: "Purchase Shares",
+        buyShares: "Buy",
+        cancelPrediction: "Cancel Prediction",
         requestRefund: "Request Refund",
         amount: "Amount",
         platformFee: "Platform Fee",
@@ -880,7 +881,8 @@
         totalBuys: "总购买数",
         
         // Trading
-        purchaseShares: "购买份额",
+        buyShares: "购买",
+        cancelPrediction: "取消预测",
         requestRefund: "申请退款",
         amount: "金额",
         platformFee: "平台费用",
@@ -3996,7 +3998,7 @@
       // Update buy button text based on Yin/Yang choice
       const buyBtn = document.getElementById('buyBtn');
       if (buyBtn) {
-        const actionText = isYangOption ? '☀️ Support' : (isYinOption ? '🌙 Oppose' : 'Purchase');
+        const actionText = isYangOption ? 'Buy' : (isYinOption ? 'Sell' : 'Trade');
         buyBtn.innerHTML = `${actionText} <span data-i18n="shares">Shares</span>`;
       }
       

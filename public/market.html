@@ -486,6 +486,173 @@
         <div id="orderBook" style="margin-top:32px;"></div>
       </div>
       
+      <!-- Polymarket-style Trade Panel -->
+      <div id="tradePanelContainer" style="
+        position: fixed;
+        bottom: 0;
+        right: 0;
+        width: 400px;
+        background: linear-gradient(135deg, #0f172a, #1e293b);
+        border: 1px solid #334155;
+        border-radius: 16px 16px 0 0;
+        box-shadow: 0 -4px 32px rgba(0,0,0,0.3);
+        transform: translateY(100%);
+        transition: transform 0.3s ease;
+        z-index: 10000;
+        max-height: 500px;
+        overflow-y: auto;
+      ">
+        <div style="padding: 24px;">
+          <!-- Panel Header -->
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h3 id="tradePanelTitle" style="color: #f8fafc; margin: 0; font-size: 1.2rem; font-weight: 700;">
+              Select an outcome to trade
+            </h3>
+            <button onclick="window.enhancedOrderBook.closeTradePanel()" style="
+              background: none; 
+              border: none; 
+              color: #94a3b8; 
+              font-size: 1.5rem; 
+              cursor: pointer;
+              padding: 4px;
+            ">×</button>
+          </div>
+
+          <!-- Trade Panel Content -->
+          <div id="tradePanelContent" style="display: none;">
+            <!-- Selected Outcome Info -->
+            <div id="selectedOutcomeInfo" style="
+              background: rgba(51,65,85,0.3);
+              border-radius: 12px;
+              padding: 16px;
+              margin-bottom: 20px;
+            ">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <span id="selectedOutcomeName" style="color: #f8fafc; font-weight: 700; font-size: 1.1rem;"></span>
+                <span id="selectedOutcomePrice" style="color: #06b6d4; font-weight: 800; font-size: 1.2rem;"></span>
+              </div>
+              <div style="color: #94a3b8; font-size: 0.9rem;">
+                <span id="selectedOutcomeProbability"></span> • 
+                <span id="selectedOutcomeOdds"></span>
+              </div>
+            </div>
+
+            <!-- Buy/Sell Toggle -->
+            <div style="display: flex; margin-bottom: 20px; background: rgba(51,65,85,0.3); border-radius: 8px; padding: 4px;">
+              <button id="buyToggle" onclick="window.enhancedOrderBook.selectTradeSide('buy')" style="
+                flex: 1;
+                padding: 12px;
+                background: linear-gradient(135deg, #10b981, #059669);
+                color: white;
+                border: none;
+                border-radius: 6px;
+                font-weight: 700;
+                cursor: pointer;
+                transition: all 0.2s;
+              ">Buy</button>
+              <button id="sellToggle" onclick="window.enhancedOrderBook.selectTradeSide('sell')" style="
+                flex: 1;
+                padding: 12px;
+                background: transparent;
+                color: #94a3b8;
+                border: none;
+                border-radius: 6px;
+                font-weight: 700;
+                cursor: pointer;
+                transition: all 0.2s;
+                margin-left: 4px;
+              ">Sell</button>
+            </div>
+
+            <!-- Amount Input -->
+            <div style="margin-bottom: 20px;">
+              <label style="color: #94a3b8; display: block; margin-bottom: 8px; font-weight: 600;">
+                Amount (BNB)
+              </label>
+              <input id="tradePanelAmount" type="number" min="0.01" step="0.01" placeholder="0.00" style="
+                width: 100%;
+                padding: 14px 16px;
+                background: rgba(51,65,85,0.5);
+                border: 1px solid #475569;
+                border-radius: 8px;
+                color: #f8fafc;
+                font-size: 1.1rem;
+                font-weight: 600;
+              ">
+              <div style="display: flex; gap: 8px; margin-top: 8px;">
+                <button onclick="document.getElementById('tradePanelAmount').value = '1'" style="
+                  padding: 6px 12px;
+                  background: rgba(100,116,139,0.2);
+                  border: 1px solid #475569;
+                  border-radius: 6px;
+                  color: #94a3b8;
+                  font-size: 0.85rem;
+                  cursor: pointer;
+                ">1 BNB</button>
+                <button onclick="document.getElementById('tradePanelAmount').value = '5'" style="
+                  padding: 6px 12px;
+                  background: rgba(100,116,139,0.2);
+                  border: 1px solid #475569;
+                  border-radius: 6px;
+                  color: #94a3b8;
+                  font-size: 0.85rem;
+                  cursor: pointer;
+                ">5 BNB</button>
+                <button onclick="document.getElementById('tradePanelAmount').value = '10'" style="
+                  padding: 6px 12px;
+                  background: rgba(100,116,139,0.2);
+                  border: 1px solid #475569;
+                  border-radius: 6px;
+                  color: #94a3b8;
+                  font-size: 0.85rem;
+                  cursor: pointer;
+                ">10 BNB</button>
+              </div>
+            </div>
+
+            <!-- Trade Summary -->
+            <div id="tradeSummary" style="
+              background: rgba(6,182,212,0.1);
+              border: 1px solid rgba(6,182,212,0.3);
+              border-radius: 8px;
+              padding: 16px;
+              margin-bottom: 20px;
+            ">
+              <div style="color: #e2e8f0; font-size: 0.9rem; line-height: 1.5;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                  <span>Shares to receive:</span>
+                  <span id="sharesToReceive" style="color: #06b6d4; font-weight: 700;">0.000</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                  <span>If correct, you get:</span>
+                  <span id="potentialPayout" style="color: #10b981; font-weight: 700;">0.000 BNB</span>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                  <span>Potential profit:</span>
+                  <span id="potentialProfit" style="color: #10b981; font-weight: 700;">+0.000 BNB (0%)</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Place Trade Button -->
+            <button id="placeTradeBtn" onclick="window.enhancedOrderBook.executePanelTrade()" style="
+              width: 100%;
+              padding: 16px;
+              background: linear-gradient(135deg, #06b6d4, #0891b2);
+              color: white;
+              border: none;
+              border-radius: 8px;
+              font-weight: 700;
+              font-size: 1.1rem;
+              cursor: pointer;
+              transition: all 0.2s;
+            ">
+              Place Trade
+            </button>
+          </div>
+        </div>
+      </div>
+      
       <!-- Comment Section -->
       <section id="commentSection" style="margin-top:40px;background:linear-gradient(135deg, #0f172a, #1e293b);border-radius:16px;padding:28px 24px 18px 24px;box-shadow:0 2px 16px rgba(16,185,129,0.07);max-width:700px;margin-left:auto;margin-right:auto;border:1px solid #334155;position:relative;">
         <!-- Yin symbol for comments -->
@@ -1316,7 +1483,7 @@
                   ${price.toFixed(3)} BNB
                 </div>
                 <button 
-                  onclick="window.enhancedOrderBook.showTradeModal(${index}, 'yes', ${price})"
+                  onclick="window.enhancedOrderBook.openTradePanel(${index}, 'yes', ${price})"
                   style="background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; padding: 10px 16px; border-radius: 8px; font-weight: 700; cursor: pointer; transition: all 0.2s;"
                   onmouseover="this.style.transform='scale(1.05)'"
                   onmouseout="this.style.transform='scale(1)'"
@@ -1332,7 +1499,7 @@
                   ${oppositePrice.toFixed(3)} BNB
                 </div>
                 <button 
-                  onclick="window.enhancedOrderBook.showTradeModal(${index}, 'no', ${oppositePrice})"
+                  onclick="window.enhancedOrderBook.openTradePanel(${index}, 'no', ${oppositePrice})"
                   style="background: linear-gradient(135deg, #ef4444, #dc2626); color: white; border: none; padding: 10px 16px; border-radius: 8px; font-weight: 700; cursor: pointer; transition: all 0.2s;"
                   onmouseover="this.style.transform='scale(1.05)'"
                   onmouseout="this.style.transform='scale(1)'"
@@ -1755,6 +1922,145 @@
           setTimeout(() => {
             messageEl.innerHTML = '';
           }, 5000);
+        }
+      }
+      
+      // ========================================
+      // Polymarket-style Trade Panel Functions
+      // ========================================
+      
+      // Open trade panel (like Polymarket)
+      openTradePanel(optionIndex, side, currentPrice) {
+        this.selectedOptionIndex = optionIndex;
+        this.selectedSide = side;
+        this.selectedPrice = currentPrice;
+        
+        const option = this.currentMarket.options[optionIndex];
+        const marketDepth = window.predictionMarket.getMarketDepth(this.currentMarket.id);
+        
+        // Update panel info
+        document.getElementById('selectedOutcomeName').textContent = option.name;
+        document.getElementById('selectedOutcomePrice').textContent = `${currentPrice.toFixed(3)} BNB`;
+        document.getElementById('selectedOutcomeProbability').textContent = `${marketDepth.probabilities[optionIndex].toFixed(1)}% chance`;
+        document.getElementById('selectedOutcomeOdds').textContent = `${(1/currentPrice).toFixed(2)}:1 odds`;
+        
+        // Update title
+        document.getElementById('tradePanelTitle').textContent = `Trade: ${option.name}`;
+        
+        // Show content and animate panel
+        document.getElementById('tradePanelContent').style.display = 'block';
+        document.getElementById('tradePanelContainer').style.transform = 'translateY(0)';
+        
+        // Set initial trade side
+        this.selectTradeSide('buy');
+        
+        // Set up real-time updates
+        this.setupTradePanelUpdates();
+      }
+      
+      // Close trade panel
+      closeTradePanel() {
+        document.getElementById('tradePanelContainer').style.transform = 'translateY(100%)';
+        setTimeout(() => {
+          document.getElementById('tradePanelContent').style.display = 'none';
+        }, 300);
+      }
+      
+      // Select trade side (buy/sell)
+      selectTradeSide(side) {
+        this.selectedSide = side;
+        
+        const buyBtn = document.getElementById('buyToggle');
+        const sellBtn = document.getElementById('sellToggle');
+        
+        if (side === 'buy') {
+          buyBtn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+          buyBtn.style.color = 'white';
+          sellBtn.style.background = 'transparent';
+          sellBtn.style.color = '#94a3b8';
+        } else {
+          sellBtn.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
+          sellBtn.style.color = 'white';
+          buyBtn.style.background = 'transparent';
+          buyBtn.style.color = '#94a3b8';
+        }
+        
+        this.updateTradeSummary();
+      }
+      
+      // Set up real-time updates for trade panel
+      setupTradePanelUpdates() {
+        const amountInput = document.getElementById('tradePanelAmount');
+        
+        // Update summary when amount changes
+        amountInput.addEventListener('input', () => {
+          this.updateTradeSummary();
+        });
+        
+        // Initial update
+        this.updateTradeSummary();
+      }
+      
+      // Update trade summary display
+      updateTradeSummary() {
+        const amount = parseFloat(document.getElementById('tradePanelAmount').value) || 0;
+        
+        if (amount > 0 && this.selectedPrice) {
+          const shares = amount / this.selectedPrice;
+          const potentialPayout = shares * 1; // Each share pays 1 BNB if correct
+          const profit = potentialPayout - amount;
+          const profitPercent = ((profit / amount) * 100).toFixed(1);
+          
+          document.getElementById('sharesToReceive').textContent = shares.toFixed(3);
+          document.getElementById('potentialPayout').textContent = `${potentialPayout.toFixed(3)} BNB`;
+          document.getElementById('potentialProfit').textContent = `+${profit.toFixed(3)} BNB (${profitPercent}%)`;
+          
+          // Update button
+          document.getElementById('placeTradeBtn').textContent = `${this.selectedSide === 'buy' ? 'Buy' : 'Sell'} ${shares.toFixed(2)} shares`;
+        } else {
+          document.getElementById('sharesToReceive').textContent = '0.000';
+          document.getElementById('potentialPayout').textContent = '0.000 BNB';
+          document.getElementById('potentialProfit').textContent = '+0.000 BNB (0%)';
+          document.getElementById('placeTradeBtn').textContent = 'Enter amount';
+        }
+      }
+      
+      // Execute trade from panel
+      async executePanelTrade() {
+        const amount = parseFloat(document.getElementById('tradePanelAmount').value);
+        
+        if (!amount || amount <= 0) {
+          alert('Please enter a valid amount');
+          return;
+        }
+        
+        try {
+          // Execute through prediction market engine
+          const result = window.predictionMarket.executeBuy(
+            this.currentMarket.id,
+            this.selectedOptionIndex,
+            amount,
+            walletAddress || 'demo_user'
+          );
+          
+          if (result.success) {
+            // Update UI
+            this.renderOrderBook(this.currentMarket);
+            this.closeTradePanel();
+            
+            // Show success message
+            this.showTradeMessage(
+              `✅ Successfully bought ${result.trade.shares.toFixed(3)} shares for ${amount} BNB`,
+              'success'
+            );
+            
+            // Update charts
+            setTimeout(() => {
+              this.updateChartsAfterTrade();
+            }, 300);
+          }
+        } catch (error) {
+          alert(`Trade failed: ${error.message}`);
         }
       }
     }

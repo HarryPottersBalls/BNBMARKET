@@ -115,30 +115,79 @@ function isAdminAddress(address) {
   return isAdmin;
 }
 
-// LMSR (Logarithmic Market Scoring Rule) Functions
-function calculateLMSRProbabilities(bets, numOutcomes, liquidity = 10) {
+// Enhanced LMSR (Logarithmic Market Scoring Rule) Functions
+function calculateLMSRProbabilities(bets, numOutcomes, liquidity = 50) {
+  console.log('🧮 Calculating Enhanced LMSR Probabilities...');
+  
   // Calculate total bet amounts per outcome
   const outcomeTotals = Array(numOutcomes).fill(0);
+  const betCounts = Array(numOutcomes).fill(0); // Number of bets per outcome
   
   bets.forEach(bet => {
     if (bet.option_id < numOutcomes) {
       outcomeTotals[bet.option_id] += parseFloat(bet.amount || 0);
+      betCounts[bet.option_id] += 1;
     }
   });
   
-  // Add small initial liquidity to prevent division by zero
-  const initialLiquidity = liquidity / numOutcomes;
-  const adjustedTotals = outcomeTotals.map(total => total + initialLiquidity);
+  console.log('📊 Raw bet totals:', outcomeTotals);
+  console.log('👥 Bet counts per option:', betCounts);
   
-  // Calculate exponentials (scaled down to prevent overflow)
-  const scaleFactor = Math.max(...adjustedTotals) / 10; // Scale to manageable numbers
-  const expValues = adjustedTotals.map(total => Math.exp(total / Math.max(scaleFactor, 1)));
+  // IMPROVEMENT 1: Weight by both volume AND number of bets (wisdom of crowds)
+  const diversityWeights = betCounts.map(count => Math.log(count + 1)); // Log of bet count
+  const volumeWeights = outcomeTotals.map(total => total);
   
-  // Calculate probabilities
+  // Combine volume and diversity (60% volume, 40% diversity for balanced influence)
+  const maxVolume = Math.max(...volumeWeights) || 1;
+  const combinedWeights = volumeWeights.map((volume, i) => 
+    0.6 * volume + 0.4 * diversityWeights[i] * (volume > 0 ? volume / maxVolume : 0)
+  );
+  
+  console.log('🏋️ Combined weights (volume + crowd wisdom):', combinedWeights);
+  
+  // IMPROVEMENT 2: Dynamic liquidity based on market activity
+  const totalVolume = outcomeTotals.reduce((sum, total) => sum + total, 0);
+  const dynamicLiquidity = Math.max(liquidity, totalVolume * 0.15); // At least 15% of total volume
+  
+  // IMPROVEMENT 3: Add base liquidity with equal probability bias
+  const baseLiquidity = dynamicLiquidity / numOutcomes;
+  const adjustedTotals = combinedWeights.map(weight => weight + baseLiquidity);
+  
+  console.log('💧 Dynamic liquidity:', dynamicLiquidity);
+  console.log('⚖️ Adjusted totals:', adjustedTotals);
+  
+  // IMPROVEMENT 4: Better scaling factor to prevent overflow and maintain sensitivity
+  const maxTotal = Math.max(...adjustedTotals);
+  const scaleFactor = maxTotal > 100 ? maxTotal / 100 : 1; // Keep sensitivity for small markets
+  
+  // IMPROVEMENT 5: Enhanced exponential calculation with smoothing
+  const expValues = adjustedTotals.map(total => {
+    const scaledValue = total / scaleFactor;
+    // Apply smoothing for more realistic probability curves
+    return Math.exp(scaledValue * 0.75); // 0.75 factor creates gradual, realistic changes
+  });
+  
+  console.log('📈 Exponential values:', expValues);
+  
+  // Calculate raw probabilities
   const sumExp = expValues.reduce((sum, exp) => sum + exp, 0);
-  const probabilities = expValues.map(exp => exp / sumExp);
+  const rawProbabilities = expValues.map(exp => exp / sumExp);
   
-  return probabilities;
+  // IMPROVEMENT 6: Realistic probability bounds (no outcome should go below 1% or above 99%)
+  const minProbability = 0.01; // 1% minimum
+  const maxProbability = 0.99; // 99% maximum
+  
+  const clampedProbabilities = rawProbabilities.map(prob => 
+    Math.max(minProbability, Math.min(maxProbability, prob))
+  );
+  
+  // Renormalize after clamping to ensure probabilities sum to 1
+  const clampedSum = clampedProbabilities.reduce((sum, prob) => sum + prob, 0);
+  const finalProbabilities = clampedProbabilities.map(prob => prob / clampedSum);
+  
+  console.log('🎯 Final market probabilities:', finalProbabilities.map(p => `${(p * 100).toFixed(1)}%`));
+  
+  return finalProbabilities;
 }
 
 function calculateLMSRPrice(bets, outcomeIndex, numOutcomes, liquidity = 10) {
@@ -146,11 +195,11 @@ function calculateLMSRPrice(bets, outcomeIndex, numOutcomes, liquidity = 10) {
   return probabilities[outcomeIndex] || (1 / numOutcomes); // Default equal probability
 }
 
-function calculateLMSRCost(bets, outcomeIndex, shareAmount, numOutcomes, liquidity = 10) {
-  // Current state
+function calculateLMSRCost(bets, outcomeIndex, shareAmount, numOutcomes, liquidity = 50) {
+  // Current market state with enhanced algorithm
   const currentProb = calculateLMSRPrice(bets, outcomeIndex, numOutcomes, liquidity);
   
-  // Create hypothetical bet to see new price
+  // Create hypothetical bet to see new price impact
   const hypotheticalBets = [...bets, {
     option_id: outcomeIndex,
     amount: shareAmount
@@ -158,9 +207,26 @@ function calculateLMSRCost(bets, outcomeIndex, shareAmount, numOutcomes, liquidi
   
   const newProb = calculateLMSRPrice(hypotheticalBets, outcomeIndex, numOutcomes, liquidity);
   
-  // Simple cost calculation based on probability change
-  const avgProb = (currentProb + newProb) / 2;
-  return shareAmount / avgProb;
+  // Enhanced cost calculation with price impact consideration
+  const priceImpact = Math.abs(newProb - currentProb);
+  const avgPrice = (currentProb + newProb) / 2;
+  
+  // Apply slight premium for large trades that significantly move the market
+  const impactMultiplier = 1 + (priceImpact * 2); // Up to 2x multiplier for major moves
+  
+  const baseCost = shareAmount / avgPrice;
+  const adjustedCost = baseCost * Math.min(impactMultiplier, 1.5); // Cap at 50% premium
+  
+  console.log(`💰 Enhanced cost calculation:
+    Share amount: ${shareAmount}
+    Current prob: ${(currentProb * 100).toFixed(1)}%
+    New prob: ${(newProb * 100).toFixed(1)}%
+    Price impact: ${(priceImpact * 100).toFixed(1)}%
+    Base cost: ${baseCost.toFixed(4)}
+    Impact multiplier: ${impactMultiplier.toFixed(3)}x
+    Final cost: ${adjustedCost.toFixed(4)}`);
+  
+  return adjustedCost;
 }
 
 // Cloudinary configuration
@@ -926,6 +992,94 @@ app.get('/api/bets', async (req, res) => {
     console.error('API Error:', error);
     res.status(500).json({ 
       error: 'Failed to fetch bets',
+      details: error.message 
+    });
+  }
+});
+
+// Get comments for a specific bet
+app.get('/api/bets/:betId/comments', async (req, res) => {
+  try {
+    const { betId } = req.params;
+    const { limit = 50, offset = 0 } = req.query;
+    
+    // Verify bet exists
+    const betResult = await queryDatabase('SELECT id FROM bets WHERE id = $1', [betId]);
+    if (betResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Bet not found' });
+    }
+    
+    // Get comments for the bet
+    const result = await queryDatabase(`
+      SELECT 
+        c.*,
+        SUBSTRING(c.user_address, 1, 6) || '...' || SUBSTRING(c.user_address, -4) as user_display
+      FROM comments c
+      WHERE c.bet_id = $1
+      ORDER BY c.created_at DESC
+      LIMIT $2 OFFSET $3
+    `, [betId, parseInt(limit), parseInt(offset)]);
+    
+    res.json({ 
+      comments: result.rows,
+      count: result.rows.length,
+      bet_id: parseInt(betId),
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('API Error:', error);
+    res.status(500).json({ 
+      error: 'Failed to fetch comments',
+      details: error.message 
+    });
+  }
+});
+
+// Add a comment to a bet
+app.post('/api/bets/:betId/comments', async (req, res) => {
+  try {
+    const { betId } = req.params;
+    const { user_address, comment_text } = req.body;
+    
+    if (!user_address || !comment_text) {
+      return res.status(400).json({ 
+        error: 'Missing required fields',
+        required: ['user_address', 'comment_text']
+      });
+    }
+    
+    if (comment_text.trim().length < 1) {
+      return res.status(400).json({ error: 'Comment text cannot be empty' });
+    }
+    
+    if (comment_text.length > 500) {
+      return res.status(400).json({ error: 'Comment text too long (max 500 characters)' });
+    }
+    
+    // Verify bet exists
+    const betResult = await queryDatabase('SELECT id FROM bets WHERE id = $1', [betId]);
+    if (betResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Bet not found' });
+    }
+    
+    // Insert comment
+    const result = await queryDatabase(`
+      INSERT INTO comments (bet_id, user_address, comment_text) 
+      VALUES ($1, $2, $3) 
+      RETURNING *
+    `, [betId, user_address, comment_text.trim()]);
+    
+    const comment = result.rows[0];
+    comment.user_display = comment.user_address.substring(0, 6) + '...' + comment.user_address.slice(-4);
+    
+    res.status(201).json({ 
+      comment,
+      message: 'Comment added successfully'
+    });
+  } catch (error) {
+    console.error('API Error:', error);
+    res.status(500).json({ 
+      error: 'Failed to add comment',
       details: error.message 
     });
   }

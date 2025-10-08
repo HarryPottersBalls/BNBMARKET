@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BNB Market - Professional Trading</title>
+  <title>陰陽市場 - Market</title>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:400,600,700&display=swap">
   <style>
     body {
@@ -226,27 +226,6 @@
       position: relative;
       display: inline-block;
     }
-    
-    /* Chart Tab Styles */
-    .chart-tab {
-      transition: all 0.3s ease;
-      border: none;
-      outline: none;
-    }
-    
-    .chart-tab:hover {
-      background: #4b5563 !important;
-      color: #f3f4f6 !important;
-      border: 1px solid #9ca3af !important;
-      transform: translateY(-1px);
-    }
-    
-    .chart-tab.active {
-      background: #374151 !important;
-      color: #e5e7eb !important;
-      border: 1px solid #6b7280 !important;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-    }
 
     .lang-btn:hover {
       background: rgba(156, 163, 175, 0.1);
@@ -372,7 +351,7 @@
       <a href="index.html" class="brand">
         <div class="logo"></div>
         <div>
-          <div>BNB Market</div>
+          <div>陰陽市場</div>
           <div style="font-size: 12px; color: #9ca3af; font-weight: 400;">Balance • Harmony • Truth</div>
         </div>
       </a>
@@ -387,11 +366,11 @@
         <!-- Language Switcher -->
         <div class="language-switcher" style="margin-right:12px;">
           <button id="langBtn" class="lang-btn" style="background:rgba(55,65,81,0.3);border:1px solid rgba(75,85,99,0.4);color:#e5e7eb;padding:8px 12px;border-radius:6px;font-size:13px;cursor:pointer;transition:all 0.2s;">
-            EN
+            🌍 EN
           </button>
           <div id="langDropdown" class="lang-dropdown" style="display:none;position:absolute;top:100%;right:0;background:#374151;border:1px solid rgba(75,85,99,0.4);border-radius:8px;padding:4px;margin-top:4px;box-shadow:0 4px 12px rgba(0,0,0,0.3);z-index:1000;">
-            <button class="lang-option" data-lang="en" style="display:block;width:100%;text-align:left;background:none;border:none;color:#e5e7eb;padding:8px 12px;border-radius:4px;cursor:pointer;font-size:13px;transition:background 0.2s;">English</button>
-            <button class="lang-option" data-lang="zh-CN" style="display:block;width:100%;text-align:left;background:none;border:none;color:#e5e7eb;padding:8px 12px;border-radius:4px;cursor:pointer;font-size:13px;transition:background 0.2s;">中文</button>
+            <button class="lang-option" data-lang="en" style="display:block;width:100%;text-align:left;background:none;border:none;color:#e5e7eb;padding:8px 12px;border-radius:4px;cursor:pointer;font-size:13px;transition:background 0.2s;">🇺🇸 English</button>
+            <button class="lang-option" data-lang="zh-CN" style="display:block;width:100%;text-align:left;background:none;border:none;color:#e5e7eb;padding:8px 12px;border-radius:4px;cursor:pointer;font-size:13px;transition:background 0.2s;">🇨🇳 中文</button>
           </div>
         </div>
         <div class="balance" id="balanceDisplay" style="display:none;">
@@ -410,34 +389,50 @@
       <div style="position:absolute;bottom:20px;left:30px;width:40px;height:40px;opacity:0.03;pointer-events:none;background:linear-gradient(135deg, rgba(6,182,212,0.3), transparent);border-radius:50%;"></div>
       <div id="marketInfo">
         <h2 id="marketTitle" class="primary" style="margin-bottom:8px;font-size:2rem;font-weight:800;"></h2>
-        <div id="marketMeta" style="color:#d1d5db;font-size:1rem;margin-bottom:8px;"></div>
+        <div id="marketMeta" style="color:#9ca3af;font-size:1rem;margin-bottom:8px;"></div>
         <div id="marketVolume" style="color:#06b6d4;font-size:1.08rem;font-weight:700;margin-bottom:8px;"></div>
         <div id="marketOptions" style="display:flex;gap:18px;margin-bottom:32px;"></div>
-        <div id="totalBuys" style="color:#d1d5db;font-size:1.1rem;font-weight:600;margin-bottom:18px;"></div>
+        <div id="totalBuys" style="color:#9ca3af;font-size:1.1rem;font-weight:600;margin-bottom:18px;"></div>
       </div>
       
       <div style="margin-bottom:32px;">
         <div style="display: flex; gap: 40px; align-items: flex-start; flex-wrap: wrap; width: 100%;">
           <div style="flex: 2.5; min-width: 420px; background: linear-gradient(135deg, #1f2937 0%, #374151 100%); border-radius: 18px; padding: 32px 24px 32px 24px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3); border: 1px solid #4b5563; position: relative;">
             <!-- Subtle Yin Yang symbol in chart area -->
-          <!-- Professional decorative element -->
-          <div style="position:absolute;top:15px;right:20px;width:24px;height:24px;opacity:0.05;pointer-events:none;background:linear-gradient(135deg, rgba(6,182,212,0.3), transparent);border-radius:50%;"></div>
+            <div style="position:absolute;top:15px;right:20px;font-size:1.5rem;opacity:0.1;color:#06b6d4;pointer-events:none;">☯</div>
             
             <!-- Chart Tabs -->
             <div style="display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 1px solid #4b5563; padding-bottom: 12px;">
-              <button id="probabilityTab" class="chart-tab active" onclick="switchChart('probability')" style="background:#374151;color:#e5e7eb;border:1px solid #6b7280;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;transition:all 0.2s;" data-i18n="marketConfidenceOverTime">LMSR Trade Analysis</button>
-              <button id="distributionTab" class="chart-tab" onclick="switchChart('distribution')" style="background:#1f2937;color:#9ca3af;border:1px solid #4b5563;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;transition:all 0.2s;" data-i18n="currentMarketDistribution">Live Market Activity</button>
+              <button id="probabilityTab" class="chart-tab active" onclick="switchChart('probability')" data-i18n="marketConfidenceOverTime">Market Confidence Over Time</button>
+              <button id="distributionTab" class="chart-tab" onclick="switchChart('distribution')" data-i18n="currentMarketDistribution">Current Market Distribution</button>
             </div>
             
             <!-- Chart Containers -->
-            <div id="probabilityChartContainer" style="height: 300px; position: relative; display: block;">
-              <div style="display:flex;align-items:center;justify-content:center;height:100%;color:#9ca3af;font-size:14px;">
-                🔄 Loading LMSR Trade Analysis...
-              </div>
+            <div id="probabilityChartContainer" style="height: 300px; position: relative;">
+              <canvas id="probabilityChart"></canvas>
             </div>
             <div id="distributionChartContainer" style="height: 300px; position: relative; display: none;">
-              <div style="display:flex;align-items:center;justify-content:center;height:100%;color:#9ca3af;font-size:14px;">
-                🔄 Loading Live Market Activity...
+              <canvas id="distributionChart"></canvas>
+            </div>
+            
+            <!-- TEST CHART UPDATE BUTTON -->
+            <div style="text-align: center; margin: 20px 0; padding: 15px; background: rgba(255,0,0,0.1); border-radius: 8px;">
+              <button onclick="testChartUpdate()" style="
+                background: linear-gradient(135deg, #ff6b35, #ff8c42);
+                color: white;
+                border: none;
+                padding: 12px 24px;
+                border-radius: 8px;
+                font-weight: bold;
+                cursor: pointer;
+                font-size: 16px;
+                box-shadow: 0 4px 8px rgba(255,107,53,0.3);
+                margin-right: 10px;
+              ">
+                🧪 TEST CHART UPDATE
+              </button>
+              <div style="color: #f8fafc; font-size: 14px; margin-top: 8px;">
+                Click this button to test if chart updates work at all
               </div>
             </div>
           </div>
@@ -453,34 +448,33 @@
               <button class="btn quick-btn" type="button" data-amount="1" style="flex:1;min-width:0;background:#374151;color:#9ca3af;border:1.5px solid #6b7280;">1</button>
               <button class="btn quick-btn-max" type="button" style="flex:1;min-width:0;background:#374151;color:#9ca3af;border:1.5px solid #6b7280;" title="Max">Max</button>
             </div>
-            <input id="tradeAmount" type="number" min="0.007585445110418999" step="0.001" placeholder="Amount (BNB)" data-i18n-placeholder="amount" style="width:100%;padding:16px 14px;border-radius:10px;border:2px solid #6b7280;background:#1f2937;color:#e5e7eb;font-size:1.2rem;margin-bottom:10px;outline:none;box-shadow:none;">
-            <div id="feeBreakdown" style="color:#d1d5db;font-size:0.95rem;margin-bottom:10px;font-weight:500;background:rgba(156,163,175,0.08);padding:6px 8px;border-radius:6px;display:none;">
+            <input id="tradeAmount" type="number" min="0.01" step="0.01" placeholder="Amount (BNB)" data-i18n-placeholder="amount" style="width:100%;padding:16px 14px;border-radius:10px;border:2px solid #6b7280;background:#1f2937;color:#e5e7eb;font-size:1.2rem;margin-bottom:10px;outline:none;box-shadow:none;">
+            <div id="feeBreakdown" style="color:#9ca3af;font-size:0.95rem;margin-bottom:10px;font-weight:500;background:rgba(156,163,175,0.08);padding:6px 8px;border-radius:6px;display:none;">
               <span data-i18n="platformFee">Platform Fee</span> (1%): <span id="platformFeeAmount">0.000 BNB</span> | <span data-i18n="netInvestment">Net Investment</span>: <span id="netBetAmount">0.000 BNB</span>
             </div>
-            <div id="profitCalc" style="color:#d1d5db;font-size:1.08rem;margin-bottom:14px;font-weight:600;background:rgba(156,163,175,0.07);padding:8px 10px;border-radius:8px;"></div>
+            <div id="profitCalc" style="color:#9ca3af;font-size:1.08rem;margin-bottom:14px;font-weight:600;background:rgba(156,163,175,0.07);padding:8px 10px;border-radius:8px;"></div>
             <div style="display:flex;gap:10px;margin-bottom:10px;align-items:flex-start;">
-              <button id="buyBtn" class="btn yang-primary" style="flex:1;width:100%;font-size:1.08rem;padding:13px 0;box-shadow:0 2px 8px rgba(156,163,175,0.07);" data-i18n="buyShares">Buy</button>
+              <button id="buyBtn" class="btn yang-primary" style="flex:1;width:100%;font-size:1.08rem;padding:13px 0;box-shadow:0 2px 8px rgba(156,163,175,0.07);" data-i18n="purchaseShares">Purchase Shares</button>
             </div>
             <div style="display:flex;gap:10px;margin-bottom:10px;align-items:flex-start;">
-              <button id="cancelBtn" class="btn" style="flex:1;width:100%;background:#ef4444;color:#fff;font-size:1.08rem;padding:13px 0;box-shadow:0 2px 8px rgba(239,68,68,0.13);border:1.5px solid #ef4444;" data-i18n="cancelPrediction">Cancel Prediction</button>
+              <button id="cancelBtn" class="btn" style="flex:1;width:100%;background:#ef4444;color:#fff;font-size:1.08rem;padding:13px 0;box-shadow:0 2px 8px rgba(239,68,68,0.13);border:1.5px solid #ef4444;" data-i18n="requestRefund">Request Refund</button>
             </div>
             <hr style="border:none;border-top:1px solid #4b5563;margin:12px 0 10px 0;">
-            <div id="tradeMsg" style="margin-top:0;color:#d1d5db;font-size:1.05rem;min-height:22px;font-weight:500;"></div>
+            <div id="tradeMsg" style="margin-top:0;color:#9ca3af;font-size:1.05rem;min-height:22px;"></div>
           </div>
         </div>
         
         <!-- Enhanced Yin Yang Order Book -->
         <div id="yinYangOrderBook" style="margin-top:40px;background:linear-gradient(135deg, #0f172a, #1e293b);border-radius:18px;padding:32px 24px;box-shadow:0 4px 32px rgba(0,0,0,0.2);border:1px solid #334155;position:relative;">
           <!-- Yin Yang background symbol -->
-          <!-- Professional background accent -->
-          <div style="position:absolute;top:20px;right:30px;width:32px;height:32px;opacity:0.04;pointer-events:none;background:linear-gradient(135deg, rgba(6,182,212,0.3), transparent);border-radius:50%;"></div>
+          <div style="position:absolute;top:20px;right:30px;font-size:2rem;opacity:0.08;color:#06b6d4;pointer-events:none;">☯</div>
           
           <div style="margin-bottom:24px;">
             <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
               <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(45deg, #f8fafc, #9ca3af);"></div>
               <div>
-                <h2 style="color:#f8fafc;font-size:1.5rem;font-weight:800;margin:0;">Order Book</h2>
-                <p style="color:#94a3b8;font-size:0.9rem;margin:0;">Professional Trading Interface</p>
+                <h2 style="color:#f8fafc;font-size:1.5rem;font-weight:800;margin:0;">陰陽市場 Order Book</h2>
+                <p style="color:#94a3b8;font-size:0.9rem;margin:0;">Balance • Harmony • Truth</p>
               </div>
             </div>
           </div>
@@ -491,8 +485,8 @@
             <p style="color:#94a3b8;font-size:0.9rem;margin-bottom:16px;">Select an outcome range to place your prediction</p>
             <div style="display:grid;grid-template-columns:2fr 1fr 2fr;gap:32px;font-size:0.85rem;color:#64748b;font-weight:600;">
               <span style="color:#06b6d4;">OUTCOME</span>
-              <span style="text-align:center;color:#d1d5db;">% CHANCE</span>
-              <span style="text-align:right;color:#d1d5db;">ACTIONS</span>
+              <span style="text-align:center;color:#9ca3af;">% CHANCE</span>
+              <span style="text-align:right;color:#9ca3af;">ACTIONS</span>
             </div>
           </div>
 
@@ -597,7 +591,7 @@
               <label style="color: #94a3b8; display: block; margin-bottom: 8px; font-weight: 600;">
                 Amount (BNB)
               </label>
-              <input id="tradePanelAmount" type="number" min="0.007585445110418999" step="0.001" placeholder="0.00" style="
+              <input id="tradePanelAmount" type="number" min="0.01" step="0.01" placeholder="0.00" style="
                 width: 100%;
                 padding: 14px 16px;
                 background: rgba(51,65,85,0.5);
@@ -686,7 +680,7 @@
         <!-- Yin symbol for comments -->
         <div style="position:absolute;top:15px;right:20px;font-size:1.5rem;opacity:0.08;color:#9ca3af;pointer-events:none;">🌙</div>
         
-        <h3 style="color:#d1d5db;margin-bottom:10px;font-size:1.25rem;font-weight:700;" data-i18n="comments">Comments</h3>
+        <h3 style="color:#9ca3af;margin-bottom:10px;font-size:1.25rem;font-weight:700;" data-i18n="comments">Comments</h3>
         <div id="commentsList" style="margin-bottom:18px;"></div>
         <div id="commentBoxContainer" style="display:none;">
           <textarea id="commentInput" rows="3" maxlength="300" placeholder="Write a comment..." data-i18n-placeholder="writeComment" style="width:100%;padding:12px 10px;border-radius:8px;border:1.5px solid #475569;background:#1e293b;color:#e6eef8;font-size:1.08rem;resize:vertical;margin-bottom:8px;"></textarea>
@@ -701,62 +695,19 @@
     </section>
 
     <!-- My Bets Section -->
-    <section id="mybetsSection" class="market-section yang-flow" style="max-width:900px;margin:40px auto 0 auto;padding:32px 24px 40px 24px;background:linear-gradient(180deg, rgba(248,250,252,0.1), rgba(226,232,240,0.08), rgba(31,41,55,0.6));border-radius:18px;box-shadow:0 4px 32px rgba(0,0,0,0.10);border:1px solid rgba(203,213,225,0.1);position:relative;">
+    <section id="mybetsSection" class="market-section yang-flow" style="display:none;max-width:900px;margin:40px auto 0 auto;padding:32px 24px 40px 24px;background:linear-gradient(180deg, rgba(248,250,252,0.1), rgba(226,232,240,0.08), rgba(31,41,55,0.6));border-radius:18px;box-shadow:0 4px 32px rgba(0,0,0,0.10);border:1px solid rgba(203,213,225,0.1);position:relative;">
       <!-- Subtle Yang background symbol -->
       <div style="position:absolute;top:25px;right:30px;font-size:2.5rem;opacity:0.06;color:#06b6d4;pointer-events:none;">☀️</div>>
       <div class="section-header" style="margin-bottom:24px;">
-        <h2 class="section-title" style="color:#d1d5db;font-size:2rem;font-weight:800;margin-bottom:12px;" data-i18n="myBettingPortfolio">My Betting Portfolio</h2>
+        <h2 class="section-title" style="color:#9ca3af;font-size:2rem;font-weight:800;margin-bottom:12px;" data-i18n="myBettingPortfolio">My Betting Portfolio</h2>
         <div id="portfolioSummary" style="display:flex;gap:20px;flex-wrap:wrap;margin-bottom:16px;">
           <!-- Portfolio summary will be populated by JavaScript -->
         </div>
       </div>
       <div id="betsContainer">
-        <!-- Live Trading Chart -->
-        <div style="background:rgba(31,41,55,0.7);border-radius:12px;padding:24px;margin-bottom:20px;border:1px solid #4b5563;">
-          <h3 style="color:#e5e7eb;font-size:1.3rem;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px;">
-            📊 Live Trading Activity
-            <span style="background:#10b981;color:#000;font-size:11px;padding:2px 6px;border-radius:4px;font-weight:600;">DEMO</span>
-          </h3>
-          
-          <!-- Simulated Recent Trades -->
-          <div style="margin-bottom:16px;">
-            <div style="display:grid;grid-template-columns:80px 120px 100px 100px 120px;gap:12px;font-size:12px;color:#9ca3af;font-weight:600;margin-bottom:8px;padding:0 8px;">
-              <span>TIME</span>
-              <span>SIDE</span> 
-              <span>AMOUNT</span>
-              <span>PRICE</span>
-              <span>P&L</span>
-            </div>
-            <div id="liveTradesContainer" style="max-height:200px;overflow-y:auto;">
-              <!-- Live trades will be populated by JavaScript -->
-            </div>
-          </div>
-          
-          <!-- Portfolio Summary -->
-          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-top:16px;padding-top:16px;border-top:1px solid #374151;">
-            <div style="text-align:center;padding:12px;background:rgba(16,185,129,0.1);border:1px solid #10b981;border-radius:6px;">
-              <div style="color:#10b981;font-size:18px;font-weight:700;" id="totalPnL">+$0.00</div>
-              <div style="color:#9ca3af;font-size:11px;">Total P&L</div>
-            </div>
-            <div style="text-align:center;padding:12px;background:rgba(6,182,212,0.1);border:1px solid #06b6d4;border-radius:6px;">
-              <div style="color:#06b6d4;font-size:18px;font-weight:700;" id="totalVolume">$0</div>
-              <div style="color:#9ca3af;font-size:11px;">Volume</div>
-            </div>
-            <div style="text-align:center;padding:12px;background:rgba(168,85,247,0.1);border:1px solid #a855f7;border-radius:6px;">
-              <div style="color:#a855f7;font-size:18px;font-weight:700;" id="totalTrades">0</div>
-              <div style="color:#9ca3af;font-size:11px;">Trades</div>
-            </div>
-            <div style="text-align:center;padding:12px;background:rgba(251,191,36,0.1);border:1px solid #fbbf24;border-radius:6px;">
-              <div style="color:#fbbf24;font-size:18px;font-weight:700;" id="winRate">0%</div>
-              <div style="color:#9ca3af;font-size:11px;">Win Rate</div>
-            </div>
-          </div>
-        </div>
-        
-        <div class="empty-state" style="text-align:center;color:#6b7280;padding:20px;">
-          <h3 style="color:#9ca3af;margin-bottom:8px;">📈 Your Trading Dashboard</h3>
-          <p style="font-size:14px;">Track your positions, P&L, and trading performance in real-time</p>
-          <p style="font-size:12px;margin-top:8px;">Connect wallet to sync actual trading data</p>
+        <div class="empty-state">
+          <h3 data-i18n="connectWalletToBets">Connect Wallet</h3>
+          <p data-i18n="connectWalletToView">Connect your wallet to view your betting history.</p>
         </div>
       </div>
     </section>
@@ -815,9 +766,8 @@
         totalBuys: "Total Buys",
         
         // Trading
-        buyShares: "Buy",
-        cancelPrediction: "Cancel Prediction",
-        requestRefund: "Cancel Prediction",
+        purchaseShares: "Purchase Shares",
+        requestRefund: "Request Refund",
         amount: "Amount",
         platformFee: "Platform Fee",
         netInvestment: "Net Investment",
@@ -851,7 +801,7 @@
         purchaseCompleted: "Purchase completed!",
         purchaseFailed: "Purchase failed",
         received: "Received",
-        cancellationRequested: "Prediction cancellation requested. Refunds are processed within 24 hours.",
+        cancellationRequested: "Cancellation request sent. Refunds are processed within 24 hours.",
         cancellationFailed: "Cancellation failed",
         
         // My Bets Section
@@ -928,9 +878,8 @@
         totalBuys: "总购买数",
         
         // Trading
-        buyShares: "购买",
-        cancelPrediction: "取消预测",
-        requestRefund: "取消预测",
+        purchaseShares: "购买份额",
+        requestRefund: "申请退款",
         amount: "金额",
         platformFee: "平台费用",
         netInvestment: "净投资",
@@ -1032,7 +981,7 @@
       constructor() {
         this.translations = translations;
         this.currentLanguage = this.detectLanguage();
-        console.log(`I18n initialized with language: ${this.currentLanguage}`);
+        console.log(`🌍 I18n initialized with language: ${this.currentLanguage}`);
       }
       
       /**
@@ -1081,7 +1030,7 @@
         this.currentLanguage = lang;
         localStorage.setItem('bnbmarket_language', lang);
         this.updateAllTexts();
-        console.log(`Language switched to: ${lang}`);
+        console.log(`🌍 Language switched to: ${lang}`);
       }
       
       /**
@@ -1362,12 +1311,6 @@
       
       // Initialize market with proper prediction market mechanics
       initializeMarket(marketId, options) {
-        // Check if market is already initialized to prevent duplicates
-        if (this.markets.has(marketId)) {
-          console.log(`Market ${marketId} already initialized, skipping duplicate initialization`);
-          return this.markets.get(marketId);
-        }
-        
         const market = {
           id: marketId,
           options: options,
@@ -1382,10 +1325,10 @@
         this.orderBook.set(marketId, { bids: [], asks: [] });
         this.tradeHistory.set(marketId, []);
         
-        console.log(`PREDICTION MARKET initialized: ${marketId}`);
-        console.log(`Starting probabilities: ${options.map(() => (100/options.length).toFixed(1)).join('%, ')}%`);
-        console.log(`Initial liquidity: ${market.totalLiquidity} BNB`);
-        console.log(`Market will adjust based on trading activity only!`);
+        console.log(`🎯 TRUE PREDICTION MARKET initialized: ${marketId}`);
+        console.log(`📊 Starting probabilities: ${options.map(() => (100/options.length).toFixed(1)).join('%, ')}%`);
+        console.log(`💰 Initial liquidity: ${market.totalLiquidity} BNB`);
+        console.log(`📈 Market will adjust based on trading activity only!`);
         
         return market;
       }
@@ -1422,7 +1365,7 @@
         const pricing = this.calculateMarketPrices(marketId);
         const pricePerShare = pricing.prices[optionIndex];
         
-        console.log('Trade details:', {
+        console.log('💰 Trade details:', {
           marketId,
           optionIndex,
           bnbAmount,
@@ -1443,12 +1386,12 @@
         market.volume24h += bnbAmount;
         
         console.log('🔥 AFTER TRADE - Market shares:', [...market.shares]);
-        console.log('Shares added to option', optionIndex, ':', sharesReceived);
+        console.log('📊 Shares added to option', optionIndex, ':', sharesReceived);
         
         // Calculate new probabilities after the trade
         const newPricing = this.calculateMarketPrices(marketId);
         console.log('📈 NEW PROBABILITIES after trade:', newPricing.probabilities);
-        console.log('NEW PRICES after trade:', newPricing.prices);
+        console.log('💰 NEW PRICES after trade:', newPricing.prices);
         
         // Verify the market state changed
         console.log('🔍 Market state verification:');
@@ -1761,7 +1704,7 @@
             
             <div style="margin-bottom: 20px;">
               <label style="color: #94a3b8; display: block; margin-bottom: 8px;">Amount to Invest (BNB):</label>
-              <input id="modalAmount" type="number" min="0.007585445110418999" step="0.001" placeholder="1.0" 
+              <input id="modalAmount" type="number" min="0.01" step="0.01" placeholder="1.0" 
                 style="width: 100%; padding: 12px; background: #334155; border: 1px solid #475569; border-radius: 8px; color: #f8fafc; font-size: 1.1rem;">
             </div>
             
@@ -1822,15 +1765,9 @@
         const amount = parseFloat(document.getElementById('modalAmount').value);
         const optionIndex = parseInt(document.getElementById('modalOptionIndex').value);
         const side = document.getElementById('modalSide').value;
-        const minBet = 0.007585445110418999; // $10 USD in BNB
         
         if (!amount || amount <= 0) {
           alert('Please enter a valid amount');
-          return;
-        }
-        
-        if (amount < minBet) {
-          alert(`Minimum bet is ${minBet} BNB ($10 USD)`);
           return;
         }
         
@@ -1967,9 +1904,8 @@
             `;
             overlay.innerHTML = `
               <div style="text-align: center;">
-                <div style="font-size: 1.2rem; margin-bottom: 8px; font-weight: 600;">Analytics</div>
+                <div style="font-size: 2rem; margin-bottom: 8px;">📊</div>
                 <div>Updating Chart...</div>
-                <div style="margin-top: 8px; width: 40px; height: 3px; background: linear-gradient(90deg, #06b6d4, #3b82f6); border-radius: 2px; animation: pulse 1.5s infinite;"></div>
               </div>
             `;
             
@@ -2160,15 +2096,9 @@
       // Execute trade from panel
       async executePanelTrade() {
         const amount = parseFloat(document.getElementById('tradePanelAmount').value);
-        const minBet = 0.007585445110418999; // $10 USD in BNB
         
         if (!amount || amount <= 0) {
           alert('Please enter a valid amount');
-          return;
-        }
-        
-        if (amount < minBet) {
-          alert(`Minimum bet is ${minBet} BNB ($10 USD)`);
           return;
         }
         
@@ -3093,7 +3023,7 @@
     // Define LMSRChartEngine fallback BEFORE any other code
     class LMSRChartEngineFallback {
       constructor() {
-        console.log('Using simple LMSR chart engine - basic functionality');
+        console.log('Using fallback LMSRChartEngine - basic charts enabled');
         this.chartInstances = {}; // Track chart instances
       }
       
@@ -3105,7 +3035,7 @@
       }
       
       async createProbabilityChart(containerId, marketId) {
-        console.log('Creating simple probability chart for market', marketId);
+        console.log('Creating enhanced Yin Yang probability chart for market', marketId);
         const container = document.getElementById(containerId) || document.querySelector(`#${containerId}`);
         if (!container) return null;
 
@@ -3307,7 +3237,7 @@
       }
       
       async createCurrentDistributionChart(containerId, marketId) {
-        console.log('Creating simple distribution chart for market', marketId);
+        console.log('Creating enhanced Yin Yang distribution chart for market', marketId);
         const container = document.getElementById(containerId) || document.querySelector(`#${containerId}`);
         if (!container) return null;
 
@@ -3471,414 +3401,17 @@
 
     // Check if the real LMSRChartEngine loaded, if not use fallback
     if (typeof LMSRChartEngine === 'undefined') {
-      console.warn('Using simple LMSR chart engine');
+      console.warn('LMSRChartEngine not available, using fallback');
       window.LMSRChartEngine = LMSRChartEngineFallback;
     }
 
-    // Initialize chart engine ONLY ONCE
-    if (!window.lmsrChartEngine) {
-      window.lmsrChartEngine = new (window.LMSRChartEngine || LMSRChartEngineFallback)();
-      console.log('✅ Simple chart engine initialized');
-    }
+    // Initialize chart engine ALWAYS
+    window.lmsrChartEngine = new (window.LMSRChartEngine || LMSRChartEngineFallback)();
 
     // Initialize Web3 and BSC connection
     let wallet = null;
     let bnbBalance = 0;
     let isAdmin = false;
-    
-    // LMSR Chart initialization with trade sequence analysis
-    function initializeSimpleCharts() {
-      console.log('🔥 STARTING LMSR CHARTS - NO EXCUSES!');
-      
-      // Force find chart containers
-      const probContainer = document.getElementById('probabilityChartContainer');
-      const distContainer = document.getElementById('distributionChartContainer');
-      
-      console.log('Chart containers found:', !!probContainer, !!distContainer);
-      
-      if (!probContainer || !distContainer) {
-        console.error('❌ CHART CONTAINERS NOT FOUND!');
-        return;
-      }
-      
-      // Trade sequence to analyze
-      const tradeSequence = [1, 5, 10, 50, 100, 20, 10, 200, 500, 1000];
-      const liquidityParams = [10, 100, 1000]; // b values
-      const BNB_USD_RATE = 600;
-      
-      // Current liquidity parameter (rotate every 30 seconds)
-      const currentBIndex = Math.floor(Date.now() / 30000) % liquidityParams.length;
-      const currentB = liquidityParams[currentBIndex];
-      
-      // Calculate LMSR prices: p_i = e^(q_i/b) / Σ(e^(q_j/b))
-      function calculateLMSRPrice(qYes, qNo, b) {
-        const expYes = Math.exp(qYes / b);
-        const expNo = Math.exp(qNo / b);
-        const sum = expYes + expNo;
-        return expYes / sum;
-      }
-      
-      // Calculate cost to buy shares: C(q') - C(q)
-      function calculateTradeCost(qYes, qNo, deltaQ, b) {
-        const currentCost = b * Math.log(Math.exp(qYes / b) + Math.exp(qNo / b));
-        const newCost = b * Math.log(Math.exp((qYes + deltaQ) / b) + Math.exp(qNo / b));
-        return newCost - currentCost;
-      }
-      
-      // Solve for shares given USD amount
-      function solveSharesForAmount(qYes, qNo, usdAmount, b) {
-        const bnbAmount = usdAmount / BNB_USD_RATE;
-        let deltaQ = 0;
-        let step = 0.1;
-        let cost = 0;
-        
-        // Simple iterative solver
-        for (let i = 0; i < 1000; i++) {
-          cost = calculateTradeCost(qYes, qNo, deltaQ, b);
-          if (Math.abs(cost - bnbAmount) < 0.0001) break;
-          if (cost < bnbAmount) {
-            deltaQ += step;
-          } else {
-            deltaQ -= step;
-            step *= 0.5;
-          }
-        }
-        return deltaQ;
-      }
-      
-      // Run trade sequence simulation
-      let qYes = 0;
-      let qNo = 0;
-      const tradeResults = [];
-      
-      tradeSequence.forEach((amount, index) => {
-        const priceBefore = calculateLMSRPrice(qYes, qNo, currentB);
-        const deltaQ = solveSharesForAmount(qYes, qNo, amount, currentB);
-        qYes += deltaQ;
-        const priceAfter = calculateLMSRPrice(qYes, qNo, currentB);
-        const costPerShare = amount / deltaQ;
-        
-        tradeResults.push({
-          trade: index + 1,
-          amount: amount,
-          deltaQ: deltaQ,
-          cumulativeQ: qYes,
-          priceBefore: priceBefore,
-          priceAfter: priceAfter,
-          costPerShare: costPerShare
-        });
-      });
-      
-      // Calculate current price and percentages
-      const currentPrice = calculateLMSRPrice(qYes, qNo, currentB);
-      const yesPercentage = Math.round(currentPrice * 100);
-      const noPercentage = 100 - yesPercentage;
-      
-      // Define colors and names for all charts
-      const liquidityColors = {10: '#ef4444', 100: '#eab308', 1000: '#10b981'};
-      const liquidityNames = {10: 'Thin', 100: 'Medium', 1000: 'Deep'};
-      
-      // Probability Chart with Trade Sequence Results
-      if (probContainer) {
-        
-        probContainer.innerHTML = `
-          <div style="display:flex;flex-direction:column;height:100%;background:rgba(31,41,55,0.5);border-radius:8px;padding:20px;">
-            <div style="color:#e5e7eb;font-weight:600;text-align:center;margin-bottom:12px;">
-              📊 LMSR Trade Sequence Analysis (b=${currentB} - ${liquidityNames[currentB]} Liquidity)
-            </div>
-            
-            <div style="flex:1;display:flex;flex-direction:column;">
-              <!-- Current Market State -->
-              <div style="display:flex;justify-content:space-between;margin-bottom:16px;padding:12px;background:rgba(55,65,81,0.5);border-radius:6px;">
-                <div style="text-align:center;">
-                  <div style="color:${liquidityColors[currentB]};font-size:24px;font-weight:700;">${yesPercentage}%</div>
-                  <div style="color:#9ca3af;font-size:12px;">Final YES Price</div>
-                  <div style="color:#9ca3af;font-size:10px;">${qYes.toFixed(1)} shares</div>
-                </div>
-                <div style="text-align:center;">
-                  <div style="color:#6b7280;font-size:16px;font-weight:600;">Total Volume</div>
-                  <div style="color:#e5e7eb;font-size:14px;">$${tradeSequence.reduce((a,b) => a+b, 0)}</div>
-                  <div style="color:#9ca3af;font-size:10px;">${tradeResults.length} trades</div>
-                </div>
-                <div style="text-align:center;">
-                  <div style="color:#ef4444;font-size:24px;font-weight:700;">${noPercentage}%</div>
-                  <div style="color:#9ca3af;font-size:12px;">Final NO Price</div>
-                  <div style="color:#9ca3af;font-size:10px;">${qNo.toFixed(1)} shares</div>
-                </div>
-              </div>
-              
-              <!-- Trade Results Table -->
-              <div style="flex:1;overflow-y:auto;">
-                <table style="width:100%;font-size:11px;color:#e5e7eb;">
-                  <thead style="background:rgba(55,65,81,0.7);position:sticky;top:0;">
-                    <tr>
-                      <th style="padding:6px 4px;text-align:left;">#</th>
-                      <th style="padding:6px 4px;text-align:right;">Amount</th>
-                      <th style="padding:6px 4px;text-align:right;">Shares Δq</th>
-                      <th style="padding:6px 4px;text-align:right;">Price Before</th>
-                      <th style="padding:6px 4px;text-align:right;">Price After</th>
-                      <th style="padding:6px 4px;text-align:right;">$/Share</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    ${tradeResults.map(result => `
-                      <tr style="border-bottom:1px solid rgba(75,85,99,0.3);">
-                        <td style="padding:4px;color:${liquidityColors[currentB]};font-weight:600;">${result.trade}</td>
-                        <td style="padding:4px;text-align:right;">$${result.amount}</td>
-                        <td style="padding:4px;text-align:right;">${result.deltaQ.toFixed(2)}</td>
-                        <td style="padding:4px;text-align:right;">${(result.priceBefore*100).toFixed(1)}%</td>
-                        <td style="padding:4px;text-align:right;">${(result.priceAfter*100).toFixed(1)}%</td>
-                        <td style="padding:4px;text-align:right;">$${result.costPerShare.toFixed(2)}</td>
-                      </tr>
-                    `).join('')}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-            
-            <div style="text-align:center;color:#6b7280;font-size:10px;margin-top:8px;border-top:1px solid #374151;padding-top:6px;">
-              Sequence: [${tradeSequence.join(', ')}] USD | Rotates b=${liquidityParams.join('→')} every 30s
-            </div>
-          </div>
-        `;
-      }
-      
-      // Distribution Chart with Continuous Purchase Simulation
-      if (distContainer) {
-        // Simulate continuous $1000 purchase in 50 steps
-        const totalAmount = 1000;
-        const steps = 50;
-        const stepAmount = totalAmount / steps;
-        
-        let contQYes = 0;
-        let contQNo = 0;
-        const continuousResults = [];
-        
-        for (let i = 1; i <= steps; i++) {
-          const priceBefore = calculateLMSRPrice(contQYes, contQNo, currentB);
-          const deltaQ = solveSharesForAmount(contQYes, contQNo, stepAmount, currentB);
-          contQYes += deltaQ;
-          const priceAfter = calculateLMSRPrice(contQYes, contQNo, currentB);
-          
-          continuousResults.push({
-            step: i,
-            cumulativeAmount: i * stepAmount,
-            price: priceAfter,
-            totalShares: contQYes
-          });
-        }
-        
-        // Show order dependency example
-        const orderA_first = solveSharesForAmount(0, 0, 100, currentB);
-        const orderA_priceFirst = 100 / orderA_first;
-        const orderA_qAfterFirst = orderA_first;
-        
-        const orderB_second = solveSharesForAmount(orderA_qAfterFirst, 0, 100, currentB);
-        const orderB_priceSecond = 100 / orderB_second;
-        
-        // Reverse order
-        const orderB_first = solveSharesForAmount(0, 0, 100, currentB);
-        const orderB_priceFirst = 100 / orderB_first;
-        const orderB_qAfterFirst = orderB_first;
-        
-        const orderA_second = solveSharesForAmount(orderB_qAfterFirst, 0, 100, currentB);
-        const orderA_priceSecond = 100 / orderA_second;
-        
-        distContainer.innerHTML = `
-          <div style="display:flex;flex-direction:column;height:100%;background:rgba(31,41,55,0.5);border-radius:8px;padding:20px;">
-            <div style="color:#e5e7eb;font-weight:600;text-align:center;margin-bottom:12px;">
-              📈 Continuous Purchase & Order Effects (b=${currentB})
-            </div>
-            
-            <!-- Price Evolution Chart -->
-            <div style="margin-bottom:16px;padding:12px;background:rgba(55,65,81,0.5);border-radius:6px;">
-              <div style="color:#e5e7eb;font-size:12px;margin-bottom:8px;">$1000 Purchase in ${steps} steps - Price Evolution:</div>
-              <div style="height:60px;position:relative;background:#1f2937;border-radius:4px;overflow:hidden;">
-                <div style="position:absolute;bottom:0;left:0;right:0;height:2px;background:${liquidityColors[currentB]};"></div>
-                ${continuousResults.map((result, i) => `
-                  <div style="position:absolute;bottom:2px;left:${(i/steps)*100}%;width:${100/steps}%;height:${result.price*100}%;background:linear-gradient(to top, ${liquidityColors[currentB]}20, ${liquidityColors[currentB]}60);border-right:1px solid rgba(0,0,0,0.1);"></div>
-                `).join('')}
-              </div>
-              <div style="display:flex;justify-content:space-between;color:#9ca3af;font-size:10px;margin-top:4px;">
-                <span>Start: ${(continuousResults[0]?.price*100 || 0).toFixed(1)}%</span>
-                <span>End: ${(continuousResults[steps-1]?.price*100 || 0).toFixed(1)}%</span>
-              </div>
-            </div>
-            
-            <!-- Order Dependency Example -->
-            <div style="margin-bottom:12px;">
-              <div style="color:#e5e7eb;font-size:12px;margin-bottom:8px;">Order Dependency - Two $100 trades:</div>
-              <div style="display:flex;gap:8px;">
-                <div style="flex:1;padding:8px;background:rgba(16,185,129,0.1);border:1px solid #10b981;border-radius:4px;">
-                  <div style="color:#10b981;font-size:11px;font-weight:600;">A buys first</div>
-                  <div style="color:#e5e7eb;font-size:10px;">A pays: $${orderA_priceFirst.toFixed(2)}/share</div>
-                  <div style="color:#e5e7eb;font-size:10px;">B pays: $${orderB_priceSecond.toFixed(2)}/share</div>
-                </div>
-                <div style="flex:1;padding:8px;background:rgba(239,68,68,0.1);border:1px solid #ef4444;border-radius:4px;">
-                  <div style="color:#ef4444;font-size:11px;font-weight:600;">B buys first</div>
-                  <div style="color:#e5e7eb;font-size:10px;">B pays: $${orderB_priceFirst.toFixed(2)}/share</div>
-                  <div style="color:#e5e7eb;font-size:10px;">A pays: $${orderA_priceSecond.toFixed(2)}/share</div>
-                </div>
-              </div>
-              <div style="color:#9ca3af;font-size:9px;margin-top:4px;text-align:center;">
-                First buyer advantage: $${(Math.max(orderA_priceSecond, orderB_priceSecond) - Math.min(orderA_priceFirst, orderB_priceFirst)).toFixed(2)}/share
-              </div>
-            </div>
-            
-            <!-- Liquidity Comparison -->
-            <div style="flex:1;">
-              <div style="color:#e5e7eb;font-size:12px;margin-bottom:6px;">Liquidity Impact Comparison:</div>
-              ${liquidityParams.map(b => {
-                const testPrice = calculateLMSRPrice(10, 0, b);
-                return `
-                  <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 8px;margin-bottom:2px;background:rgba(${b === currentB ? '255,255,255' : '75,85,99'},0.${b === currentB ? '1' : '05'});border-radius:3px;">
-                    <span style="color:${liquidityColors[b]};font-size:11px;font-weight:600;">b=${b}</span>
-                    <span style="color:#e5e7eb;font-size:10px;">10 shares → ${(testPrice*100).toFixed(1)}%</span>
-                    <span style="color:#9ca3af;font-size:9px;">${liquidityNames[b]}</span>
-                  </div>
-                `;
-              }).join('')}
-            </div>
-            
-            <div style="text-align:center;color:#6b7280;font-size:9px;margin-top:6px;border-top:1px solid #374151;padding-top:4px;">
-              Lower b = more price impact | Higher b = smoother prices
-            </div>
-          </div>
-        `;
-      }
-      
-      // Calculate current pricing for 1 share
-      const yesCostBNB = calculateTradeCost(qYes, qNo, 1, currentB);
-      const yesCostUSD = yesCostBNB * BNB_USD_RATE;
-      const yesProfitUSD = BNB_USD_RATE - yesCostUSD; // Profit if you win
-      
-      const noCostBNB = calculateTradeCost(qNo, qYes, 1, currentB);
-      const noCostUSD = noCostBNB * BNB_USD_RATE;
-      const noProfitUSD = BNB_USD_RATE - noCostUSD;
-      
-      // Calculate total market volume
-      const totalVolumeBNB = tradeSequence.reduce((sum, trade) => sum + (trade / BNB_USD_RATE), 0);
-      const totalVolumeUSD = tradeSequence.reduce((sum, trade) => sum + trade, 0);
-      
-      console.log(`✅ LMSR trade analysis initialized with b=${currentB}`);
-      if (probContainer) {
-        probContainer.innerHTML = `
-          <div style="display:flex;flex-direction:column;height:100%;background:rgba(31,41,55,0.5);border-radius:8px;padding:20px;">
-            <div style="color:#e5e7eb;font-weight:600;text-align:center;margin-bottom:12px;">� LMSR Live Pricing (1 BNB = $${BNB_USD_RATE})</div>
-            
-            <div style="flex:1;display:flex;align-items:center;justify-content:space-between;">
-              <div style="text-align:center;flex:1;padding:0 10px;">
-                <div style="color:#10b981;font-size:28px;font-weight:700;margin-bottom:4px;">${yesPercentage}%</div>
-                <div style="color:#9ca3af;font-size:14px;margin-bottom:8px;">YES Probability</div>
-                
-                <div style="background:rgba(16,185,129,0.1);border:1px solid #10b981;border-radius:6px;padding:8px;margin-bottom:6px;">
-                  <div style="color:#10b981;font-size:16px;font-weight:600;">$${yesCostUSD.toFixed(2)}</div>
-                  <div style="color:#9ca3af;font-size:11px;">${yesCostBNB.toFixed(4)} BNB</div>
-                  <div style="color:#10b981;font-size:10px;">to buy 1 share</div>
-                </div>
-                
-                <div style="color:#10b981;font-size:12px;margin-bottom:2px;">
-                  Profit if YES: <strong>$${yesProfitUSD.toFixed(2)}</strong>
-                </div>
-                <div style="color:#9ca3af;font-size:10px;">
-                  ${qYes.toFixed(1)} shares outstanding
-                </div>
-              </div>
-              
-              <div style="width:2px;height:100px;background:linear-gradient(to bottom, #10b981, #ef4444);margin:0 15px;"></div>
-              
-              <div style="text-align:center;flex:1;padding:0 10px;">
-                <div style="color:#ef4444;font-size:28px;font-weight:700;margin-bottom:4px;">${noPercentage}%</div>
-                <div style="color:#9ca3af;font-size:14px;margin-bottom:8px;">NO Probability</div>
-                
-                <div style="background:rgba(239,68,68,0.1);border:1px solid #ef4444;border-radius:6px;padding:8px;margin-bottom:6px;">
-                  <div style="color:#ef4444;font-size:16px;font-weight:600;">$${noCostUSD.toFixed(2)}</div>
-                  <div style="color:#9ca3af;font-size:11px;">${noCostBNB.toFixed(4)} BNB</div>
-                  <div style="color:#ef4444;font-size:10px;">to buy 1 share</div>
-                </div>
-                
-                <div style="color:#ef4444;font-size:12px;margin-bottom:2px;">
-                  Profit if NO: <strong>$${noProfitUSD.toFixed(2)}</strong>
-                </div>
-                <div style="color:#9ca3af;font-size:10px;">
-                  ${qNo.toFixed(1)} shares outstanding
-                </div>
-              </div>
-            </div>
-            
-            <div style="text-align:center;color:#6b7280;font-size:11px;margin-top:8px;border-top:1px solid #374151;padding-top:6px;">
-              Total Market Volume: $${totalVolumeUSD.toFixed(0)} (${totalVolumeBNB.toFixed(2)} BNB)
-            </div>
-          </div>
-        `;
-      }
-      
-      // Generate simulated recent trades
-      const recentTrades = [
-        { side: 'YES', amount: 150, timeAgo: 12 },
-        { side: 'NO', amount: 75, timeAgo: 28 },
-        { side: 'YES', amount: 300, timeAgo: 45 },
-        { side: 'NO', amount: 200, timeAgo: 67 },
-        { side: 'YES', amount: 89, timeAgo: 93 }
-      ];
-      
-      // Distribution Chart with recent activity
-      if (document.getElementById('distributionChartContainer')) {
-        document.getElementById('distributionChartContainer').innerHTML = `
-          <div style="display:flex;flex-direction:column;height:100%;background:rgba(31,41,55,0.5);border-radius:8px;padding:20px;">
-            <div style="color:#e5e7eb;font-weight:600;text-align:center;margin-bottom:12px;">📊 Live Market Activity</div>
-            
-            <!-- Market Distribution -->
-            <div style="margin-bottom:16px;">
-              <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
-                <span style="color:#10b981;font-size:14px;font-weight:600;">YES: ${yesPercentage}%</span>
-                <span style="color:#ef4444;font-size:14px;font-weight:600;">NO: ${noPercentage}%</span>
-              </div>
-              <div style="height:12px;background:#374151;border-radius:6px;overflow:hidden;position:relative;">
-                <div style="height:100%;width:${yesPercentage}%;background:linear-gradient(90deg, #10b981, #059669);position:absolute;left:0;"></div>
-                <div style="height:100%;width:${noPercentage}%;background:linear-gradient(90deg, #ef4444, #dc2626);position:absolute;right:0;"></div>
-              </div>
-            </div>
-            
-            <!-- Recent Trades -->
-            <div style="flex:1;">
-              <div style="color:#e5e7eb;font-size:12px;font-weight:600;margin-bottom:8px;">Recent Trades:</div>
-              <div style="max-height:120px;overflow-y:auto;">
-                ${recentTrades.map(trade => `
-                  <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 8px;margin-bottom:4px;background:rgba(${trade.side === 'YES' ? '16,185,129' : '239,68,68'},0.1);border-radius:4px;">
-                    <div style="display:flex;align-items:center;gap:6px;">
-                      <span style="color:${trade.side === 'YES' ? '#10b981' : '#ef4444'};font-weight:600;font-size:11px;">${trade.side}</span>
-                      <span style="color:#e5e7eb;font-size:11px;">$${trade.amount.toFixed(0)}</span>
-                    </div>
-                    <span style="color:#9ca3af;font-size:10px;">${trade.timeAgo}s ago</span>
-                  </div>
-                `).join('')}
-              </div>
-            </div>
-            
-            <!-- LMSR Formula Info -->
-            <div style="background:rgba(55,65,81,0.5);border-radius:4px;padding:8px;margin-top:8px;">
-              <div style="color:#e5e7eb;font-size:10px;text-align:center;margin-bottom:2px;">LMSR Cost Formula:</div>
-              <div style="color:#9ca3af;font-size:9px;text-align:center;font-family:monospace;">
-                Cost = b × ln(Σe^(q'/b)) - b × ln(Σe^(q/b))
-              </div>
-              <div style="color:#6b7280;font-size:8px;text-align:center;margin-top:2px;">
-                Liquidity parameter b = ${b}
-              </div>
-            </div>
-          </div>
-        `;
-      }
-      
-      console.log('✅ LMSR simulation with USD pricing initialized');
-      console.log(`� Current prices: YES=$${yesCostUSD.toFixed(2)} (${yesPercentage}%), NO=$${noCostUSD.toFixed(2)} (${noPercentage}%)`);
-    }
-    
-    // Run LMSR analysis charts immediately - no delay!
-    initializeSimpleCharts(); 
-    setInterval(initializeSimpleCharts, 10000); // Update every 10 seconds
-
-    // Initialize Web3 and BSC connection
     
     // BSC Configuration
     const TREASURY_WALLET = '0x7eCa382995Df91C250896c0EC73c9d2893F7800e';
@@ -3894,7 +3427,7 @@
   <div id="loadingScreen" style="position:fixed;inset:0;background:linear-gradient(135deg, #111827 0%, #374151 50%, #111827 100%);display:flex;align-items:center;justify-content:center;z-index:9999;">
     <div style="text-align:center;color:#9ca3af;">
       <div style="width:50px;height:50px;border:4px solid rgba(156,163,175,0.3);border-top-color:#9ca3af;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 16px;"></div>
-      <div style="font-size:18px;font-weight:700;">Loading BNB Market...</div>
+      <div style="font-size:18px;font-weight:700;">Loading 陰陽市場...</div>
     </div>
   </div>
   <style>@keyframes spin{0%{transform:rotate(0deg);}100%{transform:rotate(360deg);}}</style>
@@ -4197,10 +3730,10 @@
       });
       
       if (currentOrderBook && market.options) {
-        let html = '<span style="color:#d1d5db;">Total Buys:</span> ';
+        let html = '<span style="color:#9ca3af;">Total Buys:</span> ';
         const totals = Array(market.options.length).fill(0);
         currentOrderBook.forEach(b=>{ if(b.option_id!==undefined) totals[b.option_id]+=1; });
-        html += market.options.map((opt,i)=>`${opt.name}: <span style='color:#d1d5db;'>${totals[i]}</span>`).join(' &nbsp; ');
+        html += market.options.map((opt,i)=>`${opt.name}: <span style='color:#9ca3af;'>${totals[i]}</span>`).join(' &nbsp; ');
         document.getElementById('totalBuys').innerHTML = html;
       }
       
@@ -4219,7 +3752,7 @@
       const obDiv = document.getElementById('orderBook');
       
       if (!orderBook || orderBook.length === 0) {
-        obDiv.innerHTML = '<div style="color:#d1d5db;">No bets yet.</div>';
+        obDiv.innerHTML = '<div style="color:#9ca3af;">No bets yet.</div>';
         return;
       }
       
@@ -4460,7 +3993,7 @@
       // Update buy button text based on Yin/Yang choice
       const buyBtn = document.getElementById('buyBtn');
       if (buyBtn) {
-        const actionText = isYangOption ? 'Buy' : (isYinOption ? 'Sell' : 'Trade');
+        const actionText = isYangOption ? '☀️ Support' : (isYinOption ? '🌙 Oppose' : 'Purchase');
         buyBtn.innerHTML = `${actionText} <span data-i18n="shares">Shares</span>`;
       }
       
@@ -4469,18 +4002,10 @@
 
     async function handleBuy() {
       const amt = parseFloat(document.getElementById('tradeAmount').value);
-      const minBet = 0.007585445110418999; // $10 USD in BNB
-      
-      if (!amt || amt <= 0) {
+      if (!amt || amt<=0) {
         document.getElementById('tradeMsg').textContent = window.i18n.t('enterValidAmount');
         return;
       }
-      
-      if (amt < minBet) {
-        document.getElementById('tradeMsg').textContent = `Minimum bet is ${minBet} BNB ($10 USD)`;
-        return;
-      }
-      
       if (!walletAddress || !web3) {
         document.getElementById('tradeMsg').textContent = window.i18n.t('connectWalletFirst');
         return;
@@ -4537,11 +4062,11 @@
           // Show success message with trade details
           const details = tradeResult.tradeDetails;
           document.getElementById('tradeMsg').innerHTML = `
-            <div style="color:#10b981;font-weight:600;font-size:15px;">✅ ${tradeResult.message}</div>
-            <div style="color:#d1d5db;font-size:13px;margin-top:5px;font-weight:500;">
-              Shares: <span style="color:#06b6d4;font-weight:600;">${details.sharesReceived.toFixed(3)}</span> | 
-              Price: <span style="color:#f59e0b;font-weight:600;">${details.pricePerShare.toFixed(3)} BNB/share</span> | 
-              Fee: <span style="color:#9ca3af;">${details.platformFee.toFixed(3)} BNB</span>
+            <div style="color:#06b6d4;font-weight:600;">✅ ${tradeResult.message}</div>
+            <div style="color:#9ca3af;font-size:0.9em;margin-top:4px;">
+              Shares: ${details.sharesReceived.toFixed(3)} | 
+              Price: ${details.pricePerShare.toFixed(3)} BNB/share | 
+              Fee: ${details.platformFee.toFixed(3)} BNB
             </div>
           `;
           
@@ -4642,22 +4167,65 @@
             bettorAddress: walletAddress.toString()
           })
         });
-        document.getElementById('tradeMsg').textContent = 'Prediction cancellation requested. Refunds are processed within 24 hours.';
+        document.getElementById('tradeMsg').textContent = 'Cancellation request sent. Refunds are processed within 24 hours.';
       } catch (e) {
         document.getElementById('tradeMsg').textContent = 'Cancellation failed: ' + (e.message || e);
       }
     }
 
-    // Chart display - no switching needed, both charts visible
+    // Chart switching functionality
     function switchChart(chartType) {
-      // Both charts are always visible now - no switching needed
-      console.log('LMSR charts are always visible');
+      // Update tab states
+      document.querySelectorAll('.chart-tab').forEach(tab => tab.classList.remove('active'));
+      document.getElementById(chartType + 'Tab').classList.add('active');
+      
+      // Show/hide chart containers
+      document.getElementById('probabilityChartContainer').style.display = chartType === 'probability' ? 'block' : 'none';
+      document.getElementById('distributionChartContainer').style.display = chartType === 'distribution' ? 'block' : 'none';
+      
+      // Load chart if not already loaded and chart engine is available
+      if (currentMarket && window.lmsrChartEngine) {
+        try {
+          // Add a small delay to ensure container is visible
+          setTimeout(() => {
+            if (chartType === 'probability') {
+              window.lmsrChartEngine.createProbabilityChart('probabilityChartContainer', currentMarket.id);
+            } else if (chartType === 'distribution') {
+              window.lmsrChartEngine.createCurrentDistributionChart('distributionChartContainer', currentMarket.id);
+            }
+          }, 100);
+        } catch (error) {
+          console.error('Chart creation failed:', error);
+          const container = document.getElementById(chartType + 'ChartContainer');
+          if (container) {
+            container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#ff6b6b;font-size:14px;">⚠️ Chart failed to load</div>';
+          }
+        }
+      }
     }
 
     // Updated chart rendering function
     function renderChart(market, orderBook) {
-      // Charts are handled by initializeSimpleCharts function
-      console.log('Charts rendered via LMSR analysis');
+      // Only initialize probability chart once, with a delay to ensure DOM is ready
+      if (window.lmsrChartEngine && !window.lmsrChartEngine.chartInstances['probabilityChart']) {
+        setTimeout(() => {
+          try {
+            window.lmsrChartEngine.createProbabilityChart('probabilityChartContainer', market.id);
+          } catch (error) {
+            console.error('Chart initialization failed:', error);
+            const container = document.getElementById('probabilityChartContainer');
+            if (container) {
+              container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#ff6b6b;font-size:14px;">⚠️ Chart failed to load</div>';
+            }
+          }
+        }, 200);
+      } else if (!window.lmsrChartEngine) {
+        console.warn('Chart engine not available');
+        const container = document.getElementById('probabilityChartContainer');
+        if (container) {
+          container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#9ca3af;font-size:14px;">📊 Charts temporarily unavailable</div>';
+        }
+      }
     }
 
     // Create a demo market for testing
@@ -4721,8 +4289,13 @@
           window.predictionMarket.initializeMarket(demoMarket.id, demoMarket.options);
           window.currentMarket = demoMarket;
           
-          // Charts will be created by the main chart initialization logic
-          console.log('✅ Demo market initialized, charts will be created automatically');
+          // Try to create charts with alternative method
+          setTimeout(() => {
+            if (window.fallbackChartEngine) {
+              window.fallbackChartEngine.createProbabilityChart('probabilityChartContainer', demoMarket.id);
+              window.fallbackChartEngine.createCurrentDistributionChart('distributionChartContainer', demoMarket.id);
+            }
+          }, 100);
         }
       }, 200);
       
@@ -5144,12 +4717,6 @@
       if (feeBreakdownEl) feeBreakdownEl.style.display = 'block';
       
       // Get LMSR data for proper calculation
-      if (!currentMarket || !currentMarket.id) {
-        console.warn('No market data available for profit calculation');
-        document.getElementById('profitCalc').textContent = `${window.i18n.t('expectedReturn')}: calculation unavailable`;
-        return;
-      }
-      
       const probData = await getLMSRProbabilities(currentMarket.id);
       let probability = 50; // Fallback probability
       let sharesReceived = 0;
@@ -5210,10 +4777,10 @@
       }
       
       document.getElementById('profitCalc').innerHTML = `
-        <div style="color:#d1d5db;font-weight:500;">${window.i18n.t('shares')}: <span style="color:#10b981;font-weight:600;">${sharesReceived.toFixed(3)}</span> @ ${window.i18n.formatCurrency(avgCostPerShare)}/share</div>
-        <div style="color:#d1d5db;font-weight:500;">${window.i18n.t('currentConfidence')}: <span style="color:#f59e0b;font-weight:600;">${probability}%</span> → <span style="color:#10b981;font-weight:600;">${newProbability}%</span></div>
-        <div style="color:#d1d5db;font-weight:500;">${window.i18n.t('maxReturn')}: <span style="color:#10b981;font-weight:600;">${window.i18n.formatCurrency(maxReturn)}</span> ${window.i18n.t('ifWins')} <span style="color:#9ca3af;">(1% ${window.i18n.t('payoutFeeApplies')})</span></div>
-        <div style="color:#d1d5db;font-weight:500;">${window.i18n.t('expectedReturn')}: <span style="color:#06b6d4;font-weight:600;">${window.i18n.formatCurrency(expectedReturn)}</span> <span style="color:#9ca3af;">(${newProbability}% ${window.i18n.t('finalConfidence')})</span></div>
+        <div>${window.i18n.t('shares')}: <span style="color:#9aff00;">${sharesReceived.toFixed(3)}</span> @ ${window.i18n.formatCurrency(avgCostPerShare)}/share</div>
+        <div>${window.i18n.t('currentConfidence')}: <span style="color:#f59e0b;">${probability}%</span> → <span style="color:#10b981;">${newProbability}%</span></div>
+        <div>${window.i18n.t('maxReturn')}: <span style="color:#10b981;">${window.i18n.formatCurrency(maxReturn)}</span> ${window.i18n.t('ifWins')} (1% ${window.i18n.t('payoutFeeApplies')})</div>
+        <div>${window.i18n.t('expectedReturn')}: <span style="color:#f59e0b;">${window.i18n.formatCurrency(expectedReturn)}</span> (${newProbability}% ${window.i18n.t('finalConfidence')})</div>
         ${priceImpactWarning}
       `;
     }
@@ -5313,163 +4880,14 @@
       // Initialize Web3 and MetaMask
       initializeWeb3();
 
-      // Initialize LMSR Charts immediately
-      console.log('🚀 Initializing LMSR Trade Analysis Charts...');
-      initializeSimpleCharts();
-
       document.getElementById('tradeAmount').oninput = calculateProfit;
-      
-      // Ensure API_BASE_URL is available before loading market
-      setTimeout(() => {
-        if (typeof API_BASE_URL !== 'undefined') {
-          loadMarketPage();
-        } else {
-          console.error('API_BASE_URL not defined, retrying...');
-          setTimeout(() => loadMarketPage(), 1000);
-        }
-      }, 100);
+      loadMarketPage();
     });
 
     // Function to show My Bets section
     function showMyBetsSection() {
       // Hide market section
       const marketSection = document.getElementById('marketSection');
-      
-    // ========================================
-    // LIVE TRADING SIMULATION
-    // ========================================
-    
-    function initializeLiveTradingDemo() {
-      const tradesContainer = document.getElementById('liveTradesContainer');
-      if (!tradesContainer) return;
-      
-      const trades = [];
-      let totalPnL = 0;
-      let totalVolume = 0;
-      let totalTrades = 0;
-      let wins = 0;
-      
-      function generateRandomTrade() {
-        const sides = ['YES', 'NO'];
-        const side = sides[Math.floor(Math.random() * sides.length)];
-        const amount = (Math.random() * 200 + 10).toFixed(2);
-        const price = (Math.random() * 0.6 + 0.2).toFixed(3); // 20% - 80% range
-        const pnl = (Math.random() - 0.5) * 50; // -25 to +25 range
-        
-        const trade = {
-          time: new Date().toLocaleTimeString('en-US', { 
-            hour12: false, 
-            hour: '2-digit', 
-            minute: '2-digit' 
-          }),
-          side,
-          amount: `$${amount}`,
-          price: `${(parseFloat(price) * 100).toFixed(1)}%`,
-          pnl: pnl.toFixed(2),
-          isProfit: pnl > 0
-        };
-        
-        trades.unshift(trade);
-        if (trades.length > 20) trades.pop(); // Keep last 20 trades
-        
-        // Update totals
-        totalPnL += pnl;
-        totalVolume += parseFloat(amount);
-        totalTrades++;
-        if (pnl > 0) wins++;
-        
-        updateTradeDisplay();
-        updatePortfolioStats();
-      }
-      
-      function updateTradeDisplay() {
-        tradesContainer.innerHTML = trades.map(trade => `
-          <div style="display:grid;grid-template-columns:80px 120px 100px 100px 120px;gap:12px;font-size:12px;padding:8px;margin-bottom:4px;background:rgba(55,65,81,0.3);border-radius:4px;align-items:center;">
-            <span style="color:#9ca3af;">${trade.time}</span>
-            <span style="color:${trade.side === 'YES' ? '#10b981' : '#ef4444'};font-weight:600;background:rgba(${trade.side === 'YES' ? '16,185,129' : '239,68,68'},0.1);padding:2px 6px;border-radius:3px;text-align:center;font-size:11px;">${trade.side}</span>
-            <span style="color:#e5e7eb;">${trade.amount}</span>
-            <span style="color:#d1d5db;">${trade.price}</span>
-            <span style="color:${trade.isProfit ? '#10b981' : '#ef4444'};font-weight:600;">${trade.isProfit ? '+' : ''}$${trade.pnl}</span>
-          </div>
-        `).join('');
-      }
-      
-      function updatePortfolioStats() {
-        const winRate = totalTrades > 0 ? ((wins / totalTrades) * 100).toFixed(1) : '0';
-        
-        document.getElementById('totalPnL').textContent = `${totalPnL > 0 ? '+' : ''}$${totalPnL.toFixed(2)}`;
-        document.getElementById('totalPnL').style.color = totalPnL > 0 ? '#10b981' : '#ef4444';
-        
-        document.getElementById('totalVolume').textContent = `$${totalVolume.toFixed(0)}`;
-        document.getElementById('totalTrades').textContent = totalTrades.toString();
-        document.getElementById('winRate').textContent = `${winRate}%`;
-      }
-      
-      // Generate initial trades
-      for (let i = 0; i < 5; i++) {
-        setTimeout(() => generateRandomTrade(), i * 200);
-      }
-      
-      // Continue generating trades every 3-8 seconds
-      function scheduleNextTrade() {
-        const delay = Math.random() * 5000 + 3000; // 3-8 seconds
-        setTimeout(() => {
-          generateRandomTrade();
-          scheduleNextTrade();
-        }, delay);
-      }
-      
-      scheduleNextTrade();
-    }
-    
-    // Initialize live trading demo
-    setTimeout(() => {
-      initializeLiveTradingDemo();
-    }, 2000);
-    
-    // ========================================
-    // CHART TAB SWITCHING FUNCTIONALITY
-    // ========================================
-    
-    function switchChart(chartType) {
-      const probabilityContainer = document.getElementById('probabilityChartContainer');
-      const distributionContainer = document.getElementById('distributionChartContainer');
-      const probabilityTab = document.getElementById('probabilityTab');
-      const distributionTab = document.getElementById('distributionTab');
-      
-      if (chartType === 'probability') {
-        // Show probability chart, hide distribution
-        probabilityContainer.style.display = 'block';
-        distributionContainer.style.display = 'none';
-        
-        // Update tab styling
-        probabilityTab.style.background = '#374151';
-        probabilityTab.style.color = '#e5e7eb';
-        probabilityTab.style.border = '1px solid #6b7280';
-        probabilityTab.classList.add('active');
-        
-        distributionTab.style.background = '#1f2937';
-        distributionTab.style.color = '#9ca3af';
-        distributionTab.style.border = '1px solid #4b5563';
-        distributionTab.classList.remove('active');
-        
-      } else if (chartType === 'distribution') {
-        // Show distribution chart, hide probability
-        probabilityContainer.style.display = 'none';
-        distributionContainer.style.display = 'block';
-        
-        // Update tab styling
-        distributionTab.style.background = '#374151';
-        distributionTab.style.color = '#e5e7eb';
-        distributionTab.style.border = '1px solid #6b7280';
-        distributionTab.classList.add('active');
-        
-        probabilityTab.style.background = '#1f2937';
-        probabilityTab.style.color = '#9ca3af';
-        probabilityTab.style.border = '1px solid #4b5563';
-        probabilityTab.classList.remove('active');
-      }
-    }
       if (marketSection) marketSection.style.display = 'none';
       
       // Show My Bets section

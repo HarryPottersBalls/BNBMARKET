@@ -3019,8 +3019,8 @@
       return window.location.origin + '/api';
     })();
 
-    // Helper function to get odds from metadata.admin_odds ONLY
-    // Helper function to get LMSR probabilities for market
+    // Helper function to get LIVE market probabilities from prediction market engine
+    // This is a TRUE prediction market - no admin manipulation!
     async function getLMSRProbabilities(marketId) {
       try {
         const response = await fetch(`${API_BASE_URL}/markets/${marketId}/probabilities`);
@@ -3656,7 +3656,8 @@
           }
         ],
         metadata: {
-          admin_odds: [0.6, 0.4] // 60% YES, 40% NO
+          initialLiquidity: 10000, // Starting liquidity pool
+          totalVolume: 0 // Will grow with trading
         }
       };
       
@@ -3729,10 +3730,10 @@
           market.metadata = {};
         }
         
-        // Ensure admin_odds array exists
-        if (!Array.isArray(market.metadata.admin_odds)) {
-          console.warn('⚠️ admin_odds not found or not an array, initializing empty');
-          market.metadata.admin_odds = [];
+        // Initialize TRUE prediction market (no admin manipulation!)
+        if (window.predictionMarket) {
+          window.predictionMarket.initializeMarket(market.id, market.options);
+          console.log('🎯 Initialized pure prediction market:', market.id);
         }
         
         // Debug output
@@ -3740,15 +3741,13 @@
         console.log('✓ MARKET LOADED');
         console.log('Market ID:', market.id);
         console.log('Market title:', market.title);
-        console.log('Metadata type:', typeof market.metadata);
-        console.log('Metadata:', market.metadata);
-        console.log('Admin odds:', market.metadata.admin_odds);
-        console.log('Admin odds is array?', Array.isArray(market.metadata.admin_odds));
-        if (Array.isArray(market.metadata.admin_odds)) {
-          market.metadata.admin_odds.forEach((odd, i) => {
-            console.log(`  Option ${i}: odds = ${odd} (${typeof odd})`);
-          });
-        }
+        console.log('Market type: TRUE PREDICTION MARKET');
+        console.log('Pricing: Market-driven (no admin control)');
+        console.log('Initial state: Equal probabilities');
+        console.log('Options:', market.options.length);
+        market.options.forEach((option, i) => {
+          console.log(`  Option ${i}: ${option.name}`);
+        });
         console.log('========================================');
         
         // Set global variables

@@ -1550,17 +1550,158 @@
               'success'
             );
             
-            // Update charts
+            // CRITICAL: Update charts with new market data
             setTimeout(() => {
-              if (window.lmsrChartEngine) {
-                window.lmsrChartEngine.createProbabilityChart('probabilityChartContainer', this.currentMarket.id);
-                window.lmsrChartEngine.createCurrentDistributionChart('distributionChartContainer', this.currentMarket.id);
-              }
-            }, 500);
+              this.updateChartsAfterTrade();
+            }, 300);
           }
         } catch (error) {
           alert(`Trade failed: ${error.message}`);
         }
+      }
+      
+      // Update charts after a trade is executed
+      updateChartsAfterTrade() {
+        try {
+          // Show visual feedback that charts are updating
+          this.showChartUpdateIndicator();
+          
+          // Get updated market pricing from prediction market engine
+          const marketDepth = window.predictionMarket.getMarketDepth(this.currentMarket.id);
+          
+          if (marketDepth && window.lmsrChartEngine) {
+            // Update the current market data with new probabilities
+            const updatedMarket = {
+              ...this.currentMarket,
+              currentProbabilities: marketDepth.probabilities,
+              currentPrices: marketDepth.prices,
+              totalVolume: marketDepth.totalVolume,
+              volume24h: marketDepth.volume24h
+            };
+            
+            // Store globally for chart access
+            window.currentMarket = updatedMarket;
+            
+            // Recreate charts with updated data
+            console.log('🔄 Refreshing charts with new probabilities:', marketDepth.probabilities);
+            
+            // Add slight delay for visual effect
+            setTimeout(() => {
+              window.lmsrChartEngine.createProbabilityChart('probabilityChartContainer', this.currentMarket.id);
+              window.lmsrChartEngine.createCurrentDistributionChart('distributionChartContainer', this.currentMarket.id);
+              
+              // Hide update indicator
+              this.hideChartUpdateIndicator();
+              
+              // Show probability change notification
+              this.showProbabilityChangeNotification(marketDepth.probabilities);
+            }, 500);
+            
+            // Also update any volume charts if they exist
+            if (window.lmsrChartEngine.createVolumeChart) {
+              setTimeout(() => {
+                window.lmsrChartEngine.createVolumeChart('volumeChartContainer', this.currentMarket.id);
+              }, 600);
+            }
+          }
+        } catch (error) {
+          console.error('Error updating charts after trade:', error);
+          this.hideChartUpdateIndicator();
+        }
+      }
+      
+      // Show visual indicator that charts are updating
+      showChartUpdateIndicator() {
+        const indicators = ['probabilityChartContainer', 'distributionChartContainer'];
+        
+        indicators.forEach(containerId => {
+          const container = document.getElementById(containerId);
+          if (container) {
+            // Add updating overlay
+            const overlay = document.createElement('div');
+            overlay.id = `${containerId}-updating`;
+            overlay.style.cssText = `
+              position: absolute;
+              top: 0;
+              left: 0;
+              right: 0;
+              bottom: 0;
+              background: rgba(15, 23, 42, 0.8);
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              color: #06b6d4;
+              font-weight: 700;
+              font-size: 1.1rem;
+              border-radius: 12px;
+              z-index: 1000;
+            `;
+            overlay.innerHTML = `
+              <div style="text-align: center;">
+                <div style="font-size: 2rem; margin-bottom: 8px;">📊</div>
+                <div>Updating Chart...</div>
+              </div>
+            `;
+            
+            container.style.position = 'relative';
+            container.appendChild(overlay);
+          }
+        });
+      }
+      
+      // Hide chart update indicators
+      hideChartUpdateIndicator() {
+        const indicators = ['probabilityChartContainer-updating', 'distributionChartContainer-updating'];
+        
+        indicators.forEach(indicatorId => {
+          const indicator = document.getElementById(indicatorId);
+          if (indicator) {
+            indicator.remove();
+          }
+        });
+      }
+      
+      // Show probability change notification
+      showProbabilityChangeNotification(newProbabilities) {
+        const notification = document.createElement('div');
+        notification.style.cssText = `
+          position: fixed;
+          top: 20px;
+          right: 20px;
+          background: linear-gradient(135deg, #10b981, #059669);
+          color: white;
+          padding: 16px 20px;
+          border-radius: 12px;
+          box-shadow: 0 4px 20px rgba(16, 185, 129, 0.3);
+          z-index: 10001;
+          font-weight: 700;
+          max-width: 300px;
+        `;
+        
+        const probText = newProbabilities.map((prob, index) => {
+          const option = this.currentMarket.options[index];
+          const symbol = option.name.includes('YES') ? '☀️' : '🌙';
+          return `${symbol} ${option.name.split(' ')[0]}: ${prob.toFixed(1)}%`;
+        }).join('<br>');
+        
+        notification.innerHTML = `
+          <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+            <div style="font-size: 1.5rem;">📈</div>
+            <div style="font-size: 1.1rem;">Market Updated!</div>
+          </div>
+          <div style="font-size: 0.9rem; line-height: 1.4;">
+            ${probText}
+          </div>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        // Auto-remove after 4 seconds
+        setTimeout(() => {
+          if (notification.parentNode) {
+            notification.remove();
+          }
+        }, 4000);
       }
       
       // Close modal
@@ -2136,15 +2277,28 @@
           // Destroy existing chart if it exists
           this.destroyChart('probabilityChart');
           
-          // Get market data and generate simulation
-          const market = window.currentMarket;
-          if (!market || !market.options) {
-            throw new Error('No market data available');
-          }
+          // Get LIVE market data from prediction market engine
+          let market, marketDepth, probabilities, prices;
           
-          // Initialize enhanced trading and get simulation data
-          window.enhancedTrading.createMarket(market);
-          const simulation = window.yinYangSimulator.generateMarketSimulation(marketId, market.options);
+          if (window.predictionMarket && window.predictionMarket.markets.has(marketId)) {
+            // Use live data from prediction market engine
+            marketDepth = window.predictionMarket.getMarketDepth(marketId);
+            market = window.predictionMarket.markets.get(marketId);
+            probabilities = marketDepth.probabilities;
+            prices = marketDepth.prices;
+            console.log('📊 Using LIVE market data:', { probabilities, prices });
+          } else {
+            // Fallback to current market data
+            market = window.currentMarket;
+            if (!market || !market.options) {
+              throw new Error('No market data available');
+            }
+            
+            // Generate simulation data as fallback
+            const simulation = window.yinYangSimulator.generateMarketSimulation(marketId, market.options);
+            probabilities = simulation.probabilities[simulation.probabilities.length - 1]; // Get latest
+            prices = probabilities.map(p => p / 100); // Convert to prices
+          }
 
           // Create fresh canvas
           container.innerHTML = '';
@@ -2157,10 +2311,26 @@
           if (typeof Chart !== 'undefined') {
             const ctx = canvas.getContext('2d');
             
-            // Prepare time series data
-            const timeLabels = simulation.timePoints.map(time => 
-              time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
-            );
+            // Create time series showing current and projected probabilities
+            const timeLabels = [];
+            const timeSeriesData = [];
+            
+            // Generate 20 time points for smooth visualization
+            for (let i = 0; i < 20; i++) {
+              const time = new Date(Date.now() - (19 - i) * 60000); // Last 20 minutes
+              timeLabels.push(time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }));
+              
+              // For visual effect, show gradual progression to current probabilities
+              const factor = i / 19;
+              const baseProbs = market.options.map((_, idx) => 100 / market.options.length);
+              const currentProbs = probabilities;
+              
+              const interpolatedProbs = baseProbs.map((base, idx) => 
+                base + (currentProbs[idx] - base) * factor
+              );
+              
+              timeSeriesData.push(interpolatedProbs);
+            }
             
             const chartInstance = new Chart(ctx, {
               type: 'line',
@@ -2168,7 +2338,7 @@
                 labels: timeLabels,
                 datasets: market.options.map((option, index) => {
                   // Extract probability data for this option over time
-                  const probData = simulation.probabilities.map(probArray => probArray[index]);
+                  const probData = timeSeriesData.map(probArray => probArray[index]);
                   
                   // Determine Yin Yang colors
                   const isYangOption = option.name.toLowerCase().includes('yes') || 
@@ -2306,14 +2476,26 @@
           // Destroy existing chart if it exists
           this.destroyChart('distributionChart');
           
-          // Get current market data and simulation
-          const market = window.currentMarket;
-          if (!market || !market.options) {
-            throw new Error('No market data available');
-          }
+          // Get LIVE market data from prediction market engine
+          let market, probabilities;
           
-          // Get current probabilities from simulation
-          const currentData = window.yinYangSimulator.getCurrentProbabilities(marketId, market.options);
+          if (window.predictionMarket && window.predictionMarket.markets.has(marketId)) {
+            // Use live data from prediction market engine
+            const marketDepth = window.predictionMarket.getMarketDepth(marketId);
+            market = window.predictionMarket.markets.get(marketId);
+            probabilities = marketDepth.probabilities;
+            console.log('📊 Using LIVE distribution data:', probabilities);
+          } else {
+            // Fallback to current market data
+            market = window.currentMarket;
+            if (!market || !market.options) {
+              throw new Error('No market data available');
+            }
+            
+            // Get current probabilities from simulation as fallback
+            const currentData = window.yinYangSimulator.getCurrentProbabilities(marketId, market.options);
+            probabilities = currentData.probabilities;
+          }
 
           // Create fresh canvas
           container.innerHTML = '';
@@ -2344,8 +2526,8 @@
                   return `${symbol} ${option.name}`;
                 }),
                 datasets: [{
-                  data: currentData.probabilities,
-                  backgroundColor: currentData.probabilities.map((prob, index) => {
+                  data: probabilities,
+                  backgroundColor: probabilities.map((prob, index) => {
                     const option = market.options[index];
                     
                     // Determine Yin Yang colors based on option type

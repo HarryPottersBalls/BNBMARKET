@@ -3760,6 +3760,11 @@
       bids.sort((a,b) => parseFloat(b.amount) - parseFloat(a.amount));
       const maxShares = Math.max(...bids.map(x => parseFloat(x.amount)), 1);
       
+      // Calculate summary stats for this option
+      const totalVolume = bids.reduce((sum, bet) => sum + parseFloat(bet.amount), 0);
+      const uniqueBuyers = new Set(bids.map(bet => bet.bettor_address || bet.address || bet.transaction_signature).filter(Boolean)).size;
+      const averageBet = bids.length > 0 ? totalVolume / bids.length : 0;
+      
       let tabs = '';
       (market.options||[]).forEach((opt,i)=>{
         // Apply Yin Yang styling to order book tabs
@@ -3789,6 +3794,17 @@
       });
       
       async function rowHtml(order) {
+        // Debug: Log the order structure to see available fields
+        console.log('Order data structure:', {
+          id: order.id,
+          amount: order.amount,
+          transaction_signature: order.transaction_signature,
+          bettor_address: order.bettor_address,
+          address: order.address,
+          created_at: order.created_at,
+          all_fields: Object.keys(order)
+        });
+        
         const barW = Math.max(8, 180*(parseFloat(order.amount)/maxShares));
         
         // Get current LMSR probabilities for potential return calculation
@@ -3810,17 +3826,66 @@
         }
         
         let buyerCell = '-';
-        if (order.transaction_signature) {
-          const shortTx = order.transaction_signature.slice(0,4) + '...' + order.transaction_signature.slice(-4);
-          buyerCell = `<a href="https://bscscan.com/tx/${order.transaction_signature}" target="_blank" rel="noopener" style="color:#06b6d4;font-weight:700;text-decoration:none;">${shortTx}</a>`;
+        
+        // Priority 1: Show wallet address if available
+        if (order.bettor_address) {
+          const shortAddr = order.bettor_address.slice(0,6) + '...' + order.bettor_address.slice(-4);
+          buyerCell = `<div style="display:flex;flex-direction:column;gap:2px;">
+            <a href="https://bscscan.com/address/${order.bettor_address}" target="_blank" rel="noopener" style="color:#10b981;font-weight:700;text-decoration:none;font-size:14px;">
+              🔗 ${shortAddr}
+            </a>
+            <span style="color:#64748b;font-size:11px;">Buyer Address</span>
+          </div>`;
         }
-        return `<tr style="background:rgba(16,185,129,0.08);">
-          <td style="position:relative;">
-            <div style="position:absolute;left:0;top:0;height:100%;width:${barW}px;background:rgba(16,185,129,0.13);"></div>
-            <span style="position:relative;z-index:2;font-weight:600;color:#06b6d4;">${parseFloat(order.amount).toFixed(3)}</span>
+        // Priority 2: Show transaction signature as fallback
+        else if (order.transaction_signature) {
+          const shortTx = order.transaction_signature.slice(0,6) + '...' + order.transaction_signature.slice(-4);
+          buyerCell = `<div style="display:flex;flex-direction:column;gap:2px;">
+            <a href="https://bscscan.com/tx/${order.transaction_signature}" target="_blank" rel="noopener" style="color:#06b6d4;font-weight:700;text-decoration:none;font-size:14px;">
+              📋 ${shortTx}
+            </a>
+            <span style="color:#64748b;font-size:11px;">Transaction</span>
+          </div>`;
+        }
+        // Priority 3: Show any other address field
+        else if (order.address) {
+          const shortAddr = order.address.slice(0,6) + '...' + order.address.slice(-4);
+          buyerCell = `<div style="display:flex;flex-direction:column;gap:2px;">
+            <a href="https://bscscan.com/address/${order.address}" target="_blank" rel="noopener" style="color:#8b5cf6;font-weight:700;text-decoration:none;font-size:14px;">
+              👤 ${shortAddr}
+            </a>
+            <span style="color:#64748b;font-size:11px;">Address</span>
+          </div>`;
+        }
+        // Priority 4: Show timestamp as identifier if no address
+        else {
+          const date = new Date(order.created_at);
+          const timeStr = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+          buyerCell = `<div style="display:flex;flex-direction:column;gap:2px;">
+            <span style="color:#f59e0b;font-weight:600;font-size:14px;">🕒 ${timeStr}</span>
+            <span style="color:#64748b;font-size:11px;">Anonymous</span>
+          </div>`;
+        }
+        return `<tr style="background:rgba(16,185,129,0.08);border-bottom:1px solid rgba(55,65,81,0.3);">
+          <td style="position:relative;padding:12px 8px;">
+            <div style="position:absolute;left:0;top:0;height:100%;width:${barW}px;background:rgba(16,185,129,0.13);border-radius:4px;"></div>
+            <span style="position:relative;z-index:2;font-weight:700;color:#10b981;font-size:16px;">${parseFloat(order.amount).toFixed(3)} BNB</span>
           </td>
-          <td style="position:relative;z-index:2;">${buyerCell}</td>
-          <td style="position:relative;z-index:2;color:#f3f4f6;">${sharesOwned.toFixed(1)} shares (${potentialReturn.toFixed(3)} BNB)</td>
+          <td style="position:relative;z-index:2;padding:12px 8px;">${buyerCell}</td>
+          <td style="position:relative;z-index:2;color:#e2e8f0;padding:12px 8px;">
+            <div style="display:flex;flex-direction:column;gap:2px;">
+              <span style="font-weight:600;color:#06b6d4;">${sharesOwned.toFixed(2)} shares</span>
+              <span style="color:#94a3b8;font-size:13px;">Return: ${potentialReturn.toFixed(3)} BNB</span>
+            </div>
+          </td>
+          <td style="position:relative;z-index:2;color:#94a3b8;padding:12px 8px;font-size:13px;">
+            ${new Date(order.created_at).toLocaleString('en-US', { 
+              month: 'short', 
+              day: 'numeric', 
+              hour: '2-digit', 
+              minute: '2-digit' 
+            })}
+          </td>
         </tr>`;
       }
       
@@ -3828,8 +3893,45 @@
         <h3 style="color:#9ca3af;margin:0;font-size:1.3rem;">Order Book</h3>
         <div>${tabs}</div>
       </div>`;
-      html += `<table style="width:100%;border-radius:10px;overflow:hidden;font-size:1rem;">
-        <thead><tr style="background:#374151;color:#9ca3af;font-weight:700;"><th style="padding:8px;">Amount (BNB)</th><th>Buyer</th><th>Shares & Potential Return</th></tr></thead>
+      
+      // Market Summary Section
+      html += `
+        <div style="
+          margin-bottom: 20px; 
+          padding: 16px; 
+          background: linear-gradient(135deg, rgba(59,130,246,0.1), rgba(37,99,235,0.05)); 
+          border-radius: 12px; 
+          border: 1px solid rgba(59,130,246,0.2);
+          backdrop-filter: blur(10px);
+        ">
+          <h4 style="margin: 0 0 12px 0; color: #e2e8f0; font-size: 16px; font-weight: 600;">📊 Market Summary</h4>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px;">
+            <div style="text-align: center; padding: 8px;">
+              <div style="color: #94a3b8; font-size: 11px; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">Total Volume</div>
+              <div style="color: #10b981; font-size: 18px; font-weight: 700;">${totalVolume.toFixed(2)} BNB</div>
+            </div>
+            <div style="text-align: center; padding: 8px;">
+              <div style="color: #94a3b8; font-size: 11px; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">Unique Buyers</div>
+              <div style="color: #3b82f6; font-size: 18px; font-weight: 700;">${uniqueBuyers}</div>
+            </div>
+            <div style="text-align: center; padding: 8px;">
+              <div style="color: #94a3b8; font-size: 11px; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">Average Bet</div>
+              <div style="color: #f59e0b; font-size: 18px; font-weight: 700;">${averageBet.toFixed(3)} BNB</div>
+            </div>
+            <div style="text-align: center; padding: 8px;">
+              <div style="color: #94a3b8; font-size: 11px; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">Total Bets</div>
+              <div style="color: #ef4444; font-size: 18px; font-weight: 700;">${bids.length}</div>
+            </div>
+          </div>
+        </div>`;
+        
+      html += `<table style="width:100%;border-radius:12px;overflow:hidden;font-size:1rem;border:1px solid #374151;">
+        <thead><tr style="background:linear-gradient(135deg, #374151, #475569);color:#e2e8f0;font-weight:700;">
+          <th style="padding:12px 8px;text-align:left;border-right:1px solid #4b5563;">💰 Amount (BNB)</th>
+          <th style="padding:12px 8px;text-align:left;border-right:1px solid #4b5563;">👤 Buyer</th>
+          <th style="padding:12px 8px;text-align:left;border-right:1px solid #4b5563;">📊 Position & Return</th>
+          <th style="padding:12px 8px;text-align:left;">⏰ Time</th>
+        </tr></thead>
         <tbody id="orderBookRows">`;
       
       html += '</tbody></table>';

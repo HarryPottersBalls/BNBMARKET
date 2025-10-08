@@ -2095,9 +2095,12 @@
       // Force immediate chart refresh with new data
       forceChartsRefresh(marketDepth) {
         console.log('🔄 Force refreshing charts with data:', marketDepth);
+        console.log('📊 Current probabilities being applied:', marketDepth.probabilities);
         
         // Destroy existing charts completely
         if (window.Chart && window.Chart.instances) {
+          const instanceCount = Object.keys(window.Chart.instances).length;
+          console.log(`🗑️ Destroying ${instanceCount} existing chart instances`);
           Object.values(window.Chart.instances).forEach(chart => {
             if (chart) chart.destroy();
           });
@@ -2107,11 +2110,18 @@
         const probContainer = document.getElementById('probabilityChartContainer');
         const distContainer = document.getElementById('distributionChartContainer');
         
-        if (probContainer) probContainer.innerHTML = '';
-        if (distContainer) distContainer.innerHTML = '';
+        if (probContainer) {
+          probContainer.innerHTML = '';
+          console.log('🧹 Cleared probability chart container');
+        }
+        if (distContainer) {
+          distContainer.innerHTML = '';
+          console.log('🧹 Cleared distribution chart container');
+        }
         
         // Create new charts with live data
         setTimeout(() => {
+          console.log('🎨 Creating new charts with probabilities:', marketDepth.probabilities);
           this.createLiveChart('probabilityChartContainer', marketDepth, 'line');
           this.createLiveChart('distributionChartContainer', marketDepth, 'doughnut');
           console.log('✅ Charts forcibly refreshed with new probabilities');
@@ -2405,8 +2415,22 @@
             // Re-render the order book with updated data
             this.renderOrderBook(currentMarket);
             
-            // Force update charts
-            this.refreshCharts();
+            // Force update charts with new market data
+            const updatedDepth = {
+              probabilities: currentMarket.options.map((_, i) => 
+                i === targetOptionIndex ? outcome.probability : (100 - outcome.probability)
+              ),
+              prices: currentMarket.options.map((_, i) => 
+                i === targetOptionIndex ? outcome.probability / 100 : (100 - outcome.probability) / 100
+              ),
+              shares: currentMarket.options.map((_, i) => 
+                i === targetOptionIndex ? tradeResult.shares_bought : 1000 - tradeResult.shares_bought
+              ),
+              totalVolume: tradeResult.new_volume || 1000
+            };
+            
+            // Use the enhanced order book's force chart refresh
+            window.enhancedOrderBook.forceChartsRefresh(updatedDepth);
             
             // Show success message
             this.showTradeMessage(`✅ Simulated ${side.toUpperCase()} trade for ${outcome.range}`, 'success');
@@ -3662,11 +3686,24 @@
             updateTradePanel();
             calculateProfit();
             
-            // Force refresh charts with new data
-            if (window.lmsrChartEngine) {
-              window.lmsrChartEngine.createProbabilityChart('probabilityChartContainer', currentMarket.id);
-              if (document.getElementById('distributionChartContainer').style.display !== 'none') {
-                window.lmsrChartEngine.createCurrentDistributionChart('distributionChartContainer', currentMarket.id);
+            // Force refresh charts with updated trade data
+            const updatedDepth = {
+              probabilities: tradeResult.newProbabilities || [50, 50],
+              prices: tradeResult.newPrices || [0.5, 0.5],
+              shares: tradeResult.newShares || [1000, 1000],
+              totalVolume: tradeResult.new_volume || 1000
+            };
+            
+            // Use enhanced order book's force chart refresh mechanism
+            if (window.enhancedOrderBook && window.enhancedOrderBook.forceChartsRefresh) {
+              window.enhancedOrderBook.forceChartsRefresh(updatedDepth);
+            } else {
+              // Fallback to old method if enhanced order book isn't available
+              if (window.lmsrChartEngine) {
+                window.lmsrChartEngine.createProbabilityChart('probabilityChartContainer', currentMarket.id);
+                if (document.getElementById('distributionChartContainer').style.display !== 'none') {
+                  window.lmsrChartEngine.createCurrentDistributionChart('distributionChartContainer', currentMarket.id);
+                }
               }
             }
           }, 500);

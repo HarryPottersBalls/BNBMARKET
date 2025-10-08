@@ -674,7 +674,7 @@
     </section>
 
     <!-- My Bets Section -->
-    <section id="mybetsSection" class="market-section yang-flow" style="display:none;max-width:900px;margin:40px auto 0 auto;padding:32px 24px 40px 24px;background:linear-gradient(180deg, rgba(248,250,252,0.1), rgba(226,232,240,0.08), rgba(31,41,55,0.6));border-radius:18px;box-shadow:0 4px 32px rgba(0,0,0,0.10);border:1px solid rgba(203,213,225,0.1);position:relative;">
+    <section id="mybetsSection" class="market-section yang-flow" style="max-width:900px;margin:40px auto 0 auto;padding:32px 24px 40px 24px;background:linear-gradient(180deg, rgba(248,250,252,0.1), rgba(226,232,240,0.08), rgba(31,41,55,0.6));border-radius:18px;box-shadow:0 4px 32px rgba(0,0,0,0.10);border:1px solid rgba(203,213,225,0.1);position:relative;">
       <!-- Subtle Yang background symbol -->
       <div style="position:absolute;top:25px;right:30px;font-size:2.5rem;opacity:0.06;color:#06b6d4;pointer-events:none;">☀️</div>>
       <div class="section-header" style="margin-bottom:24px;">
@@ -684,9 +684,52 @@
         </div>
       </div>
       <div id="betsContainer">
-        <div class="empty-state">
-          <h3 data-i18n="connectWalletToBets">Connect Wallet</h3>
-          <p data-i18n="connectWalletToView">Connect your wallet to view your betting history.</p>
+        <!-- Live Trading Chart -->
+        <div style="background:rgba(31,41,55,0.7);border-radius:12px;padding:24px;margin-bottom:20px;border:1px solid #4b5563;">
+          <h3 style="color:#e5e7eb;font-size:1.3rem;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px;">
+            📊 Live Trading Activity
+            <span style="background:#10b981;color:#000;font-size:11px;padding:2px 6px;border-radius:4px;font-weight:600;">DEMO</span>
+          </h3>
+          
+          <!-- Simulated Recent Trades -->
+          <div style="margin-bottom:16px;">
+            <div style="display:grid;grid-template-columns:80px 120px 100px 100px 120px;gap:12px;font-size:12px;color:#9ca3af;font-weight:600;margin-bottom:8px;padding:0 8px;">
+              <span>TIME</span>
+              <span>SIDE</span> 
+              <span>AMOUNT</span>
+              <span>PRICE</span>
+              <span>P&L</span>
+            </div>
+            <div id="liveTradesContainer" style="max-height:200px;overflow-y:auto;">
+              <!-- Live trades will be populated by JavaScript -->
+            </div>
+          </div>
+          
+          <!-- Portfolio Summary -->
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-top:16px;padding-top:16px;border-top:1px solid #374151;">
+            <div style="text-align:center;padding:12px;background:rgba(16,185,129,0.1);border:1px solid #10b981;border-radius:6px;">
+              <div style="color:#10b981;font-size:18px;font-weight:700;" id="totalPnL">+$0.00</div>
+              <div style="color:#9ca3af;font-size:11px;">Total P&L</div>
+            </div>
+            <div style="text-align:center;padding:12px;background:rgba(6,182,212,0.1);border:1px solid #06b6d4;border-radius:6px;">
+              <div style="color:#06b6d4;font-size:18px;font-weight:700;" id="totalVolume">$0</div>
+              <div style="color:#9ca3af;font-size:11px;">Volume</div>
+            </div>
+            <div style="text-align:center;padding:12px;background:rgba(168,85,247,0.1);border:1px solid #a855f7;border-radius:6px;">
+              <div style="color:#a855f7;font-size:18px;font-weight:700;" id="totalTrades">0</div>
+              <div style="color:#9ca3af;font-size:11px;">Trades</div>
+            </div>
+            <div style="text-align:center;padding:12px;background:rgba(251,191,36,0.1);border:1px solid #fbbf24;border-radius:6px;">
+              <div style="color:#fbbf24;font-size:18px;font-weight:700;" id="winRate">0%</div>
+              <div style="color:#9ca3af;font-size:11px;">Win Rate</div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="empty-state" style="text-align:center;color:#6b7280;padding:20px;">
+          <h3 style="color:#9ca3af;margin-bottom:8px;">📈 Your Trading Dashboard</h3>
+          <p style="font-size:14px;">Track your positions, P&L, and trading performance in real-time</p>
+          <p style="font-size:12px;margin-top:8px;">Connect wallet to sync actual trading data</p>
         </div>
       </div>
     </section>
@@ -3686,6 +3729,10 @@
       const noCostUSD = noCostBNB * BNB_USD_RATE;
       const noProfitUSD = BNB_USD_RATE - noCostUSD;
       
+      // Calculate total market volume
+      const totalVolumeBNB = tradeSequence.reduce((sum, trade) => sum + (trade / BNB_USD_RATE), 0);
+      const totalVolumeUSD = tradeSequence.reduce((sum, trade) => sum + trade, 0);
+      
       console.log(`✅ LMSR trade analysis initialized with b=${currentB}`);
       if (probContainer) {
         probContainer.innerHTML = `
@@ -5251,6 +5298,98 @@
     function showMyBetsSection() {
       // Hide market section
       const marketSection = document.getElementById('marketSection');
+      
+    // ========================================
+    // LIVE TRADING SIMULATION
+    // ========================================
+    
+    function initializeLiveTradingDemo() {
+      const tradesContainer = document.getElementById('liveTradesContainer');
+      if (!tradesContainer) return;
+      
+      const trades = [];
+      let totalPnL = 0;
+      let totalVolume = 0;
+      let totalTrades = 0;
+      let wins = 0;
+      
+      function generateRandomTrade() {
+        const sides = ['YES', 'NO'];
+        const side = sides[Math.floor(Math.random() * sides.length)];
+        const amount = (Math.random() * 200 + 10).toFixed(2);
+        const price = (Math.random() * 0.6 + 0.2).toFixed(3); // 20% - 80% range
+        const pnl = (Math.random() - 0.5) * 50; // -25 to +25 range
+        
+        const trade = {
+          time: new Date().toLocaleTimeString('en-US', { 
+            hour12: false, 
+            hour: '2-digit', 
+            minute: '2-digit' 
+          }),
+          side,
+          amount: `$${amount}`,
+          price: `${(parseFloat(price) * 100).toFixed(1)}%`,
+          pnl: pnl.toFixed(2),
+          isProfit: pnl > 0
+        };
+        
+        trades.unshift(trade);
+        if (trades.length > 20) trades.pop(); // Keep last 20 trades
+        
+        // Update totals
+        totalPnL += pnl;
+        totalVolume += parseFloat(amount);
+        totalTrades++;
+        if (pnl > 0) wins++;
+        
+        updateTradeDisplay();
+        updatePortfolioStats();
+      }
+      
+      function updateTradeDisplay() {
+        tradesContainer.innerHTML = trades.map(trade => `
+          <div style="display:grid;grid-template-columns:80px 120px 100px 100px 120px;gap:12px;font-size:12px;padding:8px;margin-bottom:4px;background:rgba(55,65,81,0.3);border-radius:4px;align-items:center;">
+            <span style="color:#9ca3af;">${trade.time}</span>
+            <span style="color:${trade.side === 'YES' ? '#10b981' : '#ef4444'};font-weight:600;background:rgba(${trade.side === 'YES' ? '16,185,129' : '239,68,68'},0.1);padding:2px 6px;border-radius:3px;text-align:center;font-size:11px;">${trade.side}</span>
+            <span style="color:#e5e7eb;">${trade.amount}</span>
+            <span style="color:#d1d5db;">${trade.price}</span>
+            <span style="color:${trade.isProfit ? '#10b981' : '#ef4444'};font-weight:600;">${trade.isProfit ? '+' : ''}$${trade.pnl}</span>
+          </div>
+        `).join('');
+      }
+      
+      function updatePortfolioStats() {
+        const winRate = totalTrades > 0 ? ((wins / totalTrades) * 100).toFixed(1) : '0';
+        
+        document.getElementById('totalPnL').textContent = `${totalPnL > 0 ? '+' : ''}$${totalPnL.toFixed(2)}`;
+        document.getElementById('totalPnL').style.color = totalPnL > 0 ? '#10b981' : '#ef4444';
+        
+        document.getElementById('totalVolume').textContent = `$${totalVolume.toFixed(0)}`;
+        document.getElementById('totalTrades').textContent = totalTrades.toString();
+        document.getElementById('winRate').textContent = `${winRate}%`;
+      }
+      
+      // Generate initial trades
+      for (let i = 0; i < 5; i++) {
+        setTimeout(() => generateRandomTrade(), i * 200);
+      }
+      
+      // Continue generating trades every 3-8 seconds
+      function scheduleNextTrade() {
+        const delay = Math.random() * 5000 + 3000; // 3-8 seconds
+        setTimeout(() => {
+          generateRandomTrade();
+          scheduleNextTrade();
+        }, delay);
+      }
+      
+      scheduleNextTrade();
+    }
+    
+    // Initialize live trading demo
+    setTimeout(() => {
+      initializeLiveTradingDemo();
+    }, 2000);
       if (marketSection) marketSection.style.display = 'none';
       
       // Show My Bets section

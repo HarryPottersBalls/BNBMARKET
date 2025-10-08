@@ -695,7 +695,7 @@
     </section>
 
     <!-- My Bets Section -->
-    <section id="mybetsSection" class="market-section yang-flow" style="display:none;max-width:900px;margin:40px auto 0 auto;padding:32px 24px 40px 24px;background:linear-gradient(180deg, rgba(248,250,252,0.1), rgba(226,232,240,0.08), rgba(31,41,55,0.6));border-radius:18px;box-shadow:0 4px 32px rgba(0,0,0,0.10);border:1px solid rgba(203,213,225,0.1);position:relative;">
+    <section id="mybetsSection" class="market-section yang-flow" style="max-width:900px;margin:40px auto 0 auto;padding:32px 24px 40px 24px;background:linear-gradient(180deg, rgba(248,250,252,0.1), rgba(226,232,240,0.08), rgba(31,41,55,0.6));border-radius:18px;box-shadow:0 4px 32px rgba(0,0,0,0.10);border:1px solid rgba(203,213,225,0.1);position:relative;">
       <!-- Subtle Yang background symbol -->
       <div style="position:absolute;top:25px;right:30px;font-size:2.5rem;opacity:0.06;color:#06b6d4;pointer-events:none;">☀️</div>>
       <div class="section-header" style="margin-bottom:24px;">
@@ -705,7 +705,54 @@
         </div>
       </div>
       <div id="betsContainer">
-        <div class="empty-state">
+        <!-- Real-time Trading Dashboard -->
+        <div id="realTradingDashboard" style="background:rgba(31,41,55,0.7);border-radius:12px;padding:24px;margin-bottom:20px;border:1px solid #4b5563;">
+          <h3 style="color:#e5e7eb;font-size:1.3rem;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px;">
+            📊 Live Trading Activity
+            <span id="tradingStatus" style="background:#10b981;color:#000;font-size:11px;padding:2px 6px;border-radius:4px;font-weight:600;">LIVE</span>
+          </h3>
+          
+          <!-- Portfolio Summary Stats -->
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:20px;padding:16px;background:rgba(55,65,81,0.3);border-radius:8px;">
+            <div style="text-align:center;padding:12px;background:rgba(16,185,129,0.1);border:1px solid #10b981;border-radius:6px;">
+              <div style="color:#10b981;font-size:18px;font-weight:700;" id="realTotalPnL">$0.00</div>
+              <div style="color:#9ca3af;font-size:11px;">Total P&L</div>
+            </div>
+            <div style="text-align:center;padding:12px;background:rgba(6,182,212,0.1);border:1px solid #06b6d4;border-radius:6px;">
+              <div style="color:#06b6d4;font-size:18px;font-weight:700;" id="realTotalVolume">$0</div>
+              <div style="color:#9ca3af;font-size:11px;">Total Volume</div>
+            </div>
+            <div style="text-align:center;padding:12px;background:rgba(168,85,247,0.1);border:1px solid #a855f7;border-radius:6px;">
+              <div style="color:#a855f7;font-size:18px;font-weight:700;" id="realTotalTrades">0</div>
+              <div style="color:#9ca3af;font-size:11px;">Active Positions</div>
+            </div>
+            <div style="text-align:center;padding:12px;background:rgba(251,191,36,0.1);border:1px solid #fbbf24;border-radius:6px;">
+              <div style="color:#fbbf24;font-size:18px;font-weight:700;" id="realWinRate">0%</div>
+              <div style="color:#9ca3af;font-size:11px;">Win Rate</div>
+            </div>
+          </div>
+          
+          <!-- Recent Trades Header -->
+          <div style="display:grid;grid-template-columns:100px 120px 100px 100px 120px 80px;gap:12px;font-size:12px;color:#9ca3af;font-weight:600;margin-bottom:8px;padding:0 8px;border-bottom:1px solid #374151;padding-bottom:8px;">
+            <span>TIME</span>
+            <span>MARKET</span>
+            <span>SIDE</span> 
+            <span>AMOUNT</span>
+            <span>CURRENT VALUE</span>
+            <span>P&L</span>
+          </div>
+          
+          <!-- Real Trading History -->
+          <div id="realTradingHistory" style="max-height:300px;overflow-y:auto;">
+            <div style="text-align:center;padding:40px;color:#6b7280;">
+              <div style="font-size:24px;margin-bottom:8px;">📊</div>
+              <div style="font-size:14px;margin-bottom:4px;">Loading your trades...</div>
+              <div style="font-size:12px;">Real-time data from blockchain</div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="empty-state" style="display:none;">
           <h3 data-i18n="connectWalletToBets">Connect Wallet</h3>
           <p data-i18n="connectWalletToView">Connect your wallet to view your betting history.</p>
         </div>
@@ -4395,29 +4442,157 @@
     async function loadMyBets() {
       const container = document.getElementById('betsContainer');
       const portfolioSummaryContainer = document.getElementById('portfolioSummary');
+      const realTradingHistory = document.getElementById('realTradingHistory');
+      const emptyState = container.querySelector('.empty-state');
+      const realDashboard = document.getElementById('realTradingDashboard');
       
       if (!walletAddress) {
-        container.innerHTML = `<div class="empty-state"><h3>Connect Wallet</h3><p>Connect your wallet to view your betting history.</p></div>`;
+        if (realDashboard) realDashboard.style.display = 'none';
+        if (emptyState) emptyState.style.display = 'block';
         if (portfolioSummaryContainer) portfolioSummaryContainer.innerHTML = '';
         return;
       }
       
       try {
+        console.log('🔄 Loading real trading data for:', walletAddress);
+        
         const res = await fetch(`${API_BASE_URL}/bets?address=${walletAddress.toString()}`);
         const data = await res.json();
         const bets = data.bets || [];
         
+        // Show real dashboard, hide empty state
+        if (realDashboard) realDashboard.style.display = 'block';
+        if (emptyState) emptyState.style.display = 'none';
+        
+        // Update trading status
+        const statusElement = document.getElementById('tradingStatus');
+        if (statusElement) {
+          statusElement.textContent = bets.length > 0 ? 'LIVE' : 'READY';
+          statusElement.style.background = bets.length > 0 ? '#10b981' : '#6b7280';
+        }
+        
         if (bets.length === 0) {
-          container.innerHTML = `<div class="empty-state"><h3>No Bets Yet</h3><p>Your betting history will appear here once you place your first bet.</p></div>`;
-          if (portfolioSummaryContainer) portfolioSummaryContainer.innerHTML = '';
+          if (realTradingHistory) {
+            realTradingHistory.innerHTML = `
+              <div style="text-align:center;padding:40px;color:#6b7280;">
+                <div style="font-size:24px;margin-bottom:8px;">🎯</div>
+                <div style="font-size:14px;margin-bottom:4px;">Ready to Trade</div>
+                <div style="font-size:12px;">Your positions will appear here after your first trade</div>
+              </div>
+            `;
+          }
+          updateRealPortfolioStats(0, 0, 0, 0);
         } else {
-          // Portfolio summary variables
+          // Calculate real portfolio metrics
           let totalInvested = 0;
           let totalCurrentValue = 0;
-          let totalShares = 0;
           let activeBets = 0;
+          let wonBets = 0;
+          let resolvedBets = 0;
           
-          const betCards = await Promise.all(bets.map(async bet => {
+          const tradingRows = await Promise.all(bets.map(async bet => {
+            const amount = parseFloat(bet.amount || 0);
+            const currentValue = parseFloat(bet.current_value || amount);
+            const pnl = currentValue - amount;
+            
+            totalInvested += amount;
+            totalCurrentValue += currentValue;
+            
+            if (bet.status === 'active') {
+              activeBets++;
+            } else if (bet.status === 'resolved') {
+              resolvedBets++;
+              if (pnl > 0) wonBets++;
+            }
+            
+            // Get market title for this bet
+            let marketTitle = 'Unknown Market';
+            try {
+              const marketRes = await fetch(`${API_BASE_URL}/markets/${bet.market_id}`);
+              const marketData = await marketRes.json();
+              marketTitle = marketData.title ? marketData.title.substring(0, 20) + '...' : 'Market #' + bet.market_id;
+            } catch (e) {
+              marketTitle = 'Market #' + bet.market_id;
+            }
+            
+            return {
+              time: new Date(bet.created_at).toLocaleTimeString('en-US', { 
+                hour12: false, 
+                hour: '2-digit', 
+                minute: '2-digit' 
+              }),
+              market: marketTitle,
+              side: bet.side || 'UNKNOWN',
+              amount: amount,
+              currentValue: currentValue,
+              pnl: pnl,
+              status: bet.status || 'active',
+              isProfit: pnl > 0
+            };
+          }));
+          
+          // Update trading history display
+          if (realTradingHistory) {
+            realTradingHistory.innerHTML = tradingRows.map(trade => `
+              <div style="display:grid;grid-template-columns:100px 120px 100px 100px 120px 80px;gap:12px;font-size:12px;padding:8px;margin-bottom:4px;background:rgba(55,65,81,0.3);border-radius:4px;align-items:center;">
+                <span style="color:#9ca3af;">${trade.time}</span>
+                <span style="color:#d1d5db;font-size:11px;" title="${trade.market}">${trade.market}</span>
+                <span style="color:${trade.side === 'YES' ? '#10b981' : '#ef4444'};font-weight:600;background:rgba(${trade.side === 'YES' ? '16,185,129' : '239,68,68'},0.1);padding:2px 6px;border-radius:3px;text-align:center;font-size:11px;">${trade.side}</span>
+                <span style="color:#e5e7eb;">$${trade.amount.toFixed(2)}</span>
+                <span style="color:#d1d5db;">$${trade.currentValue.toFixed(2)}</span>
+                <span style="color:${trade.isProfit ? '#10b981' : '#ef4444'};font-weight:600;font-size:11px;">${trade.isProfit ? '+' : ''}$${trade.pnl.toFixed(2)}</span>
+              </div>
+            `).join('');
+          }
+          
+          // Calculate win rate
+          const winRate = resolvedBets > 0 ? ((wonBets / resolvedBets) * 100) : 0;
+          const totalPnL = totalCurrentValue - totalInvested;
+          
+          updateRealPortfolioStats(totalPnL, totalInvested, activeBets, winRate);
+          
+          console.log('✅ Real trading data loaded:', {
+            totalBets: bets.length,
+            activeBets,
+            totalInvested,
+            totalCurrentValue,
+            totalPnL,
+            winRate: winRate.toFixed(1) + '%'
+          });
+        }
+        
+        // Auto-refresh every 30 seconds
+        setTimeout(() => loadMyBets(), 30000);
+        
+      } catch (error) {
+        console.error('❌ Failed to load real trading data:', error);
+        if (realTradingHistory) {
+          realTradingHistory.innerHTML = `
+            <div style="text-align:center;padding:40px;color:#ef4444;">
+              <div style="font-size:24px;margin-bottom:8px;">⚠️</div>
+              <div style="font-size:14px;margin-bottom:4px;">Failed to load trading data</div>
+              <div style="font-size:12px;">Check your connection and try again</div>
+            </div>
+          `;
+        }
+      }
+    }
+    
+    function updateRealPortfolioStats(totalPnL, totalVolume, activeTrades, winRate) {
+      const pnlElement = document.getElementById('realTotalPnL');
+      const volumeElement = document.getElementById('realTotalVolume');
+      const tradesElement = document.getElementById('realTotalTrades');
+      const winRateElement = document.getElementById('realWinRate');
+      
+      if (pnlElement) {
+        pnlElement.textContent = `${totalPnL > 0 ? '+' : ''}$${totalPnL.toFixed(2)}`;
+        pnlElement.style.color = totalPnL > 0 ? '#10b981' : (totalPnL < 0 ? '#ef4444' : '#9ca3af');
+      }
+      
+      if (volumeElement) volumeElement.textContent = `$${totalVolume.toFixed(0)}`;
+      if (tradesElement) tradesElement.textContent = activeTrades.toString();
+      if (winRateElement) winRateElement.textContent = `${winRate.toFixed(1)}%`;
+    }
             let optionName = '';
             let optionImage = '';
             let allOptions = [];
@@ -4532,44 +4707,66 @@
               ${optionsHtml}
               ${sharesHtml}
               ${pnlHtml}
-              <div style="color: #9ca3af; font-size: 12px;margin-top:6px;">${new Date(bet.created_at).toLocaleDateString()}${bet.transaction_signature ? ` | <a href="https://bscscan.com/tx/${bet.transaction_signature}" target="_blank" style="color: #9ca3af;">View TX</a>` : ''}</div>
-            </div>`;
+            return {
+              time: new Date(bet.created_at).toLocaleTimeString('en-US', { 
+                hour12: false, 
+                hour: '2-digit', 
+                minute: '2-digit' 
+              }),
+              market: marketTitle,
+              side: bet.side || 'UNKNOWN',
+              amount: amount,
+              currentValue: currentValue,
+              pnl: pnl,
+              status: bet.status || 'active',
+              isProfit: pnl > 0
+            };
           }));
           
-          // Display portfolio summary
-          const totalPnL = totalCurrentValue - totalInvested;
-          const pnlPercentage = totalInvested > 0 ? ((totalPnL / totalInvested) * 100).toFixed(1) : '0.0';
-          const pnlColor = totalPnL >= 0 ? '#06b6d4' : '#9ca3af';
-          const pnlSign = totalPnL >= 0 ? '+' : '';
-          
-          if (portfolioSummaryContainer) {
-            portfolioSummaryContainer.innerHTML = `
-              <div style="background:#374151;padding:16px 20px;border-radius:12px;border:1.5px solid rgba(156,163,175,0.3);min-width:180px;">
-                <div style="color:#9ca3af;font-weight:700;font-size:0.9rem;margin-bottom:6px;">${window.i18n.t('totalInvested')}</div>
-                <div style="color:#e5e7eb;font-size:1.4rem;font-weight:800;">${window.i18n.formatCurrency(totalInvested)}</div>
+          // Update trading history display
+          if (realTradingHistory) {
+            realTradingHistory.innerHTML = tradingRows.map(trade => `
+              <div style="display:grid;grid-template-columns:100px 120px 100px 100px 120px 80px;gap:12px;font-size:12px;padding:8px;margin-bottom:4px;background:rgba(55,65,81,0.3);border-radius:4px;align-items:center;">
+                <span style="color:#9ca3af;">${trade.time}</span>
+                <span style="color:#d1d5db;font-size:11px;" title="${trade.market}">${trade.market}</span>
+                <span style="color:${trade.side === 'YES' ? '#10b981' : '#ef4444'};font-weight:600;background:rgba(${trade.side === 'YES' ? '16,185,129' : '239,68,68'},0.1);padding:2px 6px;border-radius:3px;text-align:center;font-size:11px;">${trade.side}</span>
+                <span style="color:#e5e7eb;">$${trade.amount.toFixed(2)}</span>
+                <span style="color:#d1d5db;">$${trade.currentValue.toFixed(2)}</span>
+                <span style="color:${trade.isProfit ? '#10b981' : '#ef4444'};font-weight:600;font-size:11px;">${trade.isProfit ? '+' : ''}$${trade.pnl.toFixed(2)}</span>
               </div>
-              <div style="background:#374151;padding:16px 20px;border-radius:12px;border:1.5px solid rgba(6,182,212,0.3);min-width:180px;">
-                <div style="color:#06b6d4;font-weight:700;font-size:0.9rem;margin-bottom:6px;">${window.i18n.t('currentValue')}</div>
-                <div style="color:#e5e7eb;font-size:1.4rem;font-weight:800;">${window.i18n.formatCurrency(totalCurrentValue)}</div>
-              </div>
-              <div style="background:#374151;padding:16px 20px;border-radius:12px;border:1.5px solid ${totalPnL >= 0 ? 'rgba(6,182,212,0.3)' : 'rgba(156,163,175,0.3)'};min-width:180px;">
-                <div style="color:${pnlColor};font-weight:700;font-size:0.9rem;margin-bottom:6px;">${window.i18n.t('totalPnL')}</div>
-                <div style="color:${pnlColor};font-size:1.4rem;font-weight:800;">${pnlSign}${window.i18n.formatCurrency(totalPnL)}</div>
-                <div style="color:${pnlColor};font-size:0.9rem;font-weight:600;">(${pnlSign}${pnlPercentage}%)</div>
-              </div>
-              <div style="background:#374151;padding:16px 20px;border-radius:12px;border:1.5px solid rgba(156,163,175,0.3);min-width:160px;">
-                <div style="color:#9ca3af;font-weight:700;font-size:0.9rem;margin-bottom:6px;">${window.i18n.t('portfolioStats')}</div>
-                <div style="color:#e6eef8;font-size:1.1rem;font-weight:600;">${totalShares.toFixed(0)} ${window.i18n.t('shares')}</div>
-                <div style="color:#e6eef8;font-size:1.1rem;font-weight:600;">${activeBets} ${window.i18n.t('activeBets')}</div>
-              </div>
-            `;
+            `).join('');
           }
           
-          container.innerHTML = betCards.join('');
+          // Calculate win rate
+          const winRate = resolvedBets > 0 ? ((wonBets / resolvedBets) * 100) : 0;
+          const totalPnL = totalCurrentValue - totalInvested;
+          
+          updateRealPortfolioStats(totalPnL, totalInvested, activeBets, winRate);
+          
+          console.log('✅ Real trading data loaded:', {
+            totalBets: bets.length,
+            activeBets,
+            totalInvested,
+            totalCurrentValue,
+            totalPnL,
+            winRate: winRate.toFixed(1) + '%'
+          });
         }
+        
+        // Auto-refresh every 30 seconds
+        setTimeout(() => loadMyBets(), 30000);
+        
       } catch (error) {
-        container.innerHTML = `<div class="empty-state"><h3>Error Loading Bets</h3><p>${error.message}</p></div>`;
-        if (portfolioSummaryContainer) portfolioSummaryContainer.innerHTML = '';
+        console.error('❌ Failed to load real trading data:', error);
+        if (realTradingHistory) {
+          realTradingHistory.innerHTML = `
+            <div style="text-align:center;padding:40px;color:#ef4444;">
+              <div style="font-size:24px;margin-bottom:8px;">⚠️</div>
+              <div style="font-size:14px;margin-bottom:4px;">Failed to load trading data</div>
+              <div style="font-size:12px;">Check your connection and try again</div>
+            </div>
+          `;
+        }
       }
     }
 
@@ -4929,3 +5126,4 @@
   </footer>
 </body>
 </html>
+

@@ -461,7 +461,7 @@
               <button id="cancelBtn" class="btn" style="flex:1;width:100%;background:#ef4444;color:#fff;font-size:1.08rem;padding:13px 0;box-shadow:0 2px 8px rgba(239,68,68,0.13);border:1.5px solid #ef4444;" data-i18n="cancelPrediction">Cancel Prediction</button>
             </div>
             <hr style="border:none;border-top:1px solid #4b5563;margin:12px 0 10px 0;">
-            <div id="tradeMsg" style="margin-top:0;color:#e2e8f0;font-size:1.05rem;min-height:22px;font-weight:500;"></div>
+            <div id="tradeMsg" style="margin-top:0;color:#d1d5db;font-size:1.05rem;min-height:22px;font-weight:500;"></div>
           </div>
         </div>
         
@@ -4073,11 +4073,11 @@
           // Show success message with trade details
           const details = tradeResult.tradeDetails;
           document.getElementById('tradeMsg').innerHTML = `
-            <div style="color:#00ff88;font-weight:700;font-size:16px;">✅ ${tradeResult.message}</div>
-            <div style="color:#e2e8f0;font-size:14px;margin-top:6px;font-weight:500;">
-              Shares: <span style="color:#4fc3f7;font-weight:700;">${details.sharesReceived.toFixed(3)}</span> | 
-              Price: <span style="color:#ffa726;font-weight:700;">${details.pricePerShare.toFixed(3)} BNB/share</span> | 
-              Fee: <span style="color:#d1d5db;">${details.platformFee.toFixed(3)} BNB</span>
+            <div style="color:#10b981;font-weight:600;font-size:15px;">✅ ${tradeResult.message}</div>
+            <div style="color:#d1d5db;font-size:13px;margin-top:5px;font-weight:500;">
+              Shares: <span style="color:#06b6d4;font-weight:600;">${details.sharesReceived.toFixed(3)}</span> | 
+              Price: <span style="color:#f59e0b;font-weight:600;">${details.pricePerShare.toFixed(3)} BNB/share</span> | 
+              Fee: <span style="color:#9ca3af;">${details.platformFee.toFixed(3)} BNB</span>
             </div>
           `;
           
@@ -4788,10 +4788,10 @@
       }
       
       document.getElementById('profitCalc').innerHTML = `
-        <div style="color:#e2e8f0;font-weight:500;">${window.i18n.t('shares')}: <span style="color:#00ff88;font-weight:700;">${sharesReceived.toFixed(3)}</span> @ ${window.i18n.formatCurrency(avgCostPerShare)}/share</div>
-        <div style="color:#e2e8f0;font-weight:500;">${window.i18n.t('currentConfidence')}: <span style="color:#ffa726;font-weight:700;">${probability}%</span> → <span style="color:#00ff88;font-weight:700;">${newProbability}%</span></div>
-        <div style="color:#e2e8f0;font-weight:500;">${window.i18n.t('maxReturn')}: <span style="color:#00ff88;font-weight:700;">${window.i18n.formatCurrency(maxReturn)}</span> ${window.i18n.t('ifWins')} <span style="color:#d1d5db;">(1% ${window.i18n.t('payoutFeeApplies')})</span></div>
-        <div style="color:#e2e8f0;font-weight:500;">${window.i18n.t('expectedReturn')}: <span style="color:#4fc3f7;font-weight:700;">${window.i18n.formatCurrency(expectedReturn)}</span> <span style="color:#d1d5db;">(${newProbability}% ${window.i18n.t('finalConfidence')})</span></div>
+        <div style="color:#d1d5db;font-weight:500;">${window.i18n.t('shares')}: <span style="color:#10b981;font-weight:600;">${sharesReceived.toFixed(3)}</span> @ ${window.i18n.formatCurrency(avgCostPerShare)}/share</div>
+        <div style="color:#d1d5db;font-weight:500;">${window.i18n.t('currentConfidence')}: <span style="color:#f59e0b;font-weight:600;">${probability}%</span> → <span style="color:#10b981;font-weight:600;">${newProbability}%</span></div>
+        <div style="color:#d1d5db;font-weight:500;">${window.i18n.t('maxReturn')}: <span style="color:#10b981;font-weight:600;">${window.i18n.formatCurrency(maxReturn)}</span> ${window.i18n.t('ifWins')} <span style="color:#9ca3af;">(1% ${window.i18n.t('payoutFeeApplies')})</span></div>
+        <div style="color:#d1d5db;font-weight:500;">${window.i18n.t('expectedReturn')}: <span style="color:#06b6d4;font-weight:600;">${window.i18n.formatCurrency(expectedReturn)}</span> <span style="color:#9ca3af;">(${newProbability}% ${window.i18n.t('finalConfidence')})</span></div>
         ${priceImpactWarning}
       `;
     }

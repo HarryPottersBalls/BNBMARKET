@@ -414,27 +414,6 @@
             <div id="distributionChartContainer" style="height: 300px; position: relative; display: none;">
               <canvas id="distributionChart"></canvas>
             </div>
-            
-            <!-- TEST CHART UPDATE BUTTON -->
-            <div style="text-align: center; margin: 20px 0; padding: 15px; background: rgba(255,0,0,0.1); border-radius: 8px;">
-              <button onclick="testChartUpdate()" style="
-                background: linear-gradient(135deg, #ff6b35, #ff8c42);
-                color: white;
-                border: none;
-                padding: 12px 24px;
-                border-radius: 8px;
-                font-weight: bold;
-                cursor: pointer;
-                font-size: 16px;
-                box-shadow: 0 4px 8px rgba(255,107,53,0.3);
-                margin-right: 10px;
-              ">
-                🧪 TEST CHART UPDATE
-              </button>
-              <div style="color: #f8fafc; font-size: 14px; margin-top: 8px;">
-                Click this button to test if chart updates work at all
-              </div>
-            </div>
           </div>
           
           <div class="trade-card yang-enhanced" style="background:linear-gradient(135deg, #1f2937, #374151);border:1.5px solid #4b5563;border-radius:18px;box-shadow:0 4px 32px rgba(75,85,99,0.3);padding:36px 32px 28px 32px;max-width:440px;width:100%;min-width:340px;margin-top:0;">
@@ -765,6 +744,41 @@
   <script src="odds-engine.js" onerror="console.warn('Failed to load odds-engine.js')"></script>
   <!-- <script src="lmsr-charts.js" onerror="console.warn('Failed to load lmsr-charts.js - using fallback')"></script> -->
   <script>
+    // ========================================
+    // BSC NETWORK CONFIGURATION
+    // ========================================
+    const BSC_MAINNET_CONFIG = {
+      chainId: '0x38', // 56 in decimal
+      chainName: 'Binance Smart Chain Mainnet',
+      nativeCurrency: {
+        name: 'BNB',
+        symbol: 'BNB',
+        decimals: 18,
+      },
+      rpcUrls: ['https://bsc-dataseed.binance.org/'],
+      blockExplorerUrls: ['https://bscscan.com/'],
+    };
+    
+    const BSC_TESTNET_CONFIG = {
+      chainId: '0x61', // 97 in decimal  
+      chainName: 'Binance Smart Chain Testnet',
+      nativeCurrency: {
+        name: 'tBNB',
+        symbol: 'tBNB',
+        decimals: 18,
+      },
+      rpcUrls: ['https://data-seed-prebsc-1-s1.binance.org:8545/'],
+      blockExplorerUrls: ['https://testnet.bscscan.com/'],
+    };
+    
+    // Use mainnet by default, can be changed for testing
+    const NETWORK_CONFIG = BSC_MAINNET_CONFIG;
+    
+    // Global variables
+    let web3 = null;
+    let walletAddress = null;
+    let isAdmin = false;
+    
     // ========================================
     // API CONFIGURATION
     // ========================================
@@ -1321,25 +1335,17 @@
           return data; // Fallback to server-provided data
         }
       } catch (error) {
-        console.warn('Failed to fetch LMSR probabilities from server, using simulation:', error);
+        console.warn('Failed to fetch LMSR probabilities from server:', error);
       }
       
-      // Fallback to enhanced simulation if server fails or no data
-      if (window.currentMarket && window.currentMarket.options) {
-        try {
-          const simulatedData = window.yinYangSimulator.getCurrentProbabilities(marketId, window.currentMarket.options);
-          return {
-            probabilities: simulatedData.probabilities,
-            prices: simulatedData.prices,
-            volume: simulatedData.volume,
-            isSimulated: true
-          };
-        } catch (simError) {
-          console.warn('Simulation fallback failed:', simError);
-        }
-      }
-      
-      return null;
+      // Fallback to default probabilities if server fails
+      console.log('Using default 50/50 probabilities as fallback');
+      return {
+        probabilities: [0.5, 0.5],
+        prices: [0.5, 0.5],
+        volume: 1000,
+        isDefault: true
+      };
     }
 
     // ========================================
@@ -1819,12 +1825,18 @@
         }
         
         try {
+          // Ensure wallet is connected for real trading
+          if (!walletAddress) {
+            alert(window.i18n.t('connectWalletFirst'));
+            return;
+          }
+          
           // Execute through prediction market engine
           const result = window.predictionMarket.executeBuy(
             this.currentMarket.id,
             optionIndex,
             amount,
-            walletAddress || 'demo_user'
+            walletAddress
           );
           
           if (result.success) {
@@ -2184,7 +2196,7 @@
             this.currentMarket.id,
             this.selectedOptionIndex,
             amount,
-            walletAddress || 'demo_user'
+            walletAddress
           );
           
           if (result.success || serverBetResult.bet) {
@@ -2381,40 +2393,51 @@
     window.enhancedOrderBook = new EnhancedOrderBook();
 
     // ========================================
-    // TEST FUNCTION FOR CHART UPDATES
+    // Live Market Data Management
     // ========================================
     
-    function testChartUpdate() {
-      console.log('🧪 TESTING DIRECT CHART UPDATE');
-      
-      // Flash the page to show the button was clicked
-      document.body.style.backgroundColor = '#ff0000';
-      setTimeout(() => document.body.style.backgroundColor = '', 500);
-      
-      // Create random test data
-      const randomProb1 = Math.random() * 80 + 10; // 10-90%
-      const randomProb2 = 100 - randomProb1;
-      
-      const testData = {
-        probabilities: [randomProb1, randomProb2],
-        prices: [randomProb1/100, randomProb2/100],
-        shares: [1000 + Math.random() * 500, 1000 + Math.random() * 500],
-        totalVolume: 1000 + Math.random() * 2000
-      };
-      
-      console.log('🎲 Generated random test data:', testData);
-      
-      // Force chart refresh with test data
-      if (window.enhancedOrderBook && window.enhancedOrderBook.forceChartsRefresh) {
-        window.enhancedOrderBook.forceChartsRefresh(testData);
-        console.log('✅ Called forceChartsRefresh with test data');
-      } else {
-        console.error('❌ Enhanced order book not available');
+    // Real-time market data refresh
+    async function refreshMarketData() {
+      try {
+        const marketId = getMarketId();
+        if (!marketId) return;
+        
+        console.log('🔄 Refreshing live market data for:', marketId);
+        
+        // Fetch latest market data
+        const marketResponse = await fetch(`${API_BASE_URL}/markets/${marketId}`);
+        if (marketResponse.ok) {
+          const marketData = await marketResponse.json();
+          window.currentMarket = marketData.market;
+          
+          // Update charts with real data
+          await updateChartsWithRealData(marketData.market);
+          
+          // Update trade panel prices
+          await updateTradePanel();
+          
+          console.log('✅ Live market data refreshed successfully');
+        }
+      } catch (error) {
+        console.error('❌ Failed to refresh market data:', error);
       }
     }
     
-    // Make test function globally available
-    window.testChartUpdate = testChartUpdate;
+    // Update charts with real market data
+    async function updateChartsWithRealData(market) {
+      try {
+        const probData = await getLMSRProbabilities(market.id);
+        if (probData && probData.probabilities && window.enhancedOrderBook) {
+          // Force update all charts with real probability data
+          window.enhancedOrderBook.forceChartsRefresh(probData);
+        }
+      } catch (error) {
+        console.warn('Failed to update charts with real data:', error);
+      }
+    }
+    
+    // Auto-refresh market data every 30 seconds
+    setInterval(refreshMarketData, 30000);
 
     // ========================================
     // Enhanced Yin Yang Order Book System
@@ -3458,17 +3481,9 @@
     // Initialize Web3 and BSC connection
     let wallet = null;
     let bnbBalance = 0;
-    let isAdmin = false;
     
-    // BSC Configuration
+    // BSC Configuration  
     const TREASURY_WALLET = '0x7eCa382995Df91C250896c0EC73c9d2893F7800e';
-    const BSC_MAINNET_CONFIG = {
-      chainId: '0x38',
-      chainName: 'Binance Smart Chain',
-      nativeCurrency: { name: 'BNB', symbol: 'BNB', decimals: 18 },
-      rpcUrls: ['https://bsc-dataseed1.binance.org/'],
-      blockExplorerUrls: ['https://bscscan.com/'],
-    };
   </script>
   
   <div id="loadingScreen" style="position:fixed;inset:0;background:linear-gradient(135deg, #111827 0%, #374151 50%, #111827 100%);display:flex;align-items:center;justify-content:center;z-index:9999;">
@@ -3506,9 +3521,7 @@
       return probData.prices[optionIndex];
     }
 
-    // Globals
-    let walletAddress = null;
-    let web3 = null; // Move web3 declaration here
+    // Additional globals (web3 and walletAddress already declared above)
     window.bnbBalance = 0;
     let currentOrderBook = null;
     let currentMarket = null;
@@ -4055,19 +4068,94 @@
         document.getElementById('tradeMsg').textContent = 'Processing trade...';
         document.getElementById('buyBtn').disabled = true;
         
-        // Use enhanced trading engine for better calculations
-        console.log('🚀 MAIN TRADING PANEL - Submitting real bet to server...');
+        // Check network
+        const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+        if (chainId !== NETWORK_CONFIG.chainId) {
+          try {
+            await window.ethereum.request({
+              method: 'wallet_switchEthereumChain',
+              params: [{ chainId: NETWORK_CONFIG.chainId }],
+            });
+          } catch (switchError) {
+            if (switchError.code === 4902) {
+              await window.ethereum.request({
+                method: 'wallet_addEthereumChain',
+                params: [NETWORK_CONFIG],
+              });
+            } else {
+              throw switchError;
+            }
+          }
+        }
         
-        // FIRST: Submit a real bet to the server to update probabilities
+        // Check balance
+        const balance = await web3.eth.getBalance(walletAddress);
+        const balanceInBNB = parseFloat(web3.utils.fromWei(balance, 'ether'));
+        if (balanceInBNB < amt) {
+          document.getElementById('tradeMsg').textContent = `Insufficient balance. You have ${balanceInBNB.toFixed(3)} BNB`;
+          document.getElementById('buyBtn').disabled = false;
+          return;
+        }
+        
+        // Create real blockchain transaction
+        const amountWei = web3.utils.toWei(amt.toString(), 'ether');
+        const treasuryWallet = '0x7eCa382995Df91C250896c0EC73c9d2893F7800e'; // Your treasury wallet
+        
+        console.log('🚀 Initiating real BNB transaction...');
+        document.getElementById('tradeMsg').textContent = 'Please confirm transaction in MetaMask...';
+        
+        // Send real BNB transaction
+        const transactionHash = await window.ethereum.request({
+          method: 'eth_sendTransaction',
+          params: [{
+            from: walletAddress,
+            to: treasuryWallet,
+            value: amountWei,
+            gas: '0x5208', // 21000 gas for simple transfer
+          }],
+        });
+        
+        console.log('✅ Transaction sent:', transactionHash);
+        document.getElementById('tradeMsg').textContent = 'Transaction sent! Confirming...';
+        
+        // Wait for transaction confirmation
+        let receipt = null;
+        let attempts = 0;
+        const maxAttempts = 60; // Wait up to 60 seconds
+        
+        while (!receipt && attempts < maxAttempts) {
+          try {
+            receipt = await web3.eth.getTransactionReceipt(transactionHash);
+            if (!receipt) {
+              await new Promise(resolve => setTimeout(resolve, 1000));
+              attempts++;
+            }
+          } catch (e) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            attempts++;
+          }
+        }
+        
+        if (!receipt) {
+          throw new Error('Transaction confirmation timeout');
+        }
+        
+        if (receipt.status === false) {
+          throw new Error('Transaction failed');
+        }
+        
+        console.log('✅ Transaction confirmed:', receipt);
+        
+        // Now submit bet to server with real transaction hash
+        console.log('📤 Submitting verified bet to server...');
+        
         const realBetData = {
           marketId: currentMarket.id,
           bettorAddress: walletAddress,
           optionId: selectedOutcome,
           amount: amt,
-          transactionSignature: 'main_trade_' + Date.now() + '_' + Math.random().toString(36)
+          transactionSignature: transactionHash
         };
-        
-        console.log('📤 SUBMITTING REAL BET TO SERVER:', realBetData);
         
         // Submit bet to server to update the database
         const betResponse = await fetch(`${API_BASE_URL}/bets`, {
@@ -4094,14 +4182,19 @@
         );
         
         if (tradeResult.success || serverBetResult.bet) {
-          // Show success message with trade details
+          // Show success message with real transaction details
           const details = tradeResult.tradeDetails;
           document.getElementById('tradeMsg').innerHTML = `
-            <div style="color:#06b6d4;font-weight:600;">✅ ${tradeResult.message}</div>
+            <div style="color:#06b6d4;font-weight:600;">✅ Trade completed successfully!</div>
             <div style="color:#9ca3af;font-size:0.9em;margin-top:4px;">
               Shares: ${details.sharesReceived.toFixed(3)} | 
               Price: ${details.pricePerShare.toFixed(3)} BNB/share | 
               Fee: ${details.platformFee.toFixed(3)} BNB
+            </div>
+            <div style="color:#9ca3af;font-size:0.85em;margin-top:6px;">
+              <a href="https://bscscan.com/tx/${transactionHash}" target="_blank" style="color:#06b6d4;text-decoration:none;">
+                View on BSCScan: ${transactionHash.slice(0, 10)}...${transactionHash.slice(-8)}
+              </a>
             </div>
           `;
           
@@ -4157,7 +4250,7 @@
             }
           }, 1000); // Wait 1 second for server to process the bet
           
-          // Add to order book simulation
+          // Update order book with real trade
           if (!currentOrderBook) currentOrderBook = [];
           currentOrderBook.push({
             id: Date.now(),
@@ -4167,20 +4260,36 @@
             shares_purchased: details.sharesReceived.toString(),
             execution_odds: details.pricePerShare.toString(),
             wallet_address: walletAddress,
+            transaction_hash: transactionHash,
             created_at: new Date().toISOString(),
             status: 'completed'
           });
+          
+          // Update balance display
+          await updateBalance();
           
           // Clear form
           document.getElementById('tradeAmount').value = '';
           
         } else {
-          document.getElementById('tradeMsg').textContent = tradeResult.message || 'Trade failed';
+          document.getElementById('tradeMsg').textContent = 'Trade submission failed. Please try again.';
         }
         
       } catch (error) {
         console.error('Trade execution error:', error);
-        document.getElementById('tradeMsg').textContent = `Error: ${error.message}`;
+        let errorMessage = 'Transaction failed. Please try again.';
+        
+        if (error.code === 4001) {
+          errorMessage = 'Transaction cancelled by user.';
+        } else if (error.message.includes('insufficient funds')) {
+          errorMessage = 'Insufficient BNB balance.';
+        } else if (error.message.includes('network')) {
+          errorMessage = 'Network error. Please check your connection.';
+        } else if (error.message.includes('timeout')) {
+          errorMessage = 'Transaction timeout. Please try again.';
+        }
+        
+        document.getElementById('tradeMsg').textContent = errorMessage;
       } finally {
         document.getElementById('buyBtn').disabled = false;
       }
@@ -4313,9 +4422,9 @@
             window.lmsrChartEngine.createCurrentDistributionChart('distributionChartContainer', demoMarket.id);
             console.log('✅ Charts initialized successfully');
             
-            // Test the market data connection
+            // Initialize market data connection
             const testDepth = window.predictionMarket.getMarketDepth(demoMarket.id);
-            console.log('🧪 Test market depth:', testDepth);
+            console.log('Market depth initialized:', testDepth);
           }, 100);
         } else {
           console.warn('⚠️ lmsrChartEngine not available, initializing fallback charts...');
@@ -4937,3 +5046,4 @@
   </footer>
 </body>
 </html>
+

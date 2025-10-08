@@ -428,7 +428,7 @@
               <button class="btn quick-btn" type="button" data-amount="1" style="flex:1;min-width:0;background:#374151;color:#9ca3af;border:1.5px solid #6b7280;">1</button>
               <button class="btn quick-btn-max" type="button" style="flex:1;min-width:0;background:#374151;color:#9ca3af;border:1.5px solid #6b7280;" title="Max">Max</button>
             </div>
-            <input id="tradeAmount" type="number" min="0.01" step="0.01" placeholder="Amount (BNB)" data-i18n-placeholder="amount" style="width:100%;padding:16px 14px;border-radius:10px;border:2px solid #6b7280;background:#1f2937;color:#e5e7eb;font-size:1.2rem;margin-bottom:10px;outline:none;box-shadow:none;">
+            <input id="tradeAmount" type="number" min="0.007585445110418999" step="0.001" placeholder="Amount (BNB)" data-i18n-placeholder="amount" style="width:100%;padding:16px 14px;border-radius:10px;border:2px solid #6b7280;background:#1f2937;color:#e5e7eb;font-size:1.2rem;margin-bottom:10px;outline:none;box-shadow:none;">
             <div id="feeBreakdown" style="color:#d1d5db;font-size:0.95rem;margin-bottom:10px;font-weight:500;background:rgba(156,163,175,0.08);padding:6px 8px;border-radius:6px;display:none;">
               <span data-i18n="platformFee">Platform Fee</span> (1%): <span id="platformFeeAmount">0.000 BNB</span> | <span data-i18n="netInvestment">Net Investment</span>: <span id="netBetAmount">0.000 BNB</span>
             </div>
@@ -572,7 +572,7 @@
               <label style="color: #94a3b8; display: block; margin-bottom: 8px; font-weight: 600;">
                 Amount (BNB)
               </label>
-              <input id="tradePanelAmount" type="number" min="0.01" step="0.01" placeholder="0.00" style="
+              <input id="tradePanelAmount" type="number" min="0.007585445110418999" step="0.001" placeholder="0.00" style="
                 width: 100%;
                 padding: 14px 16px;
                 background: rgba(51,65,85,0.5);
@@ -1693,7 +1693,7 @@
             
             <div style="margin-bottom: 20px;">
               <label style="color: #94a3b8; display: block; margin-bottom: 8px;">Amount to Invest (BNB):</label>
-              <input id="modalAmount" type="number" min="0.01" step="0.01" placeholder="1.0" 
+              <input id="modalAmount" type="number" min="0.007585445110418999" step="0.001" placeholder="1.0" 
                 style="width: 100%; padding: 12px; background: #334155; border: 1px solid #475569; border-radius: 8px; color: #f8fafc; font-size: 1.1rem;">
             </div>
             
@@ -1754,9 +1754,15 @@
         const amount = parseFloat(document.getElementById('modalAmount').value);
         const optionIndex = parseInt(document.getElementById('modalOptionIndex').value);
         const side = document.getElementById('modalSide').value;
+        const minBet = 0.007585445110418999; // $10 USD in BNB
         
         if (!amount || amount <= 0) {
           alert('Please enter a valid amount');
+          return;
+        }
+        
+        if (amount < minBet) {
+          alert(`Minimum bet is ${minBet} BNB ($10 USD)`);
           return;
         }
         
@@ -2086,9 +2092,15 @@
       // Execute trade from panel
       async executePanelTrade() {
         const amount = parseFloat(document.getElementById('tradePanelAmount').value);
+        const minBet = 0.007585445110418999; // $10 USD in BNB
         
         if (!amount || amount <= 0) {
           alert('Please enter a valid amount');
+          return;
+        }
+        
+        if (amount < minBet) {
+          alert(`Minimum bet is ${minBet} BNB ($10 USD)`);
           return;
         }
         
@@ -3013,7 +3025,7 @@
     // Define LMSRChartEngine fallback BEFORE any other code
     class LMSRChartEngineFallback {
       constructor() {
-        console.log('Using fallback LMSRChartEngine - basic charts enabled');
+        console.log('Using simple LMSR chart engine - basic functionality');
         this.chartInstances = {}; // Track chart instances
       }
       
@@ -3391,12 +3403,15 @@
 
     // Check if the real LMSRChartEngine loaded, if not use fallback
     if (typeof LMSRChartEngine === 'undefined') {
-      console.warn('LMSRChartEngine not available, using fallback');
+      console.warn('Using simple LMSR chart engine');
       window.LMSRChartEngine = LMSRChartEngineFallback;
     }
 
-    // Initialize chart engine ALWAYS
-    window.lmsrChartEngine = new (window.LMSRChartEngine || LMSRChartEngineFallback)();
+    // Initialize chart engine ONLY ONCE
+    if (!window.lmsrChartEngine) {
+      window.lmsrChartEngine = new (window.LMSRChartEngine || LMSRChartEngineFallback)();
+      console.log('✅ Simple chart engine initialized');
+    }
 
     // Initialize Web3 and BSC connection
     let wallet = null;
@@ -3992,10 +4007,18 @@
 
     async function handleBuy() {
       const amt = parseFloat(document.getElementById('tradeAmount').value);
-      if (!amt || amt<=0) {
+      const minBet = 0.007585445110418999; // $10 USD in BNB
+      
+      if (!amt || amt <= 0) {
         document.getElementById('tradeMsg').textContent = window.i18n.t('enterValidAmount');
         return;
       }
+      
+      if (amt < minBet) {
+        document.getElementById('tradeMsg').textContent = `Minimum bet is ${minBet} BNB ($10 USD)`;
+        return;
+      }
+      
       if (!walletAddress || !web3) {
         document.getElementById('tradeMsg').textContent = window.i18n.t('connectWalletFirst');
         return;
@@ -4279,13 +4302,8 @@
           window.predictionMarket.initializeMarket(demoMarket.id, demoMarket.options);
           window.currentMarket = demoMarket;
           
-          // Try to create charts with alternative method
-          setTimeout(() => {
-            if (window.fallbackChartEngine) {
-              window.fallbackChartEngine.createProbabilityChart('probabilityChartContainer', demoMarket.id);
-              window.fallbackChartEngine.createCurrentDistributionChart('distributionChartContainer', demoMarket.id);
-            }
-          }, 100);
+          // Charts will be created by the main chart initialization logic
+          console.log('✅ Demo market initialized, charts will be created automatically');
         }
       }, 200);
       

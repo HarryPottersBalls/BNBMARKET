@@ -1271,8 +1271,8 @@
           id: marketId,
           options: options,
           totalLiquidity: 10000, // Initial liquidity in BNB
-          shares: options.map(() => 1000), // Initial shares distribution
-          lastPrices: options.map((_, i) => 1 / options.length), // Start with equal probability
+          shares: options.map(() => 1000), // EQUAL starting shares - pure market!
+          lastPrices: options.map(() => 1 / options.length), // Start with equal probability (50/50 for binary)
           volume24h: 0,
           totalVolume: 0
         };
@@ -1280,6 +1280,11 @@
         this.markets.set(marketId, market);
         this.orderBook.set(marketId, { bids: [], asks: [] });
         this.tradeHistory.set(marketId, []);
+        
+        console.log(`🎯 TRUE PREDICTION MARKET initialized: ${marketId}`);
+        console.log(`📊 Starting probabilities: ${options.map(() => (100/options.length).toFixed(1)).join('%, ')}%`);
+        console.log(`💰 Initial liquidity: ${market.totalLiquidity} BNB`);
+        console.log(`📈 Market will adjust based on trading activity only!`);
         
         return market;
       }
@@ -1342,6 +1347,14 @@
         // Calculate new probabilities after the trade
         const newPricing = this.calculateMarketPrices(marketId);
         console.log('📈 NEW PROBABILITIES after trade:', newPricing.probabilities);
+        console.log('💰 NEW PRICES after trade:', newPricing.prices);
+        
+        // Verify the market state changed
+        console.log('🔍 Market state verification:');
+        console.log('  - Market ID:', marketId);
+        console.log('  - Total shares now:', market.shares);
+        console.log('  - Total volume now:', market.totalVolume);
+        console.log('  - Shares for option', optionIndex, ':', market.shares[optionIndex]);
         
         // Update user position
         const userKey = `${userAddress}-${marketId}`;
@@ -2056,6 +2069,7 @@
             
             // Update charts
             setTimeout(() => {
+              console.log('🔄 About to call updateChartsAfterTrade...');
               this.updateChartsAfterTrade();
             }, 300);
           }
@@ -2623,8 +2637,15 @@
             market = window.predictionMarket.markets.get(marketId);
             probabilities = marketDepth.probabilities;
             prices = marketDepth.prices;
-            console.log('📊 Using LIVE market data:', { probabilities, prices });
+            console.log('📊 Using LIVE market data for probability chart:', { 
+              marketId,
+              probabilities, 
+              prices,
+              shares: market.shares,
+              totalVolume: marketDepth.totalVolume
+            });
           } else {
+            console.warn('⚠️ Prediction market not found, using fallback data');
             // Fallback to current market data
             market = window.currentMarket;
             if (!market || !market.options) {
@@ -2635,6 +2656,7 @@
             const simulation = window.yinYangSimulator.generateMarketSimulation(marketId, market.options);
             probabilities = simulation.probabilities[simulation.probabilities.length - 1]; // Get latest
             prices = probabilities.map(p => p / 100); // Convert to prices
+            console.log('📊 Using fallback simulation data:', { probabilities, prices });
           }
 
           // Create fresh canvas
@@ -2821,8 +2843,14 @@
             const marketDepth = window.predictionMarket.getMarketDepth(marketId);
             market = window.predictionMarket.markets.get(marketId);
             probabilities = marketDepth.probabilities;
-            console.log('📊 Using LIVE distribution data:', probabilities);
+            console.log('📊 Using LIVE distribution data:', { 
+              marketId,
+              probabilities,
+              shares: market.shares,
+              volume: marketDepth.volume24h
+            });
           } else {
+            console.warn('⚠️ Prediction market not found for distribution, using fallback');
             // Fallback to current market data
             market = window.currentMarket;
             if (!market || !market.options) {
@@ -2832,6 +2860,7 @@
             // Get current probabilities from simulation as fallback
             const currentData = window.yinYangSimulator.getCurrentProbabilities(marketId, market.options);
             probabilities = currentData.probabilities;
+            console.log('📊 Using fallback distribution data:', probabilities);
           }
 
           // Create fresh canvas
@@ -3677,11 +3706,16 @@
           // Set global market reference for charts
           window.currentMarket = demoMarket;
           
-          // Create initial charts
+          // Create initial charts with live data
           setTimeout(() => {
+            console.log('📊 Creating initial charts...');
             window.lmsrChartEngine.createProbabilityChart('probabilityChartContainer', demoMarket.id);
             window.lmsrChartEngine.createCurrentDistributionChart('distributionChartContainer', demoMarket.id);
-            console.log('📊 Charts initialized successfully');
+            console.log('✅ Charts initialized successfully');
+            
+            // Test the market data connection
+            const testDepth = window.predictionMarket.getMarketDepth(demoMarket.id);
+            console.log('🧪 Test market depth:', testDepth);
           }, 100);
         }
       }, 200);

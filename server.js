@@ -7,12 +7,68 @@ const { Pool } = require('pg');
 const multer = require('multer');
 const cloudinary = require('cloudinary').v2;
 const { Readable } = require('stream');
+const WebSocket = require('ws');
+const http = require('http');
 
 // Polyfill fetch for Node.js
 const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
 
 const app = express();
 const path = require('path');
+
+// Create HTTP server
+const server = http.createServer(app);
+
+// WebSocket Server Configuration
+const wss = new WebSocket.Server({ server });
+
+// WebSocket Clients Management
+const clients = new Set();
+
+// Market Update Broadcaster
+function broadcastMarketUpdate(marketId, updateData) {
+  const message = JSON.stringify({
+    type: 'market_update',
+    marketId,
+    data: updateData
+  });
+
+  clients.forEach(client => {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(message);
+    }
+  });
+}
+
+// WebSocket Connection Handler
+wss.on('connection', (ws, req) => {
+  // Add client to tracking set
+  clients.add(ws);
+
+  // Client-specific market subscription
+  ws.on('message', (message) => {
+    try {
+      const parsedMessage = JSON.parse(message);
+
+      switch (parsedMessage.type) {
+        case 'subscribe_market':
+          ws.subscribedMarket = parsedMessage.marketId;
+          break;
+
+        case 'unsubscribe_market':
+          delete ws.subscribedMarket;
+          break;
+      }
+    } catch (error) {
+      console.error('WebSocket message parsing error:', error);
+    }
+  });
+
+  // Remove client on close
+  ws.on('close', () => {
+    clients.delete(ws);
+  });
+});
 
 // Production CORS configuration
 const allowedOrigins = [
@@ -1822,7 +1878,7 @@ async function startServer() {
   try {
     await initializeDatabase();
     
-    app.listen(PORT, async () => {
+    server.listen(PORT, async () => {
       console.log('BNBmarket Backend Server Started');
       console.log(`Server running on port ${PORT}`);
       console.log(`API accessible at http://localhost:${PORT}/api`);
@@ -1830,8 +1886,9 @@ async function startServer() {
       console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
       console.log('Health check: GET /api/health');
       console.log('Admin endpoints: /api/admin/*');
+      console.log('WebSocket Server: Initialized');
       console.log('=====================================');
-      
+
       try {
         await pool.query('SELECT 1');
         console.log('✓ Database connection OK');

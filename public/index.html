@@ -1400,11 +1400,19 @@
       // Update betting interface state
       updateBettingInterface();
       
-      document.getElementById('marketDetailModal').classList.add('active');
+      const modal = document.getElementById('marketDetailModal');
+      if (modal) {
+        modal.classList.add('active');
+      } else {
+        console.warn('marketDetailModal not found');
+      }
     }
 
     function closeMarketDetailModal() {
-      document.getElementById('marketDetailModal').classList.remove('active');
+      const modal = document.getElementById('marketDetailModal');
+      if (modal) {
+        modal.classList.remove('active');
+      }
       selectedOption = null;
       currentMarket = null;
     }
@@ -2072,9 +2080,21 @@
       document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
       document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
       
-      // Show target section
-      document.getElementById(sectionName + 'Section').classList.add('active');
-      document.querySelector(`[data-section="${sectionName}"]`).classList.add('active');
+      // Show target section with safety check
+      const targetSection = document.getElementById(sectionName + 'Section');
+      const targetNavLink = document.querySelector(`[data-section="${sectionName}"]`);
+      
+      if (targetSection) {
+        targetSection.classList.add('active');
+      } else {
+        console.warn(`Section element not found: ${sectionName}Section`);
+      }
+      
+      if (targetNavLink) {
+        targetNavLink.classList.add('active');
+      } else {
+        console.warn(`Nav link not found for section: ${sectionName}`);
+      }
       
       currentSection = sectionName;
       
@@ -2767,6 +2787,11 @@ function showMarketDetail(marketId) {
 
     async function loadMyBets() {
       const container = document.getElementById('betsContainer');
+      
+      if (!container) {
+        console.warn('betsContainer not found in DOM');
+        return;
+      }
       
       if (!wallet) {
         container.innerHTML = `

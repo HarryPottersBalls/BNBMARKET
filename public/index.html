@@ -754,7 +754,7 @@
       </div>
       <nav class="nav">
   <a href="#" class="nav-link active" data-section="markets" data-i18n="markets">Markets</a>
-  <a href="#" class="nav-link" data-section="mybets" id="myBetsNavLink" data-i18n="myBets">My Bets</a>
+  <a href="#" class="nav-link" data-section="mybets" id="myBetsNavLink" data-i18n="myBets">My Positions</a>
   <a href="#" class="nav-link" data-section="claim" id="claimNavLink" style="display:none" data-i18n="claimWinnings">Claim Winnings</a>
         <a href="#" class="nav-link" data-section="treasury" data-i18n="treasury">Treasury</a>
         <a href="#" class="nav-link" data-section="how" data-i18n="howItWorks">How It Works</a>
@@ -799,7 +799,10 @@
     <!-- My Bets Section -->
     <section id="mybetsSection" class="section">
       <div class="section-header">
-        <h2 class="section-title" data-i18n="myBettingHistory">My Betting History</h2>
+        <h2 class="section-title">
+          <span style="background: linear-gradient(45deg, #06b6d4, #3b82f6); background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent; color: transparent; font-weight: 800;">My Positions</span>
+          <span style="background: #374151; color: #9ca3af; padding: 4px 12px; border-radius: 16px; font-size: 12px; font-weight: 600; margin-left: 12px;">SHARES & P&L</span>
+        </h2>
       </div>
       <div id="betsContainer">
         <div class="empty-state">
@@ -2786,39 +2789,106 @@ function showMarketDetail(marketId) {
             </div>
           `;
         } else {
-          // For each bet, fetch the market to get options and odds
+          // For each bet, fetch the market to get options, current probabilities and calculate PnL
           const betCards = await Promise.all(bets.map(async bet => {
             let optionName = '';
             let optionImage = '';
-            let odds = 2.0;
+            let currentPrice = 0;
+            let marketResolved = false;
+            let marketStatus = 'active';
+            let betWon = false;
+            
             if (bet.option_id !== undefined && bet.market_id) {
               try {
-                const res = await apiRequest(`/markets/${bet.market_id}`);
-                if (res.market && res.market.options && res.market.options[bet.option_id]) {
-                  optionName = res.market.options[bet.option_id].name || '';
-                  optionImage = res.market.options[bet.option_id].image || '';
-                  // Try to get odds from metadata
-                  if (res.market.metadata && res.market.metadata.admin_odds && res.market.metadata.admin_odds[bet.option_id] !== null && res.market.metadata.admin_odds[bet.option_id] !== undefined && res.market.metadata.admin_odds[bet.option_id] !== '' && res.market.metadata.admin_odds[bet.option_id] !== 'null') {
-                    odds = parseFloat(res.market.metadata.admin_odds[bet.option_id]);
+                // Get market data and current probabilities
+                const [marketRes, probRes] = await Promise.all([
+                  apiRequest(`/markets/${bet.market_id}`),
+                  apiRequest(`/markets/${bet.market_id}/probabilities`).catch(() => ({ probabilities: [] }))
+                ]);
+                
+                if (marketRes.market && marketRes.market.options && marketRes.market.options[bet.option_id]) {
+                  optionName = marketRes.market.options[bet.option_id].name || '';
+                  optionImage = marketRes.market.options[bet.option_id].image || '';
+                  marketResolved = marketRes.market.resolved || false;
+                  marketStatus = marketRes.market.status || 'active';
+                  
+                  // Check if bet won (for resolved markets)
+                  if (marketResolved && marketRes.market.resolution_value !== null) {
+                    betWon = parseInt(marketRes.market.resolution_value) === parseInt(bet.option_id);
+                  }
+                  
+                  // Get current market price (probability)
+                  if (probRes.prices && probRes.prices[bet.option_id] !== undefined) {
+                    currentPrice = probRes.prices[bet.option_id];
                   }
                 }
               } catch (error) {
                 console.warn('Failed to load market data for bet:', error);
               }
             }
-            const potentialReturn = (parseFloat(bet.amount || 0) * odds).toFixed(3);
+            
+            // Calculate shares and PnL (Polymarket style)
+            const amountBet = parseFloat(bet.amount || 0);
+            const sharesPurchased = amountBet; // In our system, 1 BNB = 1 share equivalent
+            const currentValue = sharesPurchased * currentPrice;
+            const pnl = currentValue - amountBet;
+            const pnlPercent = amountBet > 0 ? ((pnl / amountBet) * 100) : 0;
+            
+            // Status and styling
+            let statusBadge = '';
+            let pnlColor = pnl >= 0 ? '#10b981' : '#ef4444';
+            
+            if (marketResolved) {
+              if (betWon) {
+                statusBadge = '<span style="background:#10b981;color:white;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;">WON</span>';
+                pnlColor = '#10b981';
+              } else {
+                statusBadge = '<span style="background:#ef4444;color:white;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;">LOST</span>';
+                pnlColor = '#ef4444';
+              }
+            } else if (marketStatus === 'active') {
+              statusBadge = '<span style="background:#06b6d4;color:white;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;">ACTIVE</span>';
+            }
+            
             return `
-              <div class="admin-card">
-                <div class="market-title">${escapeHtml(bet.market_title || 'Unknown Market')}</div>
-                <div style="display:flex;align-items:center;gap:12px;margin:8px 0;">
-                  <span style="color: #10b981; font-weight: 700;">Amount: ${parseFloat(bet.amount || 0).toFixed(3)} BNB</span>
-                  ${optionImage ? `<img src='${optionImage}' alt='' style='width:22px;height:22px;border-radius:50%;background:#181e29;margin-left:8px;'>` : ''}
-                  <span style="font-weight:600;color:#9ca3af;">${escapeHtml(optionName)}</span>
+              <div class="admin-card" style="background: linear-gradient(135deg, #1f2937 0%, #374151 100%); border: 1px solid #4b5563;">
+                <div style="display: flex; justify-content: between; align-items: flex-start; margin-bottom: 12px;">
+                  <div class="market-title" style="flex: 1; color: #f9fafb; font-weight: 600;">${escapeHtml(bet.market_title || 'Unknown Market')}</div>
+                  ${statusBadge}
                 </div>
-                <div style="color:#f59e0b;font-weight:700;margin-bottom:4px;">Potential Return: ${potentialReturn} BNB</div>
-                <div style="color: #9ca3af; font-size: 12px;">
+                
+                <div style="display:flex;align-items:center;gap:12px;margin:12px 0;padding:8px;background:rgba(55,65,81,0.5);border-radius:8px;">
+                  ${optionImage ? `<img src='${optionImage}' alt='' style='width:24px;height:24px;border-radius:50%;background:#181e29;'>` : ''}
+                  <span style="font-weight:600;color:#e5e7eb;font-size:15px;">${escapeHtml(optionName)}</span>
+                  <span style="color:#9ca3af;font-size:13px;margin-left:auto;">${(currentPrice * 100).toFixed(1)}¢</span>
+                </div>
+                
+                <!-- Polymarket-style position details -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 16px 0;">
+                  <div>
+                    <div style="color: #9ca3af; font-size: 12px; margin-bottom: 4px;">Shares Owned</div>
+                    <div style="color: #e5e7eb; font-weight: 600;">${sharesPurchased.toFixed(3)}</div>
+                  </div>
+                  <div>
+                    <div style="color: #9ca3af; font-size: 12px; margin-bottom: 4px;">Avg Price</div>
+                    <div style="color: #e5e7eb; font-weight: 600;">${(amountBet / sharesPurchased * 100).toFixed(1)}¢</div>
+                  </div>
+                  <div>
+                    <div style="color: #9ca3af; font-size: 12px; margin-bottom: 4px;">Current Value</div>
+                    <div style="color: #e5e7eb; font-weight: 600;">${currentValue.toFixed(3)} BNB</div>
+                  </div>
+                  <div>
+                    <div style="color: #9ca3af; font-size: 12px; margin-bottom: 4px;">P&L</div>
+                    <div style="color: ${pnlColor}; font-weight: 700;">
+                      ${pnl >= 0 ? '+' : ''}${pnl.toFixed(3)} BNB
+                      <span style="font-size: 11px;">(${pnlPercent >= 0 ? '+' : ''}${pnlPercent.toFixed(1)}%)</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div style="color: #9ca3af; font-size: 12px; margin-top: 12px; padding-top: 12px; border-top: 1px solid #374151;">
                   ${new Date(bet.created_at).toLocaleDateString()}
-                  ${bet.transaction_signature ? ` | <a href=\"https://bscscan.com/tx/${bet.transaction_signature}\" target=\"_blank\" style=\"color: #10b981;\">View TX</a>` : ''}
+                  ${bet.transaction_signature ? ` | <a href=\"https://bscscan.com/tx/${bet.transaction_signature}\" target=\"_blank\" style=\"color: #06b6d4;\">View TX</a>` : ''}
                 </div>
               </div>
             `;

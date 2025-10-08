@@ -20,8 +20,8 @@ const path = require('path');
 const server = http.createServer(app);
 
 // Advanced WebSocket Server Configuration
-const WebSocketServer = require('ws');
-const wss = new WebSocketServer.Server({ server });
+const WebSocket = require('ws');
+const wss = new WebSocket.Server({ server });
 
 // Secure WebSocket Connection Management
 class SecureWebSocketManager {
@@ -152,7 +152,7 @@ class SecureWebSocketManager {
     });
 
     subscribers.forEach(client => {
-      if (client.readyState === WebSocketServer.OPEN) {
+      if (client.readyState === WebSocket.OPEN) {
         client.send(message);
       }
     });

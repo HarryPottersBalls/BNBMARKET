@@ -1002,6 +1002,7 @@
      */
     async function getLMSRProbabilities(marketId) {
       try {
+        // Try to get data from server first
         const response = await fetch(`${API_BASE_URL}/markets/${marketId}/probabilities`);
         if (response.ok) {
           const data = await response.json();
@@ -1020,13 +1021,289 @@
           return data; // Fallback to server-provided data
         }
       } catch (error) {
-        console.warn('Failed to fetch LMSR probabilities:', error);
+        console.warn('Failed to fetch LMSR probabilities from server, using simulation:', error);
       }
+      
+      // Fallback to enhanced simulation if server fails or no data
+      if (window.currentMarket && window.currentMarket.options) {
+        try {
+          const simulatedData = window.yinYangSimulator.getCurrentProbabilities(marketId, window.currentMarket.options);
+          return {
+            probabilities: simulatedData.probabilities,
+            prices: simulatedData.prices,
+            volume: simulatedData.volume,
+            isSimulated: true
+          };
+        } catch (simError) {
+          console.warn('Simulation fallback failed:', simError);
+        }
+      }
+      
       return null;
     }
 
     // ========================================
     // CHART ENGINE WITH LMSR INTEGRATION
+    // ========================================
+    // Market Simulation and Enhanced Trading Logic
+    // ========================================
+    
+    class YinYangMarketSimulator {
+      constructor() {
+        this.simulationData = new Map();
+        this.isSimulating = false;
+      }
+      
+      // Generate realistic market data with Yin Yang philosophy
+      generateMarketSimulation(marketId, options) {
+        const simulation = {
+          timePoints: [],
+          probabilities: [],
+          volumes: [],
+          trades: []
+        };
+        
+        // Generate 24 hours of data points (every hour)
+        const now = Date.now();
+        const hourMs = 60 * 60 * 1000;
+        
+        for (let i = 23; i >= 0; i--) {
+          const timestamp = now - (i * hourMs);
+          simulation.timePoints.push(new Date(timestamp));
+          
+          // Generate probabilities that follow Yin Yang balance principles
+          const optionProbs = options.map((option, index) => {
+            const isYangOption = option.name.toLowerCase().includes('yes') || 
+                               option.name.toLowerCase().includes('true') || 
+                               option.name.toLowerCase().includes('支持') || 
+                               index === 0;
+            
+            // Yang options tend to be more volatile (optimistic swings)
+            // Yin options tend to be more stable (conservative)
+            let baseProb = 100 / options.length; // Start balanced
+            
+            if (isYangOption) {
+              // Yang: More dynamic, influenced by "positive energy"
+              const yangVariation = 15 * Math.sin((i / 24) * Math.PI * 2) + 
+                                   10 * Math.random() - 5;
+              baseProb += yangVariation;
+            } else {
+              // Yin: More stable, gradual changes
+              const yinVariation = 8 * Math.cos((i / 24) * Math.PI * 1.5) + 
+                                  5 * Math.random() - 2.5;
+              baseProb += yinVariation;
+            }
+            
+            return Math.max(5, Math.min(95, baseProb)); // Keep within bounds
+          });
+          
+          // Normalize probabilities to sum to 100%
+          const sum = optionProbs.reduce((a, b) => a + b, 0);
+          const normalizedProbs = optionProbs.map(p => (p / sum) * 100);
+          
+          simulation.probabilities.push(normalizedProbs);
+          
+          // Generate trading volume (higher volume during "market hours")
+          const hourOfDay = new Date(timestamp).getHours();
+          const isActiveHour = hourOfDay >= 9 && hourOfDay <= 21; // 9 AM to 9 PM
+          const baseVolume = isActiveHour ? 0.5 + Math.random() * 2 : 0.1 + Math.random() * 0.3;
+          simulation.volumes.push(baseVolume);
+          
+          // Generate individual trades
+          const numTrades = Math.floor(Math.random() * 5) + 1;
+          for (let t = 0; t < numTrades; t++) {
+            const optionIndex = Math.floor(Math.random() * options.length);
+            const amount = 0.01 + Math.random() * 0.5;
+            simulation.trades.push({
+              timestamp,
+              optionIndex,
+              amount,
+              type: 'buy'
+            });
+          }
+        }
+        
+        this.simulationData.set(marketId, simulation);
+        return simulation;
+      }
+      
+      // Get current simulated probabilities
+      getCurrentProbabilities(marketId, options) {
+        let simulation = this.simulationData.get(marketId);
+        if (!simulation) {
+          simulation = this.generateMarketSimulation(marketId, options);
+        }
+        
+        const latest = simulation.probabilities[simulation.probabilities.length - 1];
+        return {
+          probabilities: latest,
+          prices: latest.map(prob => prob / 100), // Convert to price per share
+          volume: simulation.volumes[simulation.volumes.length - 1]
+        };
+      }
+      
+      // Simulate a new trade affecting market probabilities
+      simulateTrade(marketId, optionIndex, amount, options) {
+        let simulation = this.simulationData.get(marketId);
+        if (!simulation) {
+          simulation = this.generateMarketSimulation(marketId, options);
+        }
+        
+        // Add trade to simulation
+        simulation.trades.push({
+          timestamp: Date.now(),
+          optionIndex,
+          amount,
+          type: 'buy'
+        });
+        
+        // Update probabilities based on trade (LMSR-like logic)
+        const currentProbs = simulation.probabilities[simulation.probabilities.length - 1];
+        const newProbs = [...currentProbs];
+        
+        // Increase probability of bought option, decrease others
+        const impact = Math.min(amount * 10, 20); // Limit impact
+        newProbs[optionIndex] += impact;
+        
+        // Redistribute from other options
+        const reduction = impact / (options.length - 1);
+        for (let i = 0; i < newProbs.length; i++) {
+          if (i !== optionIndex) {
+            newProbs[i] = Math.max(5, newProbs[i] - reduction);
+          }
+        }
+        
+        // Normalize
+        const sum = newProbs.reduce((a, b) => a + b, 0);
+        const normalizedProbs = newProbs.map(p => (p / sum) * 100);
+        
+        // Add new data point
+        simulation.timePoints.push(new Date());
+        simulation.probabilities.push(normalizedProbs);
+        simulation.volumes.push(simulation.volumes[simulation.volumes.length - 1] + amount);
+        
+        return this.getCurrentProbabilities(marketId, options);
+      }
+    }
+    
+    // Initialize market simulator
+    window.yinYangSimulator = new YinYangMarketSimulator();
+    
+    // ========================================
+    // Enhanced Trading Logic with Multiple Options
+    // ========================================
+    
+    class EnhancedTradingEngine {
+      constructor() {
+        this.marketOptions = new Map();
+        this.userPositions = new Map();
+      }
+      
+      // Create a market with up to 6 options following Yin Yang principles
+      createMarket(marketData) {
+        const options = marketData.options || [];
+        
+        // Ensure we have at least 2 options, max 6
+        while (options.length < 2) {
+          const count = options.length;
+          options.push({
+            name: count === 0 ? 'YES ☀️' : 'NO 🌙',
+            image: null,
+            isYang: count === 0
+          });
+        }
+        
+        // Limit to 6 options maximum for UI clarity
+        if (options.length > 6) {
+          options.splice(6);
+        }
+        
+        // Auto-detect and tag Yin/Yang nature
+        options.forEach((option, index) => {
+          if (!option.hasOwnProperty('isYang')) {
+            const isYangOption = option.name.toLowerCase().includes('yes') || 
+                               option.name.toLowerCase().includes('true') || 
+                               option.name.toLowerCase().includes('支持') || 
+                               option.name.toLowerCase().includes('positive') ||
+                               index === 0;
+            option.isYang = isYangOption;
+          }
+        });
+        
+        this.marketOptions.set(marketData.id, options);
+        return options;
+      }
+      
+      // Calculate trading price with Yin Yang bonuses
+      calculateTradePrice(marketId, optionIndex, amount, options) {
+        const probabilities = window.yinYangSimulator.getCurrentProbabilities(marketId, options);
+        const basePrice = probabilities.prices[optionIndex];
+        
+        // Apply Yin Yang philosophy bonuses
+        const option = options[optionIndex];
+        let bonus = 1.0;
+        
+        if (option.isYang) {
+          // Yang options get slight discount for optimistic traders
+          bonus = 0.98;
+        } else {
+          // Yin options get slight premium for contrarian traders
+          bonus = 1.02;
+        }
+        
+        // Volume impact
+        const volumeImpact = Math.min(amount * 0.01, 0.05); // Max 5% impact
+        const finalPrice = basePrice * bonus * (1 + volumeImpact);
+        
+        return {
+          pricePerShare: finalPrice,
+          totalCost: amount,
+          sharesReceived: amount / finalPrice,
+          platformFee: amount * 0.01, // 1% fee
+          netAmount: amount * 0.99
+        };
+      }
+      
+      // Execute trade with enhanced logic
+      async executeTrade(marketId, optionIndex, amount, userAddress) {
+        const options = this.marketOptions.get(marketId) || currentMarket.options;
+        const tradeDetails = this.calculateTradePrice(marketId, optionIndex, amount, options);
+        
+        // Update user positions
+        const userKey = `${userAddress}-${marketId}`;
+        if (!this.userPositions.has(userKey)) {
+          this.userPositions.set(userKey, {});
+        }
+        
+        const positions = this.userPositions.get(userKey);
+        if (!positions[optionIndex]) {
+          positions[optionIndex] = { shares: 0, invested: 0 };
+        }
+        
+        positions[optionIndex].shares += tradeDetails.sharesReceived;
+        positions[optionIndex].invested += tradeDetails.netAmount;
+        
+        // Update market simulation
+        window.yinYangSimulator.simulateTrade(marketId, optionIndex, amount, options);
+        
+        return {
+          success: true,
+          tradeDetails,
+          newPosition: positions[optionIndex],
+          message: `Successfully purchased ${tradeDetails.sharesReceived.toFixed(3)} shares of ${options[optionIndex].name}`
+        };
+      }
+      
+      // Get user's portfolio for a market
+      getUserPortfolio(marketId, userAddress) {
+        const userKey = `${userAddress}-${marketId}`;
+        return this.userPositions.get(userKey) || {};
+      }
+    }
+    
+    // Initialize trading engine
+    window.enhancedTrading = new EnhancedTradingEngine();
+
     // ========================================
     // Define LMSRChartEngine fallback BEFORE any other code
     class LMSRChartEngineFallback {
@@ -1043,7 +1320,7 @@
       }
       
       async createProbabilityChart(containerId, marketId) {
-        console.log('Creating basic probability chart for market', marketId);
+        console.log('Creating enhanced Yin Yang probability chart for market', marketId);
         const container = document.getElementById(containerId) || document.querySelector(`#${containerId}`);
         if (!container) return null;
 
@@ -1051,14 +1328,15 @@
           // Destroy existing chart if it exists
           this.destroyChart('probabilityChart');
           
-          // Get market probabilities
-          const response = await fetch(`${window.API_BASE_URL || '/api'}/markets/${marketId}/probabilities`);
-          if (!response.ok) throw new Error('Failed to fetch probabilities');
-          
-          const data = await response.json();
-          if (!data.probabilities || !data.prices) {
-            throw new Error('No probability data available');
+          // Get market data and generate simulation
+          const market = window.currentMarket;
+          if (!market || !market.options) {
+            throw new Error('No market data available');
           }
+          
+          // Initialize enhanced trading and get simulation data
+          window.enhancedTrading.createMarket(market);
+          const simulation = window.yinYangSimulator.generateMarketSimulation(marketId, market.options);
 
           // Create fresh canvas
           container.innerHTML = '';
@@ -1071,38 +1349,130 @@
           if (typeof Chart !== 'undefined') {
             const ctx = canvas.getContext('2d');
             
-            // Get current market data
-            const market = window.currentMarket;
-            const labels = market?.options?.map(opt => opt.name) || ['Option 1', 'Option 2'];
+            // Prepare time series data
+            const timeLabels = simulation.timePoints.map(time => 
+              time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+            );
             
             const chartInstance = new Chart(ctx, {
               type: 'line',
               data: {
-                labels: ['Initial', 'Current'],
-                datasets: data.probabilities.map((prob, index) => ({
-                  label: labels[index] || `Option ${index + 1}`,
-                  data: [50, prob], // Simple before/after
-                  borderColor: ['#9ca3af', '#6b7280', '#4b5563', '#374151'][index] || '#9ca3af',
-                  backgroundColor: ['rgba(156,163,175,0.1)', 'rgba(107,114,128,0.1)', 'rgba(75,85,99,0.1)', 'rgba(55,65,81,0.1)'][index] || 'rgba(156,163,175,0.1)',
-                  tension: 0.4
-                }))
+                labels: timeLabels,
+                datasets: market.options.map((option, index) => {
+                  // Extract probability data for this option over time
+                  const probData = simulation.probabilities.map(probArray => probArray[index]);
+                  
+                  // Determine Yin Yang colors
+                  const isYangOption = option.name.toLowerCase().includes('yes') || 
+                                     option.name.toLowerCase().includes('true') || 
+                                     option.name.toLowerCase().includes('支持') || 
+                                     index === 0;
+                  const isYinOption = option.name.toLowerCase().includes('no') || 
+                                    option.name.toLowerCase().includes('false') || 
+                                    option.name.toLowerCase().includes('反對') || 
+                                    index === 1;
+                  
+                  let borderColor, backgroundColor;
+                  if (isYangOption) {
+                    borderColor = '#06b6d4';
+                    backgroundColor = 'rgba(6, 182, 212, 0.15)';
+                  } else if (isYinOption) {
+                    borderColor = '#9ca3af';
+                    backgroundColor = 'rgba(156, 163, 175, 0.15)';
+                  } else {
+                    const yinYangColors = [
+                      { border: '#0891b2', bg: 'rgba(8, 145, 178, 0.15)' },
+                      { border: '#6b7280', bg: 'rgba(107, 114, 128, 0.15)' },
+                      { border: '#0284c7', bg: 'rgba(2, 132, 199, 0.15)' },
+                      { border: '#4b5563', bg: 'rgba(75, 85, 99, 0.15)' }
+                    ];
+                    const colorSet = yinYangColors[index % yinYangColors.length];
+                    borderColor = colorSet.border;
+                    backgroundColor = colorSet.bg;
+                  }
+                  
+                  return {
+                    label: `${isYangOption ? '☀️' : (isYinOption ? '🌙' : '⚡')} ${option.name}`,
+                    data: probData,
+                    borderColor: borderColor,
+                    backgroundColor: backgroundColor,
+                    tension: 0.3,
+                    borderWidth: 3,
+                    pointBackgroundColor: borderColor,
+                    pointBorderColor: '#ffffff',
+                    pointBorderWidth: 2,
+                    pointRadius: 4,
+                    pointHoverRadius: 8,
+                    fill: true
+                  };
+                })
               },
               options: {
                 responsive: true,
                 plugins: {
-                  legend: { labels: { color: '#ffffff' } },
-                  title: { display: true, text: 'Market Confidence Over Time', color: '#ffffff' }
+                  legend: { 
+                    labels: { 
+                      color: '#ffffff',
+                      font: { size: 14, weight: 'bold' },
+                      padding: 15,
+                      usePointStyle: true
+                    } 
+                  },
+                  title: { 
+                    display: true, 
+                    text: '☯ Market Confidence Over Time', 
+                    color: '#ffffff',
+                    font: { size: 16, weight: 'bold' }
+                  },
+                  tooltip: {
+                    callbacks: {
+                      label: function(context) {
+                        const label = context.dataset.label || '';
+                        const value = context.parsed.y || 0;
+                        return `${label}: ${value.toFixed(1)}% confidence`;
+                      }
+                    },
+                    backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                    titleColor: '#06b6d4',
+                    bodyColor: '#e2e8f0',
+                    borderColor: '#334155',
+                    borderWidth: 1
+                  }
                 },
                 scales: {
                   y: { 
                     beginAtZero: true, 
                     max: 100,
-                    ticks: { color: '#9ca3af' },
-                    title: { display: true, text: 'Market Confidence (%)', color: '#9ca3af' }
+                    ticks: { 
+                      color: '#9ca3af',
+                      callback: function(value) {
+                        return value + '%';
+                      }
+                    },
+                    title: { 
+                      display: true, 
+                      text: 'Market Confidence (%)', 
+                      color: '#9ca3af',
+                      font: { weight: 'bold' }
+                    },
+                    grid: {
+                      color: 'rgba(156, 163, 175, 0.1)'
+                    }
                   },
                   x: { 
-                    ticks: { color: '#9ca3af' } 
+                    ticks: { color: '#9ca3af' },
+                    grid: {
+                      color: 'rgba(156, 163, 175, 0.1)'
+                    }
                   }
+                },
+                animation: {
+                  duration: 1500,
+                  easing: 'easeOutQuart'
+                },
+                interaction: {
+                  intersect: false,
+                  mode: 'index'
                 }
               }
             });
@@ -1120,7 +1490,7 @@
       }
       
       async createCurrentDistributionChart(containerId, marketId) {
-        console.log('Creating basic distribution chart for market', marketId);
+        console.log('Creating enhanced Yin Yang distribution chart for market', marketId);
         const container = document.getElementById(containerId) || document.querySelector(`#${containerId}`);
         if (!container) return null;
 
@@ -1128,14 +1498,14 @@
           // Destroy existing chart if it exists
           this.destroyChart('distributionChart');
           
-          // Get market probabilities
-          const response = await fetch(`${window.API_BASE_URL || '/api'}/markets/${marketId}/probabilities`);
-          if (!response.ok) throw new Error('Failed to fetch probabilities');
-          
-          const data = await response.json();
-          if (!data.probabilities || !data.prices) {
-            throw new Error('No probability data available');
+          // Get current market data and simulation
+          const market = window.currentMarket;
+          if (!market || !market.options) {
+            throw new Error('No market data available');
           }
+          
+          // Get current probabilities from simulation
+          const currentData = window.yinYangSimulator.getCurrentProbabilities(marketId, market.options);
 
           // Create fresh canvas
           container.innerHTML = '';
@@ -1148,26 +1518,104 @@
           if (typeof Chart !== 'undefined') {
             const ctx = canvas.getContext('2d');
             
-            // Get current market data
-            const market = window.currentMarket;
-            const labels = market?.options?.map(opt => opt.name) || ['Option 1', 'Option 2'];
-            
             const chartInstance = new Chart(ctx, {
               type: 'doughnut',
               data: {
-                labels: labels,
+                labels: market.options.map((option, index) => {
+                  // Add Yin Yang symbols to labels
+                  const isYangOption = option.name.toLowerCase().includes('yes') || 
+                                     option.name.toLowerCase().includes('true') || 
+                                     option.name.toLowerCase().includes('支持') || 
+                                     index === 0;
+                  const isYinOption = option.name.toLowerCase().includes('no') || 
+                                    option.name.toLowerCase().includes('false') || 
+                                    option.name.toLowerCase().includes('反對') || 
+                                    index === 1;
+                  
+                  const symbol = isYangOption ? '☀️' : (isYinOption ? '🌙' : '⚡');
+                  return `${symbol} ${option.name}`;
+                }),
                 datasets: [{
-                  data: data.probabilities,
-                  backgroundColor: ['#9ca3af', '#6b7280', '#4b5563', '#374151', '#1f2937', '#111827'],
-                  borderColor: '#1a1a2e',
-                  borderWidth: 2
+                  data: currentData.probabilities,
+                  backgroundColor: currentData.probabilities.map((prob, index) => {
+                    const option = market.options[index];
+                    
+                    // Determine Yin Yang colors based on option type
+                    const isYangOption = option.name.toLowerCase().includes('yes') || 
+                                       option.name.toLowerCase().includes('true') || 
+                                       option.name.toLowerCase().includes('支持') || 
+                                       index === 0;
+                    const isYinOption = option.name.toLowerCase().includes('no') || 
+                                      option.name.toLowerCase().includes('false') || 
+                                      option.name.toLowerCase().includes('反對') || 
+                                      index === 1;
+                    
+                    if (isYangOption) {
+                      return '#06b6d4'; // Yang - Bright cyan
+                    } else if (isYinOption) {
+                      return '#9ca3af'; // Yin - Gray
+                    } else {
+                      // Alternate Yin Yang colors for additional options
+                      const yinYangPalette = [
+                        '#0891b2', // Light Yang
+                        '#6b7280', // Deep Yin
+                        '#0284c7', // Bright Yang
+                        '#4b5563'  // Dark Yin
+                      ];
+                      return yinYangPalette[index % yinYangPalette.length];
+                    }
+                  }),
+                  borderColor: '#1e293b',
+                  borderWidth: 3,
+                  hoverBorderColor: '#ffffff',
+                  hoverBorderWidth: 4
                 }]
               },
               options: {
                 responsive: true,
                 plugins: {
-                  legend: { labels: { color: '#ffffff' } },
-                  title: { display: true, text: 'Current Market Distribution', color: '#ffffff' }
+                  legend: { 
+                    labels: { 
+                      color: '#ffffff',
+                      font: { size: 14, weight: 'bold' },
+                      padding: 20,
+                      usePointStyle: true,
+                      pointStyle: 'circle'
+                    },
+                    position: 'bottom'
+                  },
+                  title: { 
+                    display: true, 
+                    text: '☯ Current Market Distribution', 
+                    color: '#ffffff',
+                    font: { size: 16, weight: 'bold' },
+                    padding: { bottom: 20 }
+                  },
+                  tooltip: {
+                    callbacks: {
+                      label: function(context) {
+                        const label = context.label || '';
+                        const value = context.parsed || 0;
+                        return `${label}: ${value.toFixed(1)}% confidence`;
+                      }
+                    },
+                    backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                    titleColor: '#06b6d4',
+                    bodyColor: '#e2e8f0',
+                    borderColor: '#334155',
+                    borderWidth: 1
+                  }
+                },
+                animation: {
+                  animateRotate: true,
+                  animateScale: true,
+                  duration: 1500,
+                  easing: 'easeOutQuart'
+                },
+                elements: {
+                  arc: {
+                    borderJoinStyle: 'round'
+                  }
                 }
               }
             });
@@ -1708,84 +2156,65 @@
         return;
       }
       
-      // Get current LMSR data and calculate execution price
-      const probData = await getLMSRProbabilities(currentMarket.id);
-      let executionPrice = 0.5; // Fallback price per share
-      let sharesReceived = 0;
-      
-      const platformFee = amt * 0.01;
-      const netPurchaseAmount = amt - platformFee;
-      
-      // Use proper LMSR mathematics for execution
-      if (probData && probData.shares && window.lmsrEngine && selectedOutcome !== null && selectedOutcome !== undefined) {
-        try {
-          // Calculate exact shares and average execution price using LMSR
-          const currentShares = probData.shares;
-          sharesReceived = window.lmsrEngine.sharesToBuy(currentShares, selectedOutcome, netPurchaseAmount);
-          executionPrice = netPurchaseAmount / sharesReceived; // Average price per share for this purchase
-          
-          console.log(`💰 ${window.i18n.t('tradeExecution')}:
-            ${window.i18n.t('purchaseAmount')}: ${amt} BNB
-            ${window.i18n.t('netAmount')}: ${netPurchaseAmount} BNB
-            ${window.i18n.t('sharesReceived')}: ${sharesReceived.toFixed(3)}
-            ${window.i18n.t('avgExecutionPrice')}: ${executionPrice.toFixed(3)} BNB/share`);
-          
-        } catch (error) {
-          console.warn('LMSR execution calculation failed, using fallback:', error);
-          executionPrice = probData.prices?.[selectedOutcome] || 0.5;
-          sharesReceived = netPurchaseAmount / executionPrice;
-        }
-      } else {
-        // Fallback calculation
-        executionPrice = probData?.prices?.[selectedOutcome] || 0.5;
-        sharesReceived = netPurchaseAmount / executionPrice;
-        console.log(`💰 ${window.i18n.t('fallbackExecution')}`);
-      }
-      
-      document.getElementById('tradeMsg').textContent = window.i18n.t('processingPurchase');
       try {
-        // Convert BNB amount to Wei (ensure it's a string)
-        const amountInWei = web3.utils.toWei(amt.toString(), 'ether');
+        document.getElementById('tradeMsg').textContent = 'Processing trade...';
+        document.getElementById('buyBtn').disabled = true;
         
-        // Create transaction to treasury wallet - ensure all values are strings
-        const transaction = {
-          from: walletAddress.toString(),
-          to: TREASURY_WALLET.toString(),
-          value: '0x' + BigInt(amountInWei).toString(16), // Convert to hex string using BigInt
-          gas: '0x5208', // 21000 in hex
-        };
+        // Use enhanced trading engine for better calculations
+        const tradeResult = await window.enhancedTrading.executeTrade(
+          currentMarket.id, 
+          selectedOutcome, 
+          amt, 
+          walletAddress
+        );
         
-        console.log('Sending transaction:', transaction);
+        if (tradeResult.success) {
+          // Show success message with trade details
+          const details = tradeResult.tradeDetails;
+          document.getElementById('tradeMsg').innerHTML = `
+            <div style="color:#06b6d4;font-weight:600;">✅ ${tradeResult.message}</div>
+            <div style="color:#9ca3af;font-size:0.9em;margin-top:4px;">
+              Shares: ${details.sharesReceived.toFixed(3)} | 
+              Price: ${details.pricePerShare.toFixed(3)} BNB/share | 
+              Fee: ${details.platformFee.toFixed(3)} BNB
+            </div>
+          `;
+          
+          // Update charts and market display
+          setTimeout(() => {
+            renderMarketInfo(currentMarket);
+            renderChart(currentMarket, currentOrderBook);
+            renderOrderBookPro(currentOrderBook, currentMarket, selectedOutcome);
+            updateTradePanel();
+            calculateProfit();
+          }, 500);
+          
+          // Add to order book simulation
+          if (!currentOrderBook) currentOrderBook = [];
+          currentOrderBook.push({
+            id: Date.now(),
+            market_id: currentMarket.id,
+            option_id: selectedOutcome,
+            amount: details.netAmount.toString(),
+            shares_purchased: details.sharesReceived.toString(),
+            execution_odds: details.pricePerShare.toString(),
+            wallet_address: walletAddress,
+            created_at: new Date().toISOString(),
+            status: 'completed'
+          });
+          
+          // Clear form
+          document.getElementById('tradeAmount').value = '';
+          
+        } else {
+          document.getElementById('tradeMsg').textContent = tradeResult.message || 'Trade failed';
+        }
         
-        // Send transaction through MetaMask
-        const transactionHash = await window.ethereum.request({
-          method: 'eth_sendTransaction',
-          params: [transaction],
-        });
-        
-        console.log('Purchase transaction sent:', transactionHash);
-        
-        // Record purchase in database with proper LMSR execution data
-        await fetch(`${API_BASE_URL}/bets`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            marketId: currentMarket.id,
-            optionId: selectedOutcome,
-            amount: amt,
-            bettorAddress: walletAddress,
-            transactionSignature: transactionHash,
-            executionOdds: executionPrice, // Store average price per share for this trade
-            sharesReceived: sharesReceived // Optional: store calculated shares for verification
-          })
-        });
-        
-        document.getElementById('tradeMsg').textContent = `${window.i18n.t('purchaseCompleted')} ${window.i18n.t('received')} ${sharesReceived.toFixed(3)} ${window.i18n.t('shares').toLowerCase()}.`;
-        await updateBalance();
-        if (typeof loadMarketPage === 'function') loadMarketPage();
-      } catch (e) {
-        console.error('Purchase transaction error:', e);
-        document.getElementById('tradeMsg').textContent = `${window.i18n.t('purchaseFailed')}: ${e.message || e}`;
+      } catch (error) {
+        console.error('Trade execution error:', error);
+        document.getElementById('tradeMsg').textContent = `Error: ${error.message}`;
+      } finally {
+        document.getElementById('buyBtn').disabled = false;
       }
     }
 

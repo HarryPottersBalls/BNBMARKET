@@ -389,10 +389,10 @@
       <div style="position:absolute;bottom:20px;left:30px;width:40px;height:40px;opacity:0.03;pointer-events:none;background:linear-gradient(135deg, rgba(6,182,212,0.3), transparent);border-radius:50%;"></div>
       <div id="marketInfo">
         <h2 id="marketTitle" class="primary" style="margin-bottom:8px;font-size:2rem;font-weight:800;"></h2>
-        <div id="marketMeta" style="color:#9ca3af;font-size:1rem;margin-bottom:8px;"></div>
+        <div id="marketMeta" style="color:#d1d5db;font-size:1rem;margin-bottom:8px;"></div>
         <div id="marketVolume" style="color:#06b6d4;font-size:1.08rem;font-weight:700;margin-bottom:8px;"></div>
         <div id="marketOptions" style="display:flex;gap:18px;margin-bottom:32px;"></div>
-        <div id="totalBuys" style="color:#9ca3af;font-size:1.1rem;font-weight:600;margin-bottom:18px;"></div>
+        <div id="totalBuys" style="color:#d1d5db;font-size:1.1rem;font-weight:600;margin-bottom:18px;"></div>
       </div>
       
       <div style="margin-bottom:32px;">
@@ -415,34 +415,13 @@
             <div id="distributionChartContainer" style="height: 300px; position: relative; display: none;">
               <canvas id="distributionChart"></canvas>
             </div>
-            
-            <!-- TEST CHART UPDATE BUTTON -->
-            <div style="text-align: center; margin: 20px 0; padding: 15px; background: rgba(255,0,0,0.1); border-radius: 8px;">
-              <button onclick="testChartUpdate()" style="
-                background: linear-gradient(135deg, #ff6b35, #ff8c42);
-                color: white;
-                border: none;
-                padding: 12px 24px;
-                border-radius: 8px;
-                font-weight: bold;
-                cursor: pointer;
-                font-size: 16px;
-                box-shadow: 0 4px 8px rgba(255,107,53,0.3);
-                margin-right: 10px;
-              ">
-                🧪 TEST CHART UPDATE
-              </button>
-              <div style="color: #f8fafc; font-size: 14px; margin-top: 8px;">
-                Click this button to test if chart updates work at all
-              </div>
-            </div>
           </div>
           
           <div class="trade-card yang-enhanced" style="background:linear-gradient(135deg, #1f2937, #374151);border:1.5px solid #4b5563;border-radius:18px;box-shadow:0 4px 32px rgba(75,85,99,0.3);padding:36px 32px 28px 32px;max-width:440px;width:100%;min-width:340px;margin-top:0;">
             <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
               <div id="tradeOptionName" style="color:#9ca3af;font-weight:800;font-size:1.15rem;display:flex;align-items:center;gap:8px;"></div>
             </div>
-            <div id="tradeOdds" style="color:#9ca3af;font-size:1.05rem;margin-bottom:10px;font-weight:600;"></div>
+            <div id="tradeOdds" style="color:#d1d5db;font-size:1.05rem;margin-bottom:10px;font-weight:600;"></div>
             <div style="display:flex;gap:8px;margin-bottom:12px;">
               <button class="btn quick-btn" type="button" data-amount="0.1" style="flex:1;min-width:0;background:#374151;color:#9ca3af;border:1.5px solid #6b7280;">0.1</button>
               <button class="btn quick-btn" type="button" data-amount="0.5" style="flex:1;min-width:0;background:#374151;color:#9ca3af;border:1.5px solid #6b7280;">0.5</button>
@@ -450,7 +429,7 @@
               <button class="btn quick-btn-max" type="button" style="flex:1;min-width:0;background:#374151;color:#9ca3af;border:1.5px solid #6b7280;" title="Max">Max</button>
             </div>
             <input id="tradeAmount" type="number" min="0.01" step="0.01" placeholder="Amount (BNB)" data-i18n-placeholder="amount" style="width:100%;padding:16px 14px;border-radius:10px;border:2px solid #6b7280;background:#1f2937;color:#e5e7eb;font-size:1.2rem;margin-bottom:10px;outline:none;box-shadow:none;">
-            <div id="feeBreakdown" style="color:#9ca3af;font-size:0.95rem;margin-bottom:10px;font-weight:500;background:rgba(156,163,175,0.08);padding:6px 8px;border-radius:6px;display:none;">
+            <div id="feeBreakdown" style="color:#d1d5db;font-size:0.95rem;margin-bottom:10px;font-weight:500;background:rgba(156,163,175,0.08);padding:6px 8px;border-radius:6px;display:none;">
               <span data-i18n="platformFee">Platform Fee</span> (1%): <span id="platformFeeAmount">0.000 BNB</span> | <span data-i18n="netInvestment">Net Investment</span>: <span id="netBetAmount">0.000 BNB</span>
             </div>
             <div id="profitCalc" style="color:#d1d5db;font-size:1.08rem;margin-bottom:14px;font-weight:600;background:rgba(156,163,175,0.07);padding:8px 10px;border-radius:8px;"></div>
@@ -487,8 +466,8 @@
             <p style="color:#94a3b8;font-size:0.9rem;margin-bottom:16px;">Select an outcome range to place your prediction</p>
             <div style="display:grid;grid-template-columns:2fr 1fr 2fr;gap:32px;font-size:0.85rem;color:#64748b;font-weight:600;">
               <span style="color:#06b6d4;">OUTCOME</span>
-              <span style="text-align:center;color:#9ca3af;">% CHANCE</span>
-              <span style="text-align:right;color:#9ca3af;">ACTIONS</span>
+              <span style="text-align:center;color:#d1d5db;">% CHANCE</span>
+              <span style="text-align:right;color:#d1d5db;">ACTIONS</span>
             </div>
           </div>
 
@@ -682,7 +661,7 @@
         <!-- Yin symbol for comments -->
         <div style="position:absolute;top:15px;right:20px;font-size:1.5rem;opacity:0.08;color:#9ca3af;pointer-events:none;">🌙</div>
         
-        <h3 style="color:#9ca3af;margin-bottom:10px;font-size:1.25rem;font-weight:700;" data-i18n="comments">Comments</h3>
+        <h3 style="color:#d1d5db;margin-bottom:10px;font-size:1.25rem;font-weight:700;" data-i18n="comments">Comments</h3>
         <div id="commentsList" style="margin-bottom:18px;"></div>
         <div id="commentBoxContainer" style="display:none;">
           <textarea id="commentInput" rows="3" maxlength="300" placeholder="Write a comment..." data-i18n-placeholder="writeComment" style="width:100%;padding:12px 10px;border-radius:8px;border:1.5px solid #475569;background:#1e293b;color:#e6eef8;font-size:1.08rem;resize:vertical;margin-bottom:8px;"></textarea>
@@ -701,7 +680,7 @@
       <!-- Subtle Yang background symbol -->
       <div style="position:absolute;top:25px;right:30px;font-size:2.5rem;opacity:0.06;color:#06b6d4;pointer-events:none;">☀️</div>>
       <div class="section-header" style="margin-bottom:24px;">
-        <h2 class="section-title" style="color:#9ca3af;font-size:2rem;font-weight:800;margin-bottom:12px;" data-i18n="myBettingPortfolio">My Betting Portfolio</h2>
+        <h2 class="section-title" style="color:#d1d5db;font-size:2rem;font-weight:800;margin-bottom:12px;" data-i18n="myBettingPortfolio">My Betting Portfolio</h2>
         <div id="portfolioSummary" style="display:flex;gap:20px;flex-wrap:wrap;margin-bottom:16px;">
           <!-- Portfolio summary will be populated by JavaScript -->
         </div>
@@ -3741,10 +3720,10 @@
       });
       
       if (currentOrderBook && market.options) {
-        let html = '<span style="color:#9ca3af;">Total Buys:</span> ';
+        let html = '<span style="color:#d1d5db;">Total Buys:</span> ';
         const totals = Array(market.options.length).fill(0);
         currentOrderBook.forEach(b=>{ if(b.option_id!==undefined) totals[b.option_id]+=1; });
-        html += market.options.map((opt,i)=>`${opt.name}: <span style='color:#9ca3af;'>${totals[i]}</span>`).join(' &nbsp; ');
+        html += market.options.map((opt,i)=>`${opt.name}: <span style='color:#d1d5db;'>${totals[i]}</span>`).join(' &nbsp; ');
         document.getElementById('totalBuys').innerHTML = html;
       }
       
@@ -3763,7 +3742,7 @@
       const obDiv = document.getElementById('orderBook');
       
       if (!orderBook || orderBook.length === 0) {
-        obDiv.innerHTML = '<div style="color:#9ca3af;">No bets yet.</div>';
+        obDiv.innerHTML = '<div style="color:#d1d5db;">No bets yet.</div>';
         return;
       }
       

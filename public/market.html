@@ -413,6 +413,27 @@
             <div id="distributionChartContainer" style="height: 300px; position: relative; display: none;">
               <canvas id="distributionChart"></canvas>
             </div>
+            
+            <!-- TEST CHART UPDATE BUTTON -->
+            <div style="text-align: center; margin: 20px 0; padding: 15px; background: rgba(255,0,0,0.1); border-radius: 8px;">
+              <button onclick="testChartUpdate()" style="
+                background: linear-gradient(135deg, #ff6b35, #ff8c42);
+                color: white;
+                border: none;
+                padding: 12px 24px;
+                border-radius: 8px;
+                font-weight: bold;
+                cursor: pointer;
+                font-size: 16px;
+                box-shadow: 0 4px 8px rgba(255,107,53,0.3);
+                margin-right: 10px;
+              ">
+                🧪 TEST CHART UPDATE
+              </button>
+              <div style="color: #f8fafc; font-size: 14px; margin-top: 8px;">
+                Click this button to test if chart updates work at all
+              </div>
+            </div>
           </div>
           
           <div class="trade-card yang-enhanced" style="background:linear-gradient(135deg, #1f2937, #374151);border:1.5px solid #4b5563;border-radius:18px;box-shadow:0 4px 32px rgba(75,85,99,0.3);padding:36px 32px 28px 32px;max-width:440px;width:100%;min-width:340px;margin-top:0;">
@@ -2222,6 +2243,42 @@
     window.enhancedOrderBook = new EnhancedOrderBook();
 
     // ========================================
+    // TEST FUNCTION FOR CHART UPDATES
+    // ========================================
+    
+    function testChartUpdate() {
+      console.log('🧪 TESTING DIRECT CHART UPDATE');
+      
+      // Flash the page to show the button was clicked
+      document.body.style.backgroundColor = '#ff0000';
+      setTimeout(() => document.body.style.backgroundColor = '', 500);
+      
+      // Create random test data
+      const randomProb1 = Math.random() * 80 + 10; // 10-90%
+      const randomProb2 = 100 - randomProb1;
+      
+      const testData = {
+        probabilities: [randomProb1, randomProb2],
+        prices: [randomProb1/100, randomProb2/100],
+        shares: [1000 + Math.random() * 500, 1000 + Math.random() * 500],
+        totalVolume: 1000 + Math.random() * 2000
+      };
+      
+      console.log('🎲 Generated random test data:', testData);
+      
+      // Force chart refresh with test data
+      if (window.enhancedOrderBook && window.enhancedOrderBook.forceChartsRefresh) {
+        window.enhancedOrderBook.forceChartsRefresh(testData);
+        console.log('✅ Called forceChartsRefresh with test data');
+      } else {
+        console.error('❌ Enhanced order book not available');
+      }
+    }
+    
+    // Make test function globally available
+    window.testChartUpdate = testChartUpdate;
+
+    // ========================================
     // Enhanced Yin Yang Order Book System
     // ========================================
     
@@ -2358,8 +2415,20 @@
       
       // Handle buy button clicks
       handleBuy(outcomeIndex, side) {
+        console.log(`🚀 TRADE BUTTON CLICKED: ${side.toUpperCase()} for outcome ${outcomeIndex}`);
+        console.log('🎯 Current outcomes:', this.outcomes);
+        
+        // Add immediate visual feedback
+        document.body.style.border = "5px solid #ff0000";
+        setTimeout(() => document.body.style.border = "none", 1000);
+        
         const outcome = this.outcomes[outcomeIndex];
-        if (!outcome) return;
+        if (!outcome) {
+          console.error('❌ No outcome found for index:', outcomeIndex);
+          return;
+        }
+        
+        console.log(`📊 BEFORE TRADE - Outcome probability: ${outcome.probability}%`);
         
         this.selectedOutcome = outcome;
         this.selectedSide = side;
@@ -2370,15 +2439,21 @@
         // Simulate the buy in our trading system
         this.executeBuy(outcome, side);
         
-        console.log(`Buying ${side} for ${outcome.range} at ${side === 'yes' ? outcome.yesPrice : outcome.noPrice}`);
+        console.log(`💰 Buying ${side} for ${outcome.range} at ${side === 'yes' ? outcome.yesPrice : outcome.noPrice}`);
       }
       
       // Execute the buy and update charts
       async executeBuy(outcome, side) {
-        if (!currentMarket) return;
+        console.log(`🔥 EXECUTING TRADE: ${side} for outcome with probability ${outcome.probability}%`);
+        
+        if (!currentMarket) {
+          console.error('❌ No current market available');
+          return;
+        }
         
         // Determine the option index
         const optionIndex = outcome.optionIndex !== undefined ? outcome.optionIndex : 0;
+        console.log(`📍 Using option index: ${optionIndex}`);
         
         // If side is 'no', we need to find the opposing option or create one
         let targetOptionIndex = optionIndex;
@@ -2397,10 +2472,16 @@
           }
         }
         
+        console.log(`🎯 Target option index: ${targetOptionIndex}`);
+        
         // Random amount between 0.1 and 2 BNB for simulation
         const amount = 0.1 + Math.random() * 1.9;
+        console.log(`💰 Trade amount: ${amount.toFixed(3)} BNB`);
         
         try {
+          // BEFORE TRADE STATE
+          console.log(`📊 BEFORE TRADE - Probability: ${outcome.probability}%`);
+          
           // Execute the trade using our enhanced trading system
           const tradeResult = await window.enhancedTrading.executeTrade(
             currentMarket.id,
@@ -2409,9 +2490,14 @@
             walletAddress || 'simulation_user'
           );
           
+          console.log('💼 Trade result:', tradeResult);
+          
           if (tradeResult.success) {
             // Update the outcome probability based on the trade
             const impact = Math.min(amount * 5, 15); // Limit impact to 15%
+            console.log(`📈 Calculated impact: ${impact}%`);
+            
+            const oldProbability = outcome.probability;
             
             if (side === 'yes') {
               outcome.probability = Math.min(95, outcome.probability + impact);
@@ -2419,9 +2505,13 @@
               outcome.probability = Math.max(5, outcome.probability - impact);
             }
             
+            console.log(`📊 AFTER TRADE - Probability changed from ${oldProbability}% to ${outcome.probability}%`);
+            
             // Update price based on new probability
             outcome.yesPrice = `${(outcome.probability / 100).toFixed(3)}¢`;
             outcome.noPrice = `${((100 - outcome.probability) / 100).toFixed(3)}¢`;
+            
+            console.log(`💲 Updated prices - YES: ${outcome.yesPrice}, NO: ${outcome.noPrice}`);
             
             // Re-render the order book with updated data
             this.renderOrderBook(currentMarket);
@@ -2435,19 +2525,35 @@
                 i === targetOptionIndex ? outcome.probability / 100 : (100 - outcome.probability) / 100
               ),
               shares: currentMarket.options.map((_, i) => 
-                i === targetOptionIndex ? tradeResult.shares_bought : 1000 - tradeResult.shares_bought
+                i === targetOptionIndex ? tradeResult.shares_bought || 1000 + amount * 10 : 1000 - amount * 10
               ),
-              totalVolume: tradeResult.new_volume || 1000
+              totalVolume: tradeResult.new_volume || 1000 + amount
             };
+            
+            console.log(`🔄 FORCING CHART REFRESH WITH DATA:`, updatedDepth);
+            
+            // Flash the chart containers to show something is happening
+            const probContainer = document.getElementById('probabilityChartContainer');
+            const distContainer = document.getElementById('distributionChartContainer');
+            if (probContainer) {
+              probContainer.style.border = "3px solid #00ff00";
+              setTimeout(() => probContainer.style.border = "none", 2000);
+            }
+            if (distContainer) {
+              distContainer.style.border = "3px solid #00ff00";
+              setTimeout(() => distContainer.style.border = "none", 2000);
+            }
             
             // Use the enhanced order book's force chart refresh
             window.enhancedOrderBook.forceChartsRefresh(updatedDepth);
             
             // Show success message
             this.showTradeMessage(`✅ Simulated ${side.toUpperCase()} trade for ${outcome.range}`, 'success');
+          } else {
+            console.error('❌ Trade failed:', tradeResult);
           }
         } catch (error) {
-          console.error('Order book trade error:', error);
+          console.error('💥 Order book trade error:', error);
           this.showTradeMessage(`❌ Trade failed: ${error.message}`, 'error');
         }
       }

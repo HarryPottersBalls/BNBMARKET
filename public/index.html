@@ -3,47 +3,65 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>BNBmarket - Decentralized Prediction Markets</title>
+  <title>陰陽市場 - Yin Yang Prediction Markets</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: Inter, system-ui, -apple-system, sans-serif;
-      background: #7f1d1d !important;
-      background: linear-gradient(135deg, #7f1d1d 0%, #000000 50%, #7f1d1d 100%) !important;
+      background: linear-gradient(135deg, #111827 0%, #374151 50%, #111827 100%) !important;
       color: #f3f4f6 !important;
       line-height: 1.4;
       min-height: 100vh;
       position: relative;
     }
 
-    /* Decorative dragon pattern overlay */
+    /* Animated background pattern */
     body::before {
       content: '';
       position: fixed;
       inset: 0;
       opacity: 0.05;
       pointer-events: none;
-      background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M20 50 Q30 30, 50 50 T80 50' stroke='%23ff0000' fill='none' stroke-width='2'/%3E%3C/svg%3E");
-      background-size: 200px 200px;
+      background-image: radial-gradient(circle, white 1px, transparent 1px);
+      background-size: 50px 50px;
       z-index: -1;
     }
 
-    /* Decorative dragon elements */
+    /* Decorative Yin Yang elements */
     body::after {
-      content: '🐉';
+      content: '';
       position: fixed;
-      top: 80px;
+      top: 25%;
       right: 40px;
-      font-size: 6rem;
-      opacity: 0.1;
+      width: 128px;
+      height: 128px;
+      opacity: 0.05;
       pointer-events: none;
       z-index: -1;
+      border-radius: 50%;
+      background: linear-gradient(135deg, white 0%, #d1d5db 100%);
+    }
+
+    /* Second Yin Yang element */
+    body::before {
+      content: '';
+      position: fixed;
+      bottom: 25%;
+      left: 40px;
+      width: 128px;
+      height: 128px;
+      opacity: 0.05;
+      pointer-events: none;
+      z-index: -1;
+      border-radius: 50%;
+      background: linear-gradient(135deg, white 0%, #d1d5db 100%);
+      transform: rotate(180deg);
     }
 
     .header {
-      background: rgba(0, 0, 0, 0.8) !important;
+      background: linear-gradient(to right, #111827, #1e293b) !important;
       backdrop-filter: blur(8px);
-      border-bottom: 2px solid #dc2626 !important;
+      border-bottom: 2px solid #374151 !important;
       padding: 16px 20px;
       position: sticky;
       top: 0;
@@ -68,20 +86,44 @@
     }
 
     .brand .logo {
+      position: relative;
       width: 40px;
       height: 40px;
-      border-radius: 10px;
-      background: #dc2626 !important;
+      border-radius: 50%;
+      background: linear-gradient(135deg, white 0%, #d1d5db 100%);
       display: flex;
       align-items: center;
       justify-content: center;
-      color: white !important;
-      font-weight: 900;
-      font-size: 18px;
+    }
+
+    .brand .logo::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      background: linear-gradient(135deg, transparent 50%, #1f2937 50%);
+    }
+
+    .brand .logo::after {
+      content: '';
+      position: absolute;
+      top: 25%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #1f2937;
+      box-shadow: 0 16px 0 white;
+      z-index: 1;
     }
 
     .brand .text {
-      color: #dc2626 !important;
+      background: linear-gradient(to right, white, #9ca3af, #4b5563);
+      background-clip: text;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      font-weight: bold;
     }
 
     .nav {
@@ -103,8 +145,8 @@
     }
 
     .nav a.active, .nav a:hover {
-      color: #f87171;
-      background: rgba(220, 38, 38, 0.1);
+      color: white;
+      background: linear-gradient(135deg, #374151, #4b5563);
     }
 
     .nav a.active::after {
@@ -219,21 +261,21 @@
     }
 
     .btn {
-      background: #dc2626 !important;
+      background: linear-gradient(135deg, #374151, #4b5563) !important;
       color: white !important;
-      border: 2px solid #fbbf24 !important;
+      border: 2px solid #6b7280 !important;
       padding: 10px 16px;
       border-radius: 8px;
       font-weight: 700;
       font-size: 14px;
       cursor: pointer;
       transition: all 0.2s;
-      box-shadow: 0 4px 14px 0 rgba(220, 38, 38, 0.3);
+      box-shadow: 0 4px 14px 0 rgba(75, 85, 99, 0.3);
     }
 
     .btn:hover {
-      background: #b91c1c !important;
-      box-shadow: 0 6px 20px 0 rgba(220, 38, 38, 0.4);
+      background: linear-gradient(135deg, #4b5563, #6b7280) !important;
+      box-shadow: 0 6px 20px 0 rgba(75, 85, 99, 0.4);
       transform: translateY(-1px);
     }
 
@@ -255,20 +297,38 @@
     }
 
     .market-card {
-      background: linear-gradient(135deg, #7f1d1d, #000000);
-      border: 1.5px solid #7f1d1d;
+      background: linear-gradient(135deg, #374151, #1e293b);
+      border: 1.5px solid #4b5563;
       border-radius: 12px;
       padding: 16px;
       transition: all 0.3s ease;
       cursor: pointer;
-      box-shadow: 0 4px 14px 0 rgba(127, 29, 29, 0.2);
+      box-shadow: 0 4px 14px 0 rgba(55, 65, 81, 0.2);
     }
 
     .market-card:hover {
       transform: translateY(-4px);
-      box-shadow: 0 8px 32px rgba(220, 38, 38, 0.4);
-      border-color: #dc2626;
-      background: linear-gradient(135deg, #991b1b, #000000);
+      box-shadow: 0 8px 32px rgba(75, 85, 99, 0.4);
+      border-color: #6b7280;
+      background: linear-gradient(135deg, #4b5563, #374151);
+    }
+
+    /* Alternating Yin Yang card styles */
+    .market-card:nth-child(odd) {
+      background: linear-gradient(135deg, #374151, #1e293b);
+      border-color: #4b5563;
+    }
+
+    .market-card:nth-child(even) {
+      background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
+      border-color: #9ca3af;
+      color: #111827;
+    }
+
+    .market-card:nth-child(even):hover {
+      background: linear-gradient(135deg, #e5e7eb, #d1d5db);
+      border-color: #6b7280;
+      box-shadow: 0 8px 32px rgba(156, 163, 175, 0.4);
     }
 
     .market-title {
@@ -653,10 +713,10 @@
   <header class="header">
     <div class="header-inner">
       <div class="brand">
-        <div class="logo">🐉</div>
+        <div class="logo"></div>
         <div class="text">
-          <div>龍市場</div>
-          <div style="font-size: 12px; color: #f87171; font-weight: 400;">Dragon Markets</div>
+          <div>陰陽市場</div>
+          <div style="font-size: 12px; color: #9ca3af; font-weight: 400;">Balance • Harmony • Truth</div>
         </div>
       </div>
       <nav class="nav">
@@ -771,7 +831,7 @@
       <div class="admin-card">
         <h3 style="color: #10b981; margin-bottom: 16px;" data-i18n="decentralizedPredictionMarkets">Decentralized Prediction Markets</h3>
         <p style="color: #d1d5db; line-height: 1.6; margin-bottom: 16px;" data-i18n="platformDescription">
-          BNBmarket is a decentralized prediction market platform built on Binance Smart Chain. Create markets on any topic or trade on existing ones with transparent, blockchain-based odds.
+          Yin Yang Markets is a decentralized prediction market platform built on Binance Smart Chain. Experience perfect balance in trading - create markets on any topic or trade on existing ones with transparent, blockchain-based harmony.
         </p>
         <ul style="color: #9ca3af; line-height: 1.8; padding-left: 20px;">
           <li><strong>Real BNB Betting:</strong> All transactions happen on Binance Smart Chain</li>
@@ -948,10 +1008,10 @@
         platformFees: "Platform Fees",
         
         // How It Works
-        howItWorksTitle: "How BNBmarket Works",
-        howBNBmarketWorks: "How BNBmarket Works",
-        decentralizedPredictionMarkets: "Decentralized Prediction Markets",
-        platformDescription: "BNBmarket is a decentralized prediction market platform built on Binance Smart Chain. Create markets on any topic or trade on existing ones with transparent, blockchain-based odds.",
+        howItWorksTitle: "How Yin Yang Markets Works",
+        howBNBmarketWorks: "How Yin Yang Markets Works",
+        decentralizedPredictionMarkets: "Balanced Prediction Markets",
+        platformDescription: "Yin Yang Markets is a decentralized prediction market platform built on Binance Smart Chain. Experience perfect balance in trading - create markets on any topic or trade on existing ones with transparent, blockchain-based harmony.",
         claimDescription: "Claim your winnings from resolved markets",
         step1Title: "Connect Your Wallet",
         step1Desc: "Connect your MetaMask wallet to start trading prediction markets on BSC.",
@@ -1065,10 +1125,10 @@
         platformFees: "平台费用",
         
         // How It Works
-        howItWorksTitle: "BNBmarket 工作原理",
-        howBNBmarketWorks: "BNB市场如何运作",
-        decentralizedPredictionMarkets: "去中心化预测市场",
-        platformDescription: "BNB市场是基于币安智能链构建的去中心化预测市场平台。您可以创建任何主题的市场，或在现有市场上进行交易，享受透明的区块链赔率。",
+        howItWorksTitle: "陰陽市場工作原理",
+        howBNBmarketWorks: "陰陽市場如何运作",
+        decentralizedPredictionMarkets: "平衡预测市场",
+        platformDescription: "陰陽市場是基于币安智能链构建的去中心化预测市场平台。体验交易中的完美平衡 - 您可以创建任何主题的市场，或在现有市场上进行交易，享受透明的区块链和谐。",
         claimDescription: "从已结算的市场中领取您的奖金",
         step1Title: "连接您的钱包",
         step1Desc: "连接您的MetaMask钱包，开始在BSC上交易预测市场。",

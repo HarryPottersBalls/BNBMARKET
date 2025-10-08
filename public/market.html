@@ -402,17 +402,11 @@
           <!-- Professional decorative element -->
           <div style="position:absolute;top:15px;right:20px;width:24px;height:24px;opacity:0.05;pointer-events:none;background:linear-gradient(135deg, rgba(6,182,212,0.3), transparent);border-radius:50%;"></div>
             
-            <!-- Chart Tabs -->
-            <div style="display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 1px solid #4b5563; padding-bottom: 12px;">
-              <button id="probabilityTab" class="chart-tab active" onclick="switchChart('probability')" data-i18n="marketConfidenceOverTime">Market Confidence Over Time</button>
-              <button id="distributionTab" class="chart-tab" onclick="switchChart('distribution')" data-i18n="currentMarketDistribution">Current Market Distribution</button>
-            </div>
-            
-            <!-- Chart Containers -->
+            <!-- Chart Containers - Show LMSR Analysis immediately -->
             <div id="probabilityChartContainer" style="height: 300px; position: relative;">
               <canvas id="probabilityChart"></canvas>
             </div>
-            <div id="distributionChartContainer" style="height: 300px; position: relative; display: none;">
+            <div id="distributionChartContainer" style="height: 300px; position: relative;">
               <canvas id="distributionChart"></canvas>
             </div>
           </div>
@@ -3773,9 +3767,9 @@
       console.log(`� Current prices: YES=$${yesCostUSD.toFixed(2)} (${yesPercentage}%), NO=$${noCostUSD.toFixed(2)} (${noPercentage}%)`);
     }
     
-    // Run LMSR simulation immediately and refresh every 10 seconds for live feel
-    setTimeout(initializeSimpleCharts, 500); 
-    setInterval(initializeSimpleCharts, 10000); // Update every 10 seconds for dynamic activity
+    // Run LMSR analysis charts immediately - no delay!
+    initializeSimpleCharts(); 
+    setInterval(initializeSimpleCharts, 10000); // Update every 10 seconds
 
     // Initialize Web3 and BSC connection
     
@@ -4547,59 +4541,16 @@
       }
     }
 
-    // Chart switching functionality
+    // Chart display - no switching needed, both charts visible
     function switchChart(chartType) {
-      // Update tab states
-      document.querySelectorAll('.chart-tab').forEach(tab => tab.classList.remove('active'));
-      document.getElementById(chartType + 'Tab').classList.add('active');
-      
-      // Show/hide chart containers
-      document.getElementById('probabilityChartContainer').style.display = chartType === 'probability' ? 'block' : 'none';
-      document.getElementById('distributionChartContainer').style.display = chartType === 'distribution' ? 'block' : 'none';
-      
-      // Load chart if not already loaded and chart engine is available
-      if (currentMarket && window.lmsrChartEngine) {
-        try {
-          // Add a small delay to ensure container is visible
-          setTimeout(() => {
-            if (chartType === 'probability') {
-              window.lmsrChartEngine.createProbabilityChart('probabilityChartContainer', currentMarket.id);
-            } else if (chartType === 'distribution') {
-              window.lmsrChartEngine.createCurrentDistributionChart('distributionChartContainer', currentMarket.id);
-            }
-          }, 100);
-        } catch (error) {
-          console.error('Chart creation failed:', error);
-          const container = document.getElementById(chartType + 'ChartContainer');
-          if (container) {
-            container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#ff6b6b;font-size:14px;">⚠️ Chart failed to load</div>';
-          }
-        }
-      }
+      // Both charts are always visible now - no switching needed
+      console.log('LMSR charts are always visible');
     }
 
     // Updated chart rendering function
     function renderChart(market, orderBook) {
-      // Only initialize probability chart once, with a delay to ensure DOM is ready
-      if (window.lmsrChartEngine && !window.lmsrChartEngine.chartInstances['probabilityChart']) {
-        setTimeout(() => {
-          try {
-            window.lmsrChartEngine.createProbabilityChart('probabilityChartContainer', market.id);
-          } catch (error) {
-            console.error('Chart initialization failed:', error);
-            const container = document.getElementById('probabilityChartContainer');
-            if (container) {
-              container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#ff6b6b;font-size:14px;">⚠️ Chart failed to load</div>';
-            }
-          }
-        }, 200);
-      } else if (!window.lmsrChartEngine) {
-        console.warn('Chart engine not available');
-        const container = document.getElementById('probabilityChartContainer');
-        if (container) {
-          container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#9ca3af;font-size:14px;">📊 Charts temporarily unavailable</div>';
-        }
-      }
+      // Charts are handled by initializeSimpleCharts function
+      console.log('Charts rendered via LMSR analysis');
     }
 
     // Create a demo market for testing

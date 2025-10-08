@@ -1087,6 +1087,510 @@
     // ========================================
     // CHART ENGINE WITH LMSR INTEGRATION
     // ========================================
+    // Enhanced Prediction Market Trading System
+    // ========================================
+    
+    class PredictionMarketEngine {
+      constructor() {
+        this.markets = new Map();
+        this.userPositions = new Map();
+        this.orderBook = new Map();
+        this.tradeHistory = new Map();
+      }
+      
+      // Initialize market with proper prediction market mechanics
+      initializeMarket(marketId, options) {
+        const market = {
+          id: marketId,
+          options: options,
+          totalLiquidity: 10000, // Initial liquidity in BNB
+          shares: options.map(() => 1000), // Initial shares distribution
+          lastPrices: options.map((_, i) => 1 / options.length), // Start with equal probability
+          volume24h: 0,
+          totalVolume: 0
+        };
+        
+        this.markets.set(marketId, market);
+        this.orderBook.set(marketId, { bids: [], asks: [] });
+        this.tradeHistory.set(marketId, []);
+        
+        return market;
+      }
+      
+      // Calculate current market prices using AMM formula
+      calculateMarketPrices(marketId) {
+        const market = this.markets.get(marketId);
+        if (!market) return null;
+        
+        const { shares, totalLiquidity } = market;
+        const b = Math.sqrt(totalLiquidity); // Market maker parameter
+        
+        // Calculate probabilities using LMSR-like formula
+        const sum = shares.reduce((acc, s) => acc + Math.exp(s / b), 0);
+        const probabilities = shares.map(s => Math.exp(s / b) / sum);
+        
+        // Prices are the probabilities (what you pay for $1 payout)
+        const prices = probabilities.map(p => Math.max(0.001, Math.min(0.999, p)));
+        
+        return {
+          prices: prices,
+          probabilities: probabilities.map(p => p * 100),
+          impliedOdds: prices.map(p => 1 / p)
+        };
+      }
+      
+      // Execute a market buy order
+      executeBuy(marketId, optionIndex, bnbAmount, userAddress) {
+        const market = this.markets.get(marketId);
+        if (!market) throw new Error('Market not found');
+        
+        const pricing = this.calculateMarketPrices(marketId);
+        const pricePerShare = pricing.prices[optionIndex];
+        
+        // Calculate shares received
+        const sharesReceived = bnbAmount / pricePerShare;
+        
+        // Platform fee (1%)
+        const fee = bnbAmount * 0.01;
+        const netAmount = bnbAmount - fee;
+        
+        // Update market state
+        market.shares[optionIndex] += sharesReceived;
+        market.totalVolume += bnbAmount;
+        market.volume24h += bnbAmount;
+        
+        // Update user position
+        const userKey = `${userAddress}-${marketId}`;
+        if (!this.userPositions.has(userKey)) {
+          this.userPositions.set(userKey, {});
+        }
+        
+        const positions = this.userPositions.get(userKey);
+        if (!positions[optionIndex]) {
+          positions[optionIndex] = { shares: 0, invested: 0 };
+        }
+        
+        positions[optionIndex].shares += sharesReceived;
+        positions[optionIndex].invested += netAmount;
+        
+        // Record trade
+        const trade = {
+          timestamp: Date.now(),
+          user: userAddress,
+          optionIndex,
+          side: 'buy',
+          amount: bnbAmount,
+          shares: sharesReceived,
+          price: pricePerShare,
+          fee: fee
+        };
+        
+        this.tradeHistory.get(marketId).push(trade);
+        
+        return {
+          success: true,
+          trade: trade,
+          newPosition: positions[optionIndex],
+          marketPricing: this.calculateMarketPrices(marketId)
+        };
+      }
+      
+      // Calculate potential payout for a position
+      calculatePayout(marketId, optionIndex, shares, resolvedOutcome) {
+        if (optionIndex === resolvedOutcome) {
+          return shares; // Each share pays 1 BNB if correct
+        }
+        return 0; // Shares become worthless if wrong
+      }
+      
+      // Get market depth and liquidity info
+      getMarketDepth(marketId) {
+        const market = this.markets.get(marketId);
+        if (!market) return null;
+        
+        const pricing = this.calculateMarketPrices(marketId);
+        
+        return {
+          prices: pricing.prices,
+          probabilities: pricing.probabilities,
+          liquidity: market.totalLiquidity,
+          volume24h: market.volume24h,
+          totalVolume: market.totalVolume,
+          shares: market.shares
+        };
+      }
+    }
+    
+    // Initialize prediction market engine
+    window.predictionMarket = new PredictionMarketEngine();
+
+    // ========================================
+    // Enhanced Order Book with Proper Trading
+    // ========================================
+    
+    class EnhancedOrderBook {
+      constructor() {
+        this.selectedOutcome = null;
+        this.selectedSide = null;
+        this.showLimitOrder = false;
+        this.currentMarket = null;
+      }
+      
+      // Render comprehensive order book with buy/sell mechanics
+      renderOrderBook(market) {
+        if (!market) return;
+        
+        this.currentMarket = market;
+        
+        // Initialize prediction market
+        window.predictionMarket.initializeMarket(market.id, market.options);
+        
+        const container = document.getElementById('orderBookEntries');
+        if (!container) return;
+        
+        const marketDepth = window.predictionMarket.getMarketDepth(market.id);
+        
+        container.innerHTML = '';
+        
+        // Add explanation section
+        this.renderExplanation(container);
+        
+        // Render each option as a trading pair
+        market.options.forEach((option, index) => {
+          const probability = marketDepth.probabilities[index];
+          const price = marketDepth.prices[index];
+          const oppositePrice = 1 - price;
+          
+          const entryDiv = document.createElement('div');
+          entryDiv.className = 'prediction-market-row';
+          entryDiv.style.cssText = `
+            background: linear-gradient(135deg, rgba(51,65,85,0.3), rgba(30,41,59,0.2));
+            border: 1px solid #475569;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 16px;
+            transition: all 0.3s ease;
+          `;
+          
+          entryDiv.innerHTML = `
+            <div style="display: grid; grid-template-columns: 1fr auto auto auto; gap: 24px; align-items: center;">
+              <!-- Market Info -->
+              <div>
+                <div style="color: #f8fafc; font-weight: 800; font-size: 1.2rem; margin-bottom: 8px;">
+                  ${option.name}
+                </div>
+                <div style="display: flex; gap: 16px; align-items: center; margin-bottom: 8px;">
+                  <span style="color: #06b6d4; font-weight: 700; font-size: 1.1rem;">
+                    ${probability.toFixed(1)}% chance
+                  </span>
+                  <span style="color: #94a3b8; font-size: 0.9rem;">
+                    Vol: ${(marketDepth.volume24h / 1000).toFixed(1)}k BNB
+                  </span>
+                </div>
+                <div style="color: #64748b; font-size: 0.85rem;">
+                  Current implied odds: ${(1/price).toFixed(2)}:1
+                </div>
+              </div>
+              
+              <!-- YES Trading -->
+              <div style="text-align: center; min-width: 140px;">
+                <div style="color: #94a3b8; font-size: 0.8rem; margin-bottom: 4px;">BUY YES</div>
+                <div style="color: #10b981; font-weight: 800; font-size: 1.3rem; margin-bottom: 8px;">
+                  ${price.toFixed(3)} BNB
+                </div>
+                <button 
+                  onclick="window.enhancedOrderBook.showTradeModal(${index}, 'yes', ${price})"
+                  style="background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; padding: 10px 16px; border-radius: 8px; font-weight: 700; cursor: pointer; transition: all 0.2s;"
+                  onmouseover="this.style.transform='scale(1.05)'"
+                  onmouseout="this.style.transform='scale(1)'"
+                >
+                  ☀️ Buy Yes
+                </button>
+              </div>
+              
+              <!-- NO Trading -->
+              <div style="text-align: center; min-width: 140px;">
+                <div style="color: #94a3b8; font-size: 0.8rem; margin-bottom: 4px;">BUY NO</div>
+                <div style="color: #ef4444; font-weight: 800; font-size: 1.3rem; margin-bottom: 8px;">
+                  ${oppositePrice.toFixed(3)} BNB
+                </div>
+                <button 
+                  onclick="window.enhancedOrderBook.showTradeModal(${index}, 'no', ${oppositePrice})"
+                  style="background: linear-gradient(135deg, #ef4444, #dc2626); color: white; border: none; padding: 10px 16px; border-radius: 8px; font-weight: 700; cursor: pointer; transition: all 0.2s;"
+                  onmouseover="this.style.transform='scale(1.05)'"
+                  onmouseout="this.style.transform='scale(1)'"
+                >
+                  🌙 Buy No
+                </button>
+              </div>
+              
+              <!-- Advanced Options -->
+              <div style="text-align: center;">
+                <button 
+                  onclick="window.enhancedOrderBook.showLimitOrderModal(${index})"
+                  style="background: rgba(100,116,139,0.2); color: #94a3b8; border: 1px solid #475569; padding: 8px 12px; border-radius: 6px; font-size: 0.85rem; cursor: pointer;"
+                >
+                  Limit Order
+                </button>
+              </div>
+            </div>
+            
+            <!-- Profit Calculator -->
+            <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #475569;">
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; font-size: 0.85rem; color: #94a3b8;">
+                <div>
+                  <strong style="color: #10b981;">If YES wins:</strong> 
+                  1 BNB investment → ${(1/price).toFixed(2)} BNB payout (${((1/price - 1) * 100).toFixed(1)}% profit)
+                </div>
+                <div>
+                  <strong style="color: #ef4444;">If NO wins:</strong> 
+                  1 BNB investment → ${(1/oppositePrice).toFixed(2)} BNB payout (${((1/oppositePrice - 1) * 100).toFixed(1)}% profit)
+                </div>
+              </div>
+            </div>
+          `;
+          
+          container.appendChild(entryDiv);
+        });
+        
+        // Add trading modal
+        this.createTradingModal();
+      }
+      
+      // Render explanation of how prediction markets work
+      renderExplanation(container) {
+        const explanationDiv = document.createElement('div');
+        explanationDiv.style.cssText = `
+          background: linear-gradient(135deg, rgba(6,182,212,0.1), rgba(15,23,42,0.8));
+          border: 1px solid rgba(6,182,212,0.3);
+          border-radius: 12px;
+          padding: 20px;
+          margin-bottom: 24px;
+        `;
+        
+        explanationDiv.innerHTML = `
+          <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+            <div style="font-size: 2rem;">🔍</div>
+            <h3 style="color: #06b6d4; font-size: 1.3rem; font-weight: 800; margin: 0;">
+              How Prediction Markets Work
+            </h3>
+          </div>
+          
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; color: #e2e8f0; font-size: 0.9rem; line-height: 1.5;">
+            <div>
+              <div style="color: #10b981; font-weight: 700; margin-bottom: 8px;">🟢 Buy YES Shares</div>
+              <ul style="margin: 0; padding-left: 16px;">
+                <li>Pay current YES price per share</li>
+                <li>Each share pays 1 BNB if outcome is YES</li>
+                <li>Example: Buy at 0.3 BNB → Get 3.33x return if correct</li>
+                <li>Lose investment if outcome is NO</li>
+              </ul>
+            </div>
+            
+            <div>
+              <div style="color: #ef4444; font-weight: 700; margin-bottom: 8px;">🔴 Buy NO Shares</div>
+              <ul style="margin: 0; padding-left: 16px;">
+                <li>Pay current NO price per share</li>
+                <li>Each share pays 1 BNB if outcome is NO</li>
+                <li>Example: Buy at 0.7 BNB → Get 1.43x return if correct</li>
+                <li>Lose investment if outcome is YES</li>
+              </ul>
+            </div>
+          </div>
+          
+          <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(6,182,212,0.3);">
+            <div style="color: #94a3b8; font-size: 0.85rem;">
+              <strong style="color: #06b6d4;">💡 Key Point:</strong> 
+              YES price + NO price ≈ 1 BNB. Prices reflect market confidence. 
+              Higher price = lower chance but higher payout. Lower price = higher chance but lower payout.
+            </div>
+          </div>
+        `;
+        
+        container.appendChild(explanationDiv);
+      }
+      
+      // Show trading modal for market orders
+      showTradeModal(optionIndex, side, currentPrice) {
+        const modal = document.getElementById('tradingModal');
+        const option = this.currentMarket.options[optionIndex];
+        
+        document.getElementById('modalTitle').textContent = 
+          `${side.toUpperCase()} - ${option.name}`;
+        document.getElementById('modalCurrentPrice').textContent = 
+          `${currentPrice.toFixed(3)} BNB per share`;
+        document.getElementById('modalSide').value = side;
+        document.getElementById('modalOptionIndex').value = optionIndex;
+        document.getElementById('modalPrice').value = currentPrice.toFixed(3);
+        
+        // Calculate potential returns
+        const potentialReturn = 1 / currentPrice;
+        const profit = ((potentialReturn - 1) * 100).toFixed(1);
+        document.getElementById('modalProfit').textContent = 
+          `Potential: ${potentialReturn.toFixed(2)}x return (${profit}% profit)`;
+        
+        modal.style.display = 'flex';
+      }
+      
+      // Create trading modal
+      createTradingModal() {
+        if (document.getElementById('tradingModal')) return;
+        
+        const modal = document.createElement('div');
+        modal.id = 'tradingModal';
+        modal.style.cssText = `
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: rgba(0,0,0,0.8);
+          display: none;
+          align-items: center;
+          justify-content: center;
+          z-index: 10000;
+        `;
+        
+        modal.innerHTML = `
+          <div style="background: linear-gradient(135deg, #1e293b, #0f172a); border: 1px solid #334155; border-radius: 16px; padding: 32px; max-width: 500px; width: 90%;">
+            <h2 id="modalTitle" style="color: #f8fafc; margin: 0 0 16px 0; font-size: 1.5rem;"></h2>
+            
+            <div style="margin-bottom: 20px;">
+              <div style="color: #94a3b8; margin-bottom: 8px;">Current Price:</div>
+              <div id="modalCurrentPrice" style="color: #06b6d4; font-size: 1.3rem; font-weight: 800;"></div>
+              <div id="modalProfit" style="color: #10b981; font-size: 0.9rem; margin-top: 4px;"></div>
+            </div>
+            
+            <div style="margin-bottom: 20px;">
+              <label style="color: #94a3b8; display: block; margin-bottom: 8px;">Amount to Invest (BNB):</label>
+              <input id="modalAmount" type="number" min="0.01" step="0.01" placeholder="1.0" 
+                style="width: 100%; padding: 12px; background: #334155; border: 1px solid #475569; border-radius: 8px; color: #f8fafc; font-size: 1.1rem;">
+            </div>
+            
+            <div style="margin-bottom: 24px; background: rgba(51,65,85,0.3); padding: 16px; border-radius: 8px;">
+              <div id="modalCalculation" style="color: #e2e8f0; font-size: 0.9rem;"></div>
+            </div>
+            
+            <div style="display: flex; gap: 12px;">
+              <button onclick="window.enhancedOrderBook.executeTrade()" 
+                style="flex: 1; background: linear-gradient(135deg, #06b6d4, #0891b2); color: white; border: none; padding: 14px; border-radius: 8px; font-weight: 700; cursor: pointer;">
+                Confirm Trade
+              </button>
+              <button onclick="window.enhancedOrderBook.closeModal()" 
+                style="flex: 1; background: rgba(100,116,139,0.2); color: #94a3b8; border: 1px solid #475569; padding: 14px; border-radius: 8px; cursor: pointer;">
+                Cancel
+              </button>
+            </div>
+            
+            <input id="modalSide" type="hidden">
+            <input id="modalOptionIndex" type="hidden">
+            <input id="modalPrice" type="hidden">
+          </div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        // Update calculation when amount changes
+        document.getElementById('modalAmount').addEventListener('input', () => {
+          this.updateTradeCalculation();
+        });
+      }
+      
+      // Update trade calculation display
+      updateTradeCalculation() {
+        const amount = parseFloat(document.getElementById('modalAmount').value) || 0;
+        const price = parseFloat(document.getElementById('modalPrice').value);
+        const side = document.getElementById('modalSide').value;
+        
+        if (amount > 0) {
+          const shares = amount / price;
+          const potentialPayout = shares * 1; // Each share pays 1 BNB if correct
+          const profit = potentialPayout - amount;
+          const profitPercent = ((profit / amount) * 100).toFixed(1);
+          
+          document.getElementById('modalCalculation').innerHTML = `
+            <strong>Trade Summary:</strong><br>
+            • Investment: ${amount.toFixed(3)} BNB<br>
+            • Shares received: ${shares.toFixed(3)}<br>
+            • If ${side.toUpperCase()} wins: ${potentialPayout.toFixed(3)} BNB<br>
+            • Profit: ${profit.toFixed(3)} BNB (${profitPercent}%)<br>
+            • If wrong: Lose ${amount.toFixed(3)} BNB
+          `;
+        }
+      }
+      
+      // Execute the trade
+      async executeTrade() {
+        const amount = parseFloat(document.getElementById('modalAmount').value);
+        const optionIndex = parseInt(document.getElementById('modalOptionIndex').value);
+        const side = document.getElementById('modalSide').value;
+        
+        if (!amount || amount <= 0) {
+          alert('Please enter a valid amount');
+          return;
+        }
+        
+        try {
+          // Execute through prediction market engine
+          const result = window.predictionMarket.executeBuy(
+            this.currentMarket.id,
+            optionIndex,
+            amount,
+            walletAddress || 'demo_user'
+          );
+          
+          if (result.success) {
+            // Update UI
+            this.renderOrderBook(this.currentMarket);
+            this.closeModal();
+            
+            // Show success message
+            this.showTradeMessage(
+              `✅ Successfully bought ${result.trade.shares.toFixed(3)} ${side.toUpperCase()} shares for ${amount} BNB`,
+              'success'
+            );
+            
+            // Update charts
+            setTimeout(() => {
+              if (window.lmsrChartEngine) {
+                window.lmsrChartEngine.createProbabilityChart('probabilityChartContainer', this.currentMarket.id);
+                window.lmsrChartEngine.createCurrentDistributionChart('distributionChartContainer', this.currentMarket.id);
+              }
+            }, 500);
+          }
+        } catch (error) {
+          alert(`Trade failed: ${error.message}`);
+        }
+      }
+      
+      // Close modal
+      closeModal() {
+        document.getElementById('tradingModal').style.display = 'none';
+      }
+      
+      // Show limit order modal
+      showLimitOrderModal(optionIndex) {
+        // For now, just show an info alert about limit orders
+        const option = this.currentMarket.options[optionIndex];
+        alert(`🔄 Limit Orders for "${option.name}"\n\nLimit orders allow you to set a specific price you want to pay.\n\n• Set a lower price than current market price\n• Your order will execute when someone sells at your price\n• Useful for getting better entry prices\n\nThis feature will be available in the next update!`);
+      }
+      
+      // Show trade message
+      showTradeMessage(message, type) {
+        const messageEl = document.getElementById('tradeMsg');
+        if (messageEl) {
+          messageEl.innerHTML = `<div style="color:${type === 'success' ? '#10b981' : '#ef4444'};font-weight:600;">${message}</div>`;
+          setTimeout(() => {
+            messageEl.innerHTML = '';
+          }, 5000);
+        }
+      }
+    }
+    
+    // Initialize enhanced order book
+    window.enhancedOrderBook = new EnhancedOrderBook();
+
+    // ========================================
     // Enhanced Yin Yang Order Book System
     // ========================================
     
@@ -2614,7 +3118,7 @@
 
     // Create a demo market for testing
     function createDemoMarket() {
-      return {
+      const demoMarket = {
         id: 'demo-market-1',
         title: '2024 BNB Price Prediction - Will BNB reach $1000?',
         description: 'Predict whether BNB will reach $1000 by end of 2024',
@@ -2630,22 +3134,21 @@
             name: 'NO - BNB stays under $1000 🌙',
             image: null,
             isYang: false
-          },
-          {
-            name: 'MAYBE - BNB hits $800-999',
-            image: null,
-            isYang: null
-          },
-          {
-            name: 'UNLIKELY - BNB drops below $300',
-            image: null,
-            isYang: false
           }
         ],
         metadata: {
-          admin_odds: [0.4, 0.3, 0.2, 0.1]
+          admin_odds: [0.6, 0.4] // 60% YES, 40% NO
         }
       };
+      
+      // Initialize enhanced order book with this market
+      setTimeout(() => {
+        if (window.enhancedOrderBook) {
+          window.enhancedOrderBook.renderOrderBook(demoMarket);
+        }
+      }, 200);
+      
+      return demoMarket;
     }
 
     async function loadMarketPage() {

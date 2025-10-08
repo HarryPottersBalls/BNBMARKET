@@ -226,6 +226,27 @@
       position: relative;
       display: inline-block;
     }
+    
+    /* Chart Tab Styles */
+    .chart-tab {
+      transition: all 0.3s ease;
+      border: none;
+      outline: none;
+    }
+    
+    .chart-tab:hover {
+      background: #4b5563 !important;
+      color: #f3f4f6 !important;
+      border: 1px solid #9ca3af !important;
+      transform: translateY(-1px);
+    }
+    
+    .chart-tab.active {
+      background: #374151 !important;
+      color: #e5e7eb !important;
+      border: 1px solid #6b7280 !important;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
 
     .lang-btn:hover {
       background: rgba(156, 163, 175, 0.1);
@@ -402,15 +423,21 @@
           <!-- Professional decorative element -->
           <div style="position:absolute;top:15px;right:20px;width:24px;height:24px;opacity:0.05;pointer-events:none;background:linear-gradient(135deg, rgba(6,182,212,0.3), transparent);border-radius:50%;"></div>
             
-            <!-- Chart Containers - Show LMSR Analysis immediately -->
-            <div id="probabilityChartContainer" style="height: 300px; position: relative;">
+            <!-- Chart Tabs -->
+            <div style="display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 1px solid #4b5563; padding-bottom: 12px;">
+              <button id="probabilityTab" class="chart-tab active" onclick="switchChart('probability')" style="background:#374151;color:#e5e7eb;border:1px solid #6b7280;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;transition:all 0.2s;" data-i18n="marketConfidenceOverTime">LMSR Trade Analysis</button>
+              <button id="distributionTab" class="chart-tab" onclick="switchChart('distribution')" style="background:#1f2937;color:#9ca3af;border:1px solid #4b5563;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;transition:all 0.2s;" data-i18n="currentMarketDistribution">Live Market Activity</button>
+            </div>
+            
+            <!-- Chart Containers -->
+            <div id="probabilityChartContainer" style="height: 300px; position: relative; display: block;">
               <div style="display:flex;align-items:center;justify-content:center;height:100%;color:#9ca3af;font-size:14px;">
                 🔄 Loading LMSR Trade Analysis...
               </div>
             </div>
-            <div id="distributionChartContainer" style="height: 300px; position: relative;">
+            <div id="distributionChartContainer" style="height: 300px; position: relative; display: none;">
               <div style="display:flex;align-items:center;justify-content:center;height:100%;color:#9ca3af;font-size:14px;">
-                🔄 Loading Continuous Purchase Analysis...
+                🔄 Loading Live Market Activity...
               </div>
             </div>
           </div>
@@ -5399,6 +5426,50 @@
     setTimeout(() => {
       initializeLiveTradingDemo();
     }, 2000);
+    
+    // ========================================
+    // CHART TAB SWITCHING FUNCTIONALITY
+    // ========================================
+    
+    function switchChart(chartType) {
+      const probabilityContainer = document.getElementById('probabilityChartContainer');
+      const distributionContainer = document.getElementById('distributionChartContainer');
+      const probabilityTab = document.getElementById('probabilityTab');
+      const distributionTab = document.getElementById('distributionTab');
+      
+      if (chartType === 'probability') {
+        // Show probability chart, hide distribution
+        probabilityContainer.style.display = 'block';
+        distributionContainer.style.display = 'none';
+        
+        // Update tab styling
+        probabilityTab.style.background = '#374151';
+        probabilityTab.style.color = '#e5e7eb';
+        probabilityTab.style.border = '1px solid #6b7280';
+        probabilityTab.classList.add('active');
+        
+        distributionTab.style.background = '#1f2937';
+        distributionTab.style.color = '#9ca3af';
+        distributionTab.style.border = '1px solid #4b5563';
+        distributionTab.classList.remove('active');
+        
+      } else if (chartType === 'distribution') {
+        // Show distribution chart, hide probability
+        probabilityContainer.style.display = 'none';
+        distributionContainer.style.display = 'block';
+        
+        // Update tab styling
+        distributionTab.style.background = '#374151';
+        distributionTab.style.color = '#e5e7eb';
+        distributionTab.style.border = '1px solid #6b7280';
+        distributionTab.classList.add('active');
+        
+        probabilityTab.style.background = '#1f2937';
+        probabilityTab.style.color = '#9ca3af';
+        probabilityTab.style.border = '1px solid #4b5563';
+        probabilityTab.classList.remove('active');
+      }
+    }
       if (marketSection) marketSection.style.display = 'none';
       
       // Show My Bets section

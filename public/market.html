@@ -330,24 +330,24 @@
             </div>
           </div>
           
-          <div class="trade-card" style="background:linear-gradient(135deg, #7f1d1d, #000000);border:1.5px solid #dc2626;border-radius:18px;box-shadow:0 4px 32px rgba(220,38,38,0.3);padding:36px 32px 28px 32px;max-width:440px;width:100%;min-width:340px;margin-top:0;">
+          <div class="trade-card" style="background:linear-gradient(135deg, #1f2937, #374151);border:1.5px solid #4b5563;border-radius:18px;box-shadow:0 4px 32px rgba(75,85,99,0.3);padding:36px 32px 28px 32px;max-width:440px;width:100%;min-width:340px;margin-top:0;">
             <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
-              <div id="tradeOptionName" style="color:#dc2626;font-weight:800;font-size:1.15rem;display:flex;align-items:center;gap:8px;"></div>
+              <div id="tradeOptionName" style="color:#9ca3af;font-weight:800;font-size:1.15rem;display:flex;align-items:center;gap:8px;"></div>
             </div>
-            <div id="tradeOdds" style="color:#fbbf24;font-size:1.05rem;margin-bottom:10px;font-weight:600;"></div>
+            <div id="tradeOdds" style="color:#9ca3af;font-size:1.05rem;margin-bottom:10px;font-weight:600;"></div>
             <div style="display:flex;gap:8px;margin-bottom:12px;">
-              <button class="btn quick-btn" type="button" data-amount="0.1" style="flex:1;min-width:0;background:#23263a;color:#9aff00;border:1.5px solid #9aff00;">0.1</button>
-              <button class="btn quick-btn" type="button" data-amount="0.5" style="flex:1;min-width:0;background:#23263a;color:#9aff00;border:1.5px solid #9aff00;">0.5</button>
-              <button class="btn quick-btn" type="button" data-amount="1" style="flex:1;min-width:0;background:#23263a;color:#9aff00;border:1.5px solid #9aff00;">1</button>
-              <button class="btn quick-btn-max" type="button" style="flex:1;min-width:0;background:#23263a;color:#7acc00;border:1.5px solid #7acc00;" title="Max">Max</button>
+              <button class="btn quick-btn" type="button" data-amount="0.1" style="flex:1;min-width:0;background:#374151;color:#9ca3af;border:1.5px solid #6b7280;">0.1</button>
+              <button class="btn quick-btn" type="button" data-amount="0.5" style="flex:1;min-width:0;background:#374151;color:#9ca3af;border:1.5px solid #6b7280;">0.5</button>
+              <button class="btn quick-btn" type="button" data-amount="1" style="flex:1;min-width:0;background:#374151;color:#9ca3af;border:1.5px solid #6b7280;">1</button>
+              <button class="btn quick-btn-max" type="button" style="flex:1;min-width:0;background:#374151;color:#9ca3af;border:1.5px solid #6b7280;" title="Max">Max</button>
             </div>
-            <input id="tradeAmount" type="number" min="0.01" step="0.01" placeholder="Amount (BNB)" data-i18n-placeholder="amount" style="width:100%;padding:16px 14px;border-radius:10px;border:2px solid #7acc00;background:#181e29;color:#f3f4f6;font-size:1.2rem;margin-bottom:10px;outline:none;box-shadow:none;">
-            <div id="feeBreakdown" style="color:#f59e0b;font-size:0.95rem;margin-bottom:10px;font-weight:500;background:rgba(245,158,11,0.08);padding:6px 8px;border-radius:6px;display:none;">
+            <input id="tradeAmount" type="number" min="0.01" step="0.01" placeholder="Amount (BNB)" data-i18n-placeholder="amount" style="width:100%;padding:16px 14px;border-radius:10px;border:2px solid #6b7280;background:#1f2937;color:#e5e7eb;font-size:1.2rem;margin-bottom:10px;outline:none;box-shadow:none;">
+            <div id="feeBreakdown" style="color:#9ca3af;font-size:0.95rem;margin-bottom:10px;font-weight:500;background:rgba(156,163,175,0.08);padding:6px 8px;border-radius:6px;display:none;">
               <span data-i18n="platformFee">Platform Fee</span> (1%): <span id="platformFeeAmount">0.000 BNB</span> | <span data-i18n="netInvestment">Net Investment</span>: <span id="netBetAmount">0.000 BNB</span>
             </div>
-            <div id="profitCalc" style="color:#10b981;font-size:1.08rem;margin-bottom:14px;font-weight:600;background:rgba(16,185,129,0.07);padding:8px 10px;border-radius:8px;"></div>
+            <div id="profitCalc" style="color:#9ca3af;font-size:1.08rem;margin-bottom:14px;font-weight:600;background:rgba(156,163,175,0.07);padding:8px 10px;border-radius:8px;"></div>
             <div style="display:flex;gap:10px;margin-bottom:10px;align-items:flex-start;">
-              <button id="buyBtn" class="btn" style="flex:1;width:100%;font-size:1.08rem;padding:13px 0;box-shadow:0 2px 8px rgba(154,255,0,0.07);" data-i18n="purchaseShares">Purchase Shares</button>
+              <button id="buyBtn" class="btn" style="flex:1;width:100%;font-size:1.08rem;padding:13px 0;box-shadow:0 2px 8px rgba(156,163,175,0.07);" data-i18n="purchaseShares">Purchase Shares</button>
             </div>
             <div style="display:flex;gap:10px;margin-bottom:10px;align-items:flex-start;">
               <button id="cancelBtn" class="btn" style="flex:1;width:100%;background:#ef4444;color:#fff;font-size:1.08rem;padding:13px 0;box-shadow:0 2px 8px rgba(239,68,68,0.13);border:1.5px solid #ef4444;" data-i18n="requestRefund">Request Refund</button>
@@ -361,7 +361,7 @@
       
       <!-- Comment Section -->
       <section id="commentSection" style="margin-top:40px;background:#181e29;border-radius:16px;padding:28px 24px 18px 24px;box-shadow:0 2px 16px rgba(16,185,129,0.07);max-width:700px;margin-left:auto;margin-right:auto;">
-        <h3 style="color:#9aff00;margin-bottom:10px;font-size:1.25rem;font-weight:700;" data-i18n="comments">Comments</h3>
+        <h3 style="color:#9ca3af;margin-bottom:10px;font-size:1.25rem;font-weight:700;" data-i18n="comments">Comments</h3>
         <div id="commentsList" style="margin-bottom:18px;"></div>
         <div id="commentBoxContainer" style="display:none;">
           <textarea id="commentInput" rows="3" maxlength="300" placeholder="Write a comment..." data-i18n-placeholder="writeComment" style="width:100%;padding:12px 10px;border-radius:8px;border:1.5px solid #7acc00;background:#151926;color:#e6eef8;font-size:1.08rem;resize:vertical;margin-bottom:8px;"></textarea>
@@ -378,7 +378,7 @@
     <!-- My Bets Section -->
     <section id="mybetsSection" style="display:none;max-width:900px;margin:40px auto 0 auto;padding:32px 24px 40px 24px;background:linear-gradient(180deg, rgba(55,65,81,0.4), rgba(31,41,55,0.6));border-radius:18px;box-shadow:0 4px 32px rgba(0,0,0,0.10);">
       <div class="section-header" style="margin-bottom:24px;">
-        <h2 class="section-title" style="color:#9aff00;font-size:2rem;font-weight:800;margin-bottom:12px;" data-i18n="myBettingPortfolio">My Betting Portfolio</h2>
+        <h2 class="section-title" style="color:#9ca3af;font-size:2rem;font-weight:800;margin-bottom:12px;" data-i18n="myBettingPortfolio">My Betting Portfolio</h2>
         <div id="portfolioSummary" style="display:flex;gap:20px;flex-wrap:wrap;margin-bottom:16px;">
           <!-- Portfolio summary will be populated by JavaScript -->
         </div>
@@ -992,8 +992,8 @@
                 datasets: data.probabilities.map((prob, index) => ({
                   label: labels[index] || `Option ${index + 1}`,
                   data: [50, prob], // Simple before/after
-                  borderColor: ['#9aff00', '#ff6b6b', '#4ecdc4', '#45b7d1'][index] || '#9aff00',
-                  backgroundColor: ['rgba(154,255,0,0.1)', 'rgba(255,107,107,0.1)', 'rgba(78,205,196,0.1)', 'rgba(69,183,209,0.1)'][index] || 'rgba(154,255,0,0.1)',
+                  borderColor: ['#9ca3af', '#6b7280', '#4b5563', '#374151'][index] || '#9ca3af',
+                  backgroundColor: ['rgba(156,163,175,0.1)', 'rgba(107,114,128,0.1)', 'rgba(75,85,99,0.1)', 'rgba(55,65,81,0.1)'][index] || 'rgba(156,163,175,0.1)',
                   tension: 0.4
                 }))
               },
@@ -1068,7 +1068,7 @@
                 labels: labels,
                 datasets: [{
                   data: data.probabilities,
-                  backgroundColor: ['#9aff00', '#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#f0932b'],
+                  backgroundColor: ['#9ca3af', '#6b7280', '#4b5563', '#374151', '#1f2937', '#111827'],
                   borderColor: '#1a1a2e',
                   borderWidth: 2
                 }]
@@ -1120,10 +1120,10 @@
     };
   </script>
   
-  <div id="loadingScreen" style="position:fixed;inset:0;background:#0b0b0f;display:flex;align-items:center;justify-content:center;z-index:9999;">
-    <div style="text-align:center;color:#9aff00;">
-      <div style="width:50px;height:50px;border:4px solid rgba(154,255,0,0.3);border-top-color:#9aff00;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 16px;"></div>
-      <div style="font-size:18px;font-weight:700;">Loading BNBmarket...</div>
+  <div id="loadingScreen" style="position:fixed;inset:0;background:linear-gradient(135deg, #111827 0%, #374151 50%, #111827 100%);display:flex;align-items:center;justify-content:center;z-index:9999;">
+    <div style="text-align:center;color:#9ca3af;">
+      <div style="width:50px;height:50px;border:4px solid rgba(156,163,175,0.3);border-top-color:#9ca3af;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 16px;"></div>
+      <div style="font-size:18px;font-weight:700;">Loading 陰陽市場...</div>
     </div>
   </div>
   <style>@keyframes spin{0%{transform:rotate(0deg);}100%{transform:rotate(360deg);}}</style>
@@ -1375,18 +1375,18 @@
       (market.options || []).forEach(async (opt, i) => {
         const el = document.createElement('div');
         el.className = 'option-tab' + (i===selectedOutcome?' active':'');
-        el.style = 'background:#23263a;padding:10px 10px 4px 10px;border-radius:10px;min-width:80px;text-align:center;cursor:pointer;border:2px solid '+(i===selectedOutcome?'#9aff00':'#23263a')+';transition:border 0.2s;display:flex;flex-direction:column;align-items:center;justify-content:center;';
+        el.style = 'background:#374151;padding:10px 10px 4px 10px;border-radius:10px;min-width:80px;text-align:center;cursor:pointer;border:2px solid '+(i===selectedOutcome?'#9ca3af':'#374151')+';transition:border 0.2s;display:flex;flex-direction:column;align-items:center;justify-content:center;';
         
         let oddsDisplay = '';
         let probabilityDisplay = '';
         
         if (probData && probData.probabilities && probData.probabilities[i] !== undefined) {
           const probability = probData.probabilities[i];
-          probabilityDisplay = `<div style='color:#10b981;font-size:0.9em;font-weight:600;margin-top:2px;'>${probability}% market confidence</div>`;
+          probabilityDisplay = `<div style='color:#9ca3af;font-size:0.9em;font-weight:600;margin-top:2px;'>${probability}% market confidence</div>`;
           // Show price per share instead of odds
           if (probData.prices && probData.prices[i]) {
             const pricePerShare = probData.prices[i];
-            oddsDisplay = `<div style='color:#f59e0b;font-size:0.85em;font-weight:500;'>${pricePerShare.toFixed(3)} BNB/share</div>`;
+            oddsDisplay = `<div style='color:#9ca3af;font-size:0.85em;font-weight:500;'>${pricePerShare.toFixed(3)} BNB/share</div>`;
           }
         } else {
           probabilityDisplay = `<div style='color:#9ca3af;font-size:0.85em;font-weight:600;margin-top:2px;'>Loading market data...</div>`;
@@ -1394,7 +1394,7 @@
         
         el.innerHTML = `
           ${opt.image ? `<img src='${opt.image}' alt='' style='width:38px;height:38px;border-radius:50%;margin-bottom:6px;'>` : ''}
-          <div style="font-size:1.05rem;font-weight:700;color:#9aff00;">${opt.name || 'Option ' + (i+1)}</div>
+          <div style="font-size:1.05rem;font-weight:700;color:#9ca3af;">${opt.name || 'Option ' + (i+1)}</div>
           ${probabilityDisplay}
           ${oddsDisplay}
         `;
@@ -1474,7 +1474,7 @@
       }
       
       let html = `<div style="display:flex;align-items:center;gap:18px;margin-bottom:12px;flex-wrap:wrap;">
-        <h3 style="color:#9aff00;margin:0;font-size:1.3rem;">Order Book</h3>
+        <h3 style="color:#9ca3af;margin:0;font-size:1.3rem;">Order Book</h3>
         <div>${tabs}</div>
       </div>`;
       html += `<table style="width:100%;border-radius:10px;overflow:hidden;font-size:1rem;">
@@ -1521,7 +1521,7 @@
         priceDisplay = `<span style='color:#9ca3af;font-size:0.95em;font-weight:700;margin-left:8px;'>Loading price...</span>`;
       }
       
-      document.getElementById('tradeOptionName').innerHTML = `<span style='color:#9aff00;'>${opt.name}</span> ${opt.image?`<img src='${opt.image}' style='width:28px;height:28px;border-radius:50%;vertical-align:middle;margin-left:6px;'>`:''} ${priceDisplay}`;
+      document.getElementById('tradeOptionName').innerHTML = `<span style='color:#9ca3af;'>${opt.name}</span> ${opt.image?`<img src='${opt.image}' style='width:28px;height:28px;border-radius:50%;vertical-align:middle;margin-left:6px;'>`:''} ${priceDisplay}`;
       document.getElementById('tradeOdds').textContent = probabilityText;
       document.getElementById('tradeAmount').value = '';
       document.getElementById('tradeMsg').textContent = '';
@@ -1856,7 +1856,7 @@
             
             if (sharesOwned > 0) {
               sharesHtml = `<div style="background:rgba(154,255,0,0.08);padding:8px 12px;border-radius:8px;margin:8px 0;">
-                <div style="color:#9aff00;font-weight:700;font-size:1.05rem;">Portfolio Position</div>
+                <div style="color:#9ca3af;font-weight:700;font-size:1.05rem;">Portfolio Position</div>
                 <div style="color:#e6eef8;margin:4px 0;">
                   <span style="color:#10b981;font-weight:600;">${sharesOwned.toFixed(1)}</span> shares @ 
                   <span style="color:#f59e0b;">${executionPrice.toFixed(3)} BNB/share</span>
@@ -1914,23 +1914,23 @@
               optionsHtml = `<div style="display:flex;gap:12px;margin-top:8px;">` +
                 allOptions.map((opt, idx) => {
                   const picked = idx === bet.optionId;
-                  return `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6px 10px;border-radius:10px;min-width:70px;background:${picked ? '#9aff00' : '#23263a'};color:${picked ? '#041' : '#bcd3e6'};border:2px solid ${picked ? '#9aff00' : '#23263a'};font-weight:${picked ? '800' : '600'};box-shadow:${picked ? '0 2px 8px rgba(154,255,0,0.13)' : 'none'};transition:all 0.2s;">
-                    ${opt.image ? `<img src='${opt.image}' alt='' style='width:22px;height:22px;border-radius:50%;background:#181e29;margin-bottom:4px;'>` : ''}
+                  return `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6px 10px;border-radius:10px;min-width:70px;background:${picked ? '#9ca3af' : '#374151'};color:${picked ? '#111827' : '#e5e7eb'};border:2px solid ${picked ? '#9ca3af' : '#374151'};font-weight:${picked ? '800' : '600'};box-shadow:${picked ? '0 2px 8px rgba(156,163,175,0.13)' : 'none'};transition:all 0.2s;">
+                    ${opt.image ? `<img src='${opt.image}' alt='' style='width:22px;height:22px;border-radius:50%;background:#1f2937;margin-bottom:4px;'>` : ''}
                     <span style="font-size:1.01rem;">${opt.name || 'Option ' + (idx+1)}</span>
-                    ${picked ? '<span style=\'margin-top:3px;font-size:0.92em;font-weight:700;color:#10b981;\'>&#10003; Picked</span>' : ''}
+                    ${picked ? '<span style=\'margin-top:3px;font-size:0.92em;font-weight:700;color:#6b7280;\'>&#10003; Picked</span>' : ''}
                   </div>`;
                 }).join('') + `</div>`;
             } else if (optionName) {
-              optionsHtml = `<span style='display:flex;align-items:center;gap:6px;background:#23263a;padding:4px 10px;border-radius:8px;border:1.5px solid #9aff00;font-weight:700;color:#9aff00;'>${optionImage ? `<img src='${optionImage}' alt='' style='width:22px;height:22px;border-radius:50%;background:#181e29;'>` : ''}<span>${optionName}</span></span>`;
+              optionsHtml = `<span style='display:flex;align-items:center;gap:6px;background:#374151;padding:4px 10px;border-radius:8px;border:1.5px solid #9ca3af;font-weight:700;color:#9ca3af;'>${optionImage ? `<img src='${optionImage}' alt='' style='width:22px;height:22px;border-radius:50%;background:#1f2937;'>` : ''}<span>${optionName}</span></span>`;
             }
             
-            return `<div class="admin-card" style="background:linear-gradient(135deg, #7f1d1d, #000000);border:1px solid #dc2626;margin-bottom:18px;padding:18px 16px;border-radius:12px;box-shadow:0 4px 14px rgba(127,29,29,0.2);">
-              <div class="market-title" style="font-weight:700;font-size:1.1rem;color:#dc2626;">${bet.market_title || 'Unknown Market'}</div>
-              <div style="display:flex;align-items:center;gap:10px;margin:8px 0;"><span style="color: #fbbf24; font-weight: 700;">Original Purchase: ${originalAmount.toFixed(3)} BNB</span></div>
+            return `<div class="admin-card" style="background:linear-gradient(135deg, #1f2937, #374151);border:1px solid #4b5563;margin-bottom:18px;padding:18px 16px;border-radius:12px;box-shadow:0 4px 14px rgba(75,85,99,0.2);">
+              <div class="market-title" style="font-weight:700;font-size:1.1rem;color:#9ca3af;">${bet.market_title || 'Unknown Market'}</div>
+              <div style="display:flex;align-items:center;gap:10px;margin:8px 0;"><span style="color: #9ca3af; font-weight: 700;">Original Purchase: ${originalAmount.toFixed(3)} BNB</span></div>
               ${optionsHtml}
               ${sharesHtml}
               ${pnlHtml}
-              <div style="color: #9ca3af; font-size: 12px;margin-top:6px;">${new Date(bet.created_at).toLocaleDateString()}${bet.transaction_signature ? ` | <a href="https://bscscan.com/tx/${bet.transaction_signature}" target="_blank" style="color: #10b981;">View TX</a>` : ''}</div>
+              <div style="color: #9ca3af; font-size: 12px;margin-top:6px;">${new Date(bet.created_at).toLocaleDateString()}${bet.transaction_signature ? ` | <a href="https://bscscan.com/tx/${bet.transaction_signature}" target="_blank" style="color: #9ca3af;">View TX</a>` : ''}</div>
             </div>`;
           }));
           

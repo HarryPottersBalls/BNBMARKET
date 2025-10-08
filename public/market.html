@@ -3,62 +3,61 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BNBmarket - Market</title>
+  <title>陰陽市場 - Market</title>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:400,600,700&display=swap">
   <style>
     body {
       font-family: 'Inter', Arial, sans-serif;
-      background: #7f1d1d !important;
-      background: linear-gradient(135deg, #7f1d1d 0%, #000000 50%, #7f1d1d 100%) !important;
-      color: #f3f4f6 !important;
+      background: linear-gradient(135deg, #111827 0%, #374151 50%, #111827 100%) !important;
+      color: #e5e7eb !important;
       margin: 0;
       padding: 0;
       min-height: 100vh;
     }
     .primary {
-      color: #dc2626 !important;
+      color: #6b7280 !important;
     }
     .accent {
-      color: #fbbf24 !important;
+      color: #9ca3af !important;
     }
     .danger {
-      color: #ff6b6b;
+      color: #9ca3af;
     }
     .surface {
-      background: linear-gradient(135deg, #7f1d1d, #000000) !important;
+      background: linear-gradient(135deg, #374151, #1f2937) !important;
     }
     .btn {
-      background: #dc2626 !important;
+      background: linear-gradient(135deg, #374151 0%, #4b5563 100%) !important;
       color: white !important;
-      border: 2px solid #fbbf24 !important;
+      border: 2px solid #6b7280 !important;
       padding: 10px 16px;
       border-radius: 8px;
       font-weight: 700;
       font-size: 14px;
       cursor: pointer;
-      box-shadow: 0 4px 14px rgba(220,38,38,0.3) !important;
+      box-shadow: 0 4px 14px rgba(107,114,128,0.3) !important;
       transition: background 0.2s, color 0.2s, transform 0.2s, box-shadow 0.2s;
     }
     .btn:hover {
-      background: #b91c1c !important;
+      background: linear-gradient(135deg, #4b5563 0%, #6b7280 100%) !important;
       color: white !important;
-      box-shadow: 0 6px 20px rgba(220,38,38,0.4) !important;
+      box-shadow: 0 6px 20px rgba(107,114,128,0.4) !important;
       transform: translateY(-1px) scale(1.03);
     }
     .btn.secondary {
-      background: rgba(127,29,29,0.3) !important;
-      color: #f87171 !important;
-      border: 1.5px solid #7f1d1d !important;
+      background: rgba(55,65,81,0.3) !important;
+      color: #9ca3af !important;
+      border: 1.5px solid #374151 !important;
     }
     .btn.danger, .btn.danger:hover {
-      background: #dc2626 !important;
+      background: linear-gradient(135deg, #374151 0%, #4b5563 100%) !important;
       color: #fff !important;
-      border: 2px solid #fbbf24 !important;
-      box-shadow: 0 4px 14px rgba(220,38,38,0.3) !important;
+      border: 2px solid #6b7280 !important;
+      box-shadow: 0 4px 14px rgba(107,114,128,0.3) !important;
     }
     .badge-success {
-      background: rgba(220,38,38,0.2) !important;
-      color: #dc2626 !important;
+      background: rgba(107,114,128,0.2) !important;
+      color: #6b7280 !important;
       border-radius: 6px;
       padding: 2px 10px;
       font-size: 0.95em;
@@ -66,8 +65,8 @@
       display: inline-block;
     }
     .badge-pending {
-      background: rgba(251,191,36,0.2) !important;
-      color: #fbbf24 !important;
+      background: rgba(156,163,175,0.2) !important;
+      color: #9ca3af !important;
       border-radius: 6px;
       padding: 2px 10px;
       font-size: 0.95em;
@@ -75,33 +74,34 @@
       display: inline-block;
     }
     .border-accent {
-      border: 1.5px solid #dc2626 !important;
+      border: 1.5px solid #6b7280 !important;
     }
     .border-subtle {
-      border: 1.5px solid rgba(127,29,29,0.3) !important;
+      border: 1.5px solid rgba(55,65,81,0.3) !important;
     }
     .text-secondary {
-      color: #f87171 !important;
+      color: #9ca3af !important;
     }
     .text-warning {
-      color: #fbbf24 !important;
+      color: #9ca3af !important;
     }
     .text-error {
-      color: #ff6b6b;
+      color: #9ca3af;
     }
     .text-title {
-      color: #f3f4f6 !important;
+      color: #e5e7eb !important;
     }
     
     /* Header Styles */
     .header {
-      background: rgba(0, 0, 0, 0.8) !important;
+      background: linear-gradient(135deg, #374151 0%, #111827 50%, #374151 100%) !important;
       backdrop-filter: blur(8px);
-      border-bottom: 2px solid #dc2626 !important;
+      border-bottom: 2px solid #4b5563 !important;
       padding: 16px 20px;
       position: sticky;
       top: 0;
       z-index: 40;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.3);
     }
     
     .header-inner {
@@ -118,7 +118,7 @@
       align-items: center;
       gap: 12px;
       font-weight: 700;
-      color: #dc2626 !important;
+      color: #e5e7eb !important;
       font-size: 20px;
       text-decoration: none;
     }
@@ -126,13 +126,32 @@
     .brand .logo {
       width: 40px;
       height: 40px;
-      border-radius: 10px;
-      background: #dc2626 !important;
+      border-radius: 50%;
+      background: linear-gradient(45deg, #e5e7eb 50%, #111827 50%);
+      position: relative;
       display: flex;
       align-items: center;
       justify-content: center;
-      color: white !important;
-      font-weight: 900;
+    }
+
+    .brand .logo::before {
+      content: '';
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #111827;
+      position: absolute;
+      top: 5px;
+    }
+
+    .brand .logo::after {
+      content: '';
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #e5e7eb;
+      position: absolute;
+      bottom: 5px;
     }
 
     .nav {
@@ -153,14 +172,14 @@
     }
 
     .nav a.active, .nav a:hover {
-      color: #9aff00;
-      background: rgba(154, 255, 0, 0.04);
+      color: #e5e7eb;
+      background: rgba(156, 163, 175, 0.1);
     }
 
     .nav a.admin {
-      background: rgba(255, 107, 107, 0.1);
-      color: #ff6b6b;
-      border: 1px solid rgba(255, 107, 107, 0.2);
+      background: rgba(156, 163, 175, 0.1);
+      color: #9ca3af;
+      border: 1px solid rgba(156, 163, 175, 0.2);
     }
 
     .wallet-group {
@@ -170,18 +189,18 @@
     }
 
     .balance {
-      background: rgba(255, 255, 255, 0.03);
+      background: rgba(55, 65, 81, 0.3);
       padding: 8px 12px;
       border-radius: 8px;
-      border: 1px solid rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(75, 85, 99, 0.4);
       font-size: 13px;
       font-weight: 600;
-      color: #cfeccf;
+      color: #e5e7eb;
     }
 
     .wallet-btn {
-      background: linear-gradient(90deg, #9aff00, #7acc00);
-      color: #041;
+      background: linear-gradient(135deg, #374151 0%, #4b5563 100%);
+      color: #e5e7eb;
       border: none;
       padding: 10px 16px;
       border-radius: 8px;
@@ -193,12 +212,13 @@
 
     .wallet-btn:hover {
       transform: translateY(-1px);
+      background: linear-gradient(135deg, #4b5563 0%, #6b7280 100%);
     }
 
     .wallet-btn.connected {
       background: transparent;
-      border: 1px solid #9aff00;
-      color: #9aff00;
+      border: 1px solid #9ca3af;
+      color: #9ca3af;
     }
 
     /* Language Switcher Styles */
@@ -208,8 +228,8 @@
     }
 
     .lang-btn:hover {
-      background: rgba(255, 255, 255, 0.08);
-      border-color: rgba(154, 255, 0, 0.3);
+      background: rgba(156, 163, 175, 0.1);
+      border-color: rgba(156, 163, 175, 0.3);
     }
 
     .lang-dropdown {
@@ -217,8 +237,8 @@
     }
 
     .lang-option:hover {
-      background: rgba(154, 255, 0, 0.1);
-      color: #9aff00;
+      background: rgba(156, 163, 175, 0.1);
+      color: #9ca3af;
     }
 
     /* Chart Tab Styles */
@@ -236,13 +256,13 @@
     
     .chart-tab:hover {
       color: #d1d5db;
-      background: rgba(255, 255, 255, 0.05);
+      background: rgba(156, 163, 175, 0.1);
     }
     
     .chart-tab.active {
-      color: #9aff00;
-      background: rgba(154, 255, 0, 0.1);
-      border: 1px solid rgba(154, 255, 0, 0.3);
+      color: #e5e7eb;
+      background: rgba(156, 163, 175, 0.2);
+      border: 1px solid rgba(156, 163, 175, 0.3);
     }
   </style>
 </head>
@@ -250,10 +270,10 @@
   <header class="header">
     <div class="header-inner">
       <a href="index.html" class="brand">
-        <div class="logo">🐉</div>
+        <div class="logo"></div>
         <div>
-          <div>龍市場</div>
-          <div style="font-size: 12px; color: #f87171; font-weight: 400;">Dragon Markets</div>
+          <div>陰陽市場</div>
+          <div style="font-size: 12px; color: #9ca3af; font-weight: 400;">Balance • Harmony • Truth</div>
         </div>
       </a>
       <nav class="nav">
@@ -266,12 +286,12 @@
       <div class="wallet-group">
         <!-- Language Switcher -->
         <div class="language-switcher" style="margin-right:12px;">
-          <button id="langBtn" class="lang-btn" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#e6eef8;padding:8px 12px;border-radius:6px;font-size:13px;cursor:pointer;transition:all 0.2s;">
+          <button id="langBtn" class="lang-btn" style="background:rgba(55,65,81,0.3);border:1px solid rgba(75,85,99,0.4);color:#e5e7eb;padding:8px 12px;border-radius:6px;font-size:13px;cursor:pointer;transition:all 0.2s;">
             🌍 EN
           </button>
-          <div id="langDropdown" class="lang-dropdown" style="display:none;position:absolute;top:100%;right:0;background:#23263a;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:4px;margin-top:4px;box-shadow:0 4px 12px rgba(0,0,0,0.3);z-index:1000;">
-            <button class="lang-option" data-lang="en" style="display:block;width:100%;text-align:left;background:none;border:none;color:#e6eef8;padding:8px 12px;border-radius:4px;cursor:pointer;font-size:13px;transition:background 0.2s;">🇺🇸 English</button>
-            <button class="lang-option" data-lang="zh-CN" style="display:block;width:100%;text-align:left;background:none;border:none;color:#e6eef8;padding:8px 12px;border-radius:4px;cursor:pointer;font-size:13px;transition:background 0.2s;">🇨🇳 中文</button>
+          <div id="langDropdown" class="lang-dropdown" style="display:none;position:absolute;top:100%;right:0;background:#374151;border:1px solid rgba(75,85,99,0.4);border-radius:8px;padding:4px;margin-top:4px;box-shadow:0 4px 12px rgba(0,0,0,0.3);z-index:1000;">
+            <button class="lang-option" data-lang="en" style="display:block;width:100%;text-align:left;background:none;border:none;color:#e5e7eb;padding:8px 12px;border-radius:4px;cursor:pointer;font-size:13px;transition:background 0.2s;">🇺🇸 English</button>
+            <button class="lang-option" data-lang="zh-CN" style="display:block;width:100%;text-align:left;background:none;border:none;color:#e5e7eb;padding:8px 12px;border-radius:4px;cursor:pointer;font-size:13px;transition:background 0.2s;">🇨🇳 中文</button>
           </div>
         </div>
         <div class="balance" id="balanceDisplay" style="display:none;">
@@ -283,7 +303,7 @@
   </header>
 
   <main>
-    <section id="marketSection" style="max-width:1200px;margin:40px auto 0 auto;padding:40px 36px 48px 36px;background:linear-gradient(180deg, rgba(55,65,81,0.4), rgba(31,41,55,0.6));border-radius:22px;box-shadow:0 4px 40px rgba(0,0,0,0.13);">
+    <section id="marketSection" style="max-width:1200px;margin:40px auto 0 auto;padding:40px 36px 48px 36px;background:linear-gradient(135deg, rgba(31,41,55,0.8), rgba(55,65,81,0.6));border-radius:22px;box-shadow:0 4px 40px rgba(0,0,0,0.3);border:1px solid #4b5563;">
       <div id="marketInfo">
         <h2 id="marketTitle" class="primary" style="margin-bottom:8px;font-size:2rem;font-weight:800;"></h2>
         <div id="marketMeta" style="color:#9ca3af;font-size:1rem;margin-bottom:8px;"></div>
@@ -294,9 +314,9 @@
       
       <div style="margin-bottom:32px;">
         <div style="display: flex; gap: 40px; align-items: flex-start; flex-wrap: wrap; width: 100%;">
-          <div style="flex: 2.5; min-width: 420px; background: #181e29; border-radius: 18px; padding: 32px 24px 32px 24px; box-shadow: 0 2px 24px rgba(16,185,129,0.09);">
+          <div style="flex: 2.5; min-width: 420px; background: linear-gradient(135deg, #1f2937 0%, #374151 100%); border-radius: 18px; padding: 32px 24px 32px 24px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3); border: 1px solid #4b5563;">
             <!-- Chart Tabs -->
-            <div style="display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 1px solid #23263a; padding-bottom: 12px;">
+            <div style="display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 1px solid #4b5563; padding-bottom: 12px;">
               <button id="probabilityTab" class="chart-tab active" onclick="switchChart('probability')" data-i18n="marketConfidenceOverTime">Market Confidence Over Time</button>
               <button id="distributionTab" class="chart-tab" onclick="switchChart('distribution')" data-i18n="currentMarketDistribution">Current Market Distribution</button>
             </div>

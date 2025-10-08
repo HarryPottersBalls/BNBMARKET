@@ -2080,7 +2080,36 @@
         }
         
         try {
-          // Execute through prediction market engine
+          console.log('🚀 TRADE PANEL - Submitting real bet to server...');
+          
+          // FIRST: Submit a real bet to the server to update probabilities (like order book)
+          const panelBetData = {
+            marketId: this.currentMarket.id,
+            bettorAddress: walletAddress || 'trade_panel_user_' + Date.now(),
+            optionId: this.selectedOptionIndex,
+            amount: amount,
+            transactionSignature: 'trade_panel_' + Date.now() + '_' + Math.random().toString(36)
+          };
+          
+          console.log('📤 TRADE PANEL - SUBMITTING REAL BET TO SERVER:', panelBetData);
+          
+          // Submit bet to server to update the database
+          const betResponse = await fetch(`${API_BASE_URL}/bets`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(panelBetData)
+          });
+          
+          let serverBetResult;
+          if (betResponse.ok) {
+            serverBetResult = await betResponse.json();
+            console.log('✅ Trade panel server bet submitted successfully:', serverBetResult);
+          } else {
+            console.warn('⚠️ Trade panel server bet submission failed:', await betResponse.text());
+            serverBetResult = { success: false };
+          }
+          
+          // Also execute through prediction market engine for UI consistency
           const result = window.predictionMarket.executeBuy(
             this.currentMarket.id,
             this.selectedOptionIndex,
@@ -2088,15 +2117,53 @@
             walletAddress || 'demo_user'
           );
           
-          if (result.success) {
-            console.log('🎯 Trade executed successfully, forcing immediate chart update...');
+          if (result.success || serverBetResult.bet) {
+            console.log('🎯 Trade panel executed successfully, fetching fresh server data...');
             
-            // Get the updated market data immediately
-            const updatedDepth = window.predictionMarket.getMarketDepth(this.currentMarket.id);
-            console.log('📊 Updated market depth:', updatedDepth);
-            
-            // Force immediate chart recreation
-            this.forceChartsRefresh(updatedDepth);
+            // CRITICAL: Fetch fresh data from server after bet submission (same as order book)
+            setTimeout(async () => {
+              try {
+                // Get updated probabilities from server
+                const freshData = await getLMSRProbabilities(this.currentMarket.id);
+                console.log('📊 FRESH SERVER DATA FROM TRADE PANEL:', freshData);
+                
+                if (freshData && freshData.probabilities) {
+                  const updatedDepth = {
+                    probabilities: freshData.probabilities,
+                    prices: freshData.prices,
+                    shares: freshData.volumes || [1000, 1000],
+                    totalVolume: freshData.total_volume || 1000
+                  };
+                  
+                  console.log(`🔄 TRADE PANEL - FORCING CHART REFRESH WITH SERVER DATA:`, updatedDepth);
+                  
+                  // Flash the chart containers to show something is happening
+                  const probContainer = document.getElementById('probabilityChartContainer');
+                  const distContainer = document.getElementById('distributionChartContainer');
+                  if (probContainer) {
+                    probContainer.style.border = "3px solid #ff6600";
+                    setTimeout(() => probContainer.style.border = "none", 2000);
+                  }
+                  if (distContainer) {
+                    distContainer.style.border = "3px solid #ff6600";
+                    setTimeout(() => distContainer.style.border = "none", 2000);
+                  }
+                  
+                  // Force immediate chart recreation with server data
+                  this.forceChartsRefresh(updatedDepth);
+                } else {
+                  console.warn('⚠️ No fresh data received from server for trade panel');
+                  // Fallback to local data
+                  const updatedDepth = window.predictionMarket.getMarketDepth(this.currentMarket.id);
+                  this.forceChartsRefresh(updatedDepth);
+                }
+              } catch (error) {
+                console.error('❌ Failed to fetch fresh server data for trade panel:', error);
+                // Fallback to local data
+                const updatedDepth = window.predictionMarket.getMarketDepth(this.currentMarket.id);
+                this.forceChartsRefresh(updatedDepth);
+              }
+            }, 1000); // Wait 1 second for server to process the bet
             
             // Update UI
             this.renderOrderBook(this.currentMarket);
@@ -2104,11 +2171,12 @@
             
             // Show success message
             this.showTradeMessage(
-              `✅ Successfully bought ${result.trade.shares.toFixed(3)} shares for ${amount} BNB`,
+              `✅ Successfully bought ${result.shares?.toFixed(3) || amount} shares for ${amount} BNB`,
               'success'
             );
           }
         } catch (error) {
+          console.error('Trade panel error:', error);
           alert(`Trade failed: ${error.message}`);
         }
       }
@@ -3841,6 +3909,36 @@
         document.getElementById('buyBtn').disabled = true;
         
         // Use enhanced trading engine for better calculations
+        console.log('🚀 MAIN TRADING PANEL - Submitting real bet to server...');
+        
+        // FIRST: Submit a real bet to the server to update probabilities
+        const realBetData = {
+          marketId: currentMarket.id,
+          bettorAddress: walletAddress,
+          optionId: selectedOutcome,
+          amount: amt,
+          transactionSignature: 'main_trade_' + Date.now() + '_' + Math.random().toString(36)
+        };
+        
+        console.log('📤 SUBMITTING REAL BET TO SERVER:', realBetData);
+        
+        // Submit bet to server to update the database
+        const betResponse = await fetch(`${API_BASE_URL}/bets`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(realBetData)
+        });
+        
+        let serverBetResult;
+        if (betResponse.ok) {
+          serverBetResult = await betResponse.json();
+          console.log('✅ Server bet submitted successfully:', serverBetResult);
+        } else {
+          console.warn('⚠️ Server bet submission failed:', await betResponse.text());
+          serverBetResult = { success: false };
+        }
+        
+        // Also run local enhanced trading for UI feedback
         const tradeResult = await window.enhancedTrading.executeTrade(
           currentMarket.id, 
           selectedOutcome, 
@@ -3848,7 +3946,7 @@
           walletAddress
         );
         
-        if (tradeResult.success) {
+        if (tradeResult.success || serverBetResult.bet) {
           // Show success message with trade details
           const details = tradeResult.tradeDetails;
           document.getElementById('tradeMsg').innerHTML = `
@@ -3861,34 +3959,56 @@
           `;
           
           // Update charts and market display
-          setTimeout(() => {
+          setTimeout(async () => {
             renderMarketInfo(currentMarket);
             renderChart(currentMarket, currentOrderBook);
             renderOrderBookPro(currentOrderBook, currentMarket, selectedOutcome);
             updateTradePanel();
             calculateProfit();
             
-            // Force refresh charts with updated trade data
-            const updatedDepth = {
-              probabilities: tradeResult.newProbabilities || [50, 50],
-              prices: tradeResult.newPrices || [0.5, 0.5],
-              shares: tradeResult.newShares || [1000, 1000],
-              totalVolume: tradeResult.new_volume || 1000
-            };
+            // CRITICAL: Fetch fresh data from server after bet submission (same as order book)
+            console.log('🔄 MAIN TRADING PANEL - FETCHING FRESH DATA FROM SERVER...');
             
-            // Use enhanced order book's force chart refresh mechanism
-            if (window.enhancedOrderBook && window.enhancedOrderBook.forceChartsRefresh) {
-              window.enhancedOrderBook.forceChartsRefresh(updatedDepth);
-            } else {
-              // Fallback to old method if enhanced order book isn't available
-              if (window.lmsrChartEngine) {
-                window.lmsrChartEngine.createProbabilityChart('probabilityChartContainer', currentMarket.id);
-                if (document.getElementById('distributionChartContainer').style.display !== 'none') {
-                  window.lmsrChartEngine.createCurrentDistributionChart('distributionChartContainer', currentMarket.id);
+            try {
+              // Get updated probabilities from server
+              const freshData = await getLMSRProbabilities(currentMarket.id);
+              console.log('📊 FRESH SERVER DATA FROM MAIN TRADE:', freshData);
+              
+              if (freshData && freshData.probabilities) {
+                const updatedDepth = {
+                  probabilities: freshData.probabilities,
+                  prices: freshData.prices,
+                  shares: freshData.volumes || [1000, 1000],
+                  totalVolume: freshData.total_volume || 1000
+                };
+                
+                console.log(`🔄 MAIN TRADE - FORCING CHART REFRESH WITH SERVER DATA:`, updatedDepth);
+                
+                // Flash the chart containers to show something is happening
+                const probContainer = document.getElementById('probabilityChartContainer');
+                const distContainer = document.getElementById('distributionChartContainer');
+                if (probContainer) {
+                  probContainer.style.border = "3px solid #0066ff";
+                  setTimeout(() => probContainer.style.border = "none", 2000);
                 }
+                if (distContainer) {
+                  distContainer.style.border = "3px solid #0066ff";
+                  setTimeout(() => distContainer.style.border = "none", 2000);
+                }
+                
+                // Use enhanced order book's force chart refresh mechanism
+                if (window.enhancedOrderBook && window.enhancedOrderBook.forceChartsRefresh) {
+                  window.enhancedOrderBook.forceChartsRefresh(updatedDepth);
+                } else {
+                  console.warn('⚠️ Enhanced order book not available for chart refresh');
+                }
+              } else {
+                console.warn('⚠️ No fresh data received from server for main trade');
               }
+            } catch (error) {
+              console.error('❌ Failed to fetch fresh server data for main trade:', error);
             }
-          }, 500);
+          }, 1000); // Wait 1 second for server to process the bet
           
           // Add to order book simulation
           if (!currentOrderBook) currentOrderBook = [];

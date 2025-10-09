@@ -54,13 +54,7 @@ function broadcastMarketUpdate(marketId, updateData) {
   wsManager.broadcastMarketUpdate(marketId, enhancedUpdateData);
 }
 
-// Initialize Secure WebSocket Manager
-const wsManager = new SecureWebSocketManager(wss);
-
-// Global Broadcast Function
-function broadcastMarketUpdate(marketId, updateData) {
-  wsManager.broadcastMarketUpdate(marketId, updateData);
-}
+// Removed duplicate WebSocket Manager declaration
 
 // Production CORS configuration
 const allowedOrigins = [

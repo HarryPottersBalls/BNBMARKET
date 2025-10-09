@@ -325,42 +325,113 @@
         let isAdmin = false;
 
         async function connectWallet() {
+            // Check if MetaMask is installed
             if (!window.ethereum) {
-                alert('MetaMask not found! Please install MetaMask.');
+                alert('MetaMask not found! Please install MetaMask browser extension.');
+                window.open('https://metamask.io/download.html', '_blank');
                 return;
             }
 
             try {
+                // Detect and request account access
                 const accounts = await window.ethereum.request({
                     method: 'eth_requestAccounts'
                 });
 
-                if (accounts.length > 0) {
-                    currentWallet = accounts[0];
-                    document.getElementById('walletAddress').textContent = currentWallet;
-                    
-                    // Check admin status
-                    const response = await fetch(`${API_BASE}/admin/check/${currentWallet}`);
-                    const data = await response.json();
-                    
-                    isAdmin = data.isAdmin;
-                    document.getElementById('adminStatus').textContent = isAdmin ? '✅ ADMIN' : '❌ NOT ADMIN';
-                    
-                    if (isAdmin) {
-                        document.getElementById('walletInfo').style.display = 'block';
-                        document.getElementById('adminActions').style.display = 'flex';
-                        document.getElementById('statsGrid').style.display = 'grid';
-                        document.getElementById('connectBtn').style.display = 'none';
-                        
-                        await loadPendingMarkets();
-                        await loadStats();
-                    } else {
-                        alert('Access denied: Admin wallet required');
+                if (accounts.length === 0) {
+                    alert('No accounts selected. Please choose an account in MetaMask.');
+                    return;
+                }
+
+                // Validate the selected network (Binance Smart Chain)
+                const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+                const BSC_CHAIN_ID = '0x38'; // BSC Mainnet
+
+                if (chainId !== BSC_CHAIN_ID) {
+                    try {
+                        // Attempt to switch to BSC
+                        await window.ethereum.request({
+                            method: 'wallet_switchEthereumChain',
+                            params: [{ chainId: BSC_CHAIN_ID }]
+                        });
+                    } catch (switchError) {
+                        // If the network isn't added, prompt to add it
+                        if (switchError.code === 4902) {
+                            await window.ethereum.request({
+                                method: 'wallet_addEthereumChain',
+                                params: [{
+                                    chainId: BSC_CHAIN_ID,
+                                    chainName: 'Binance Smart Chain',
+                                    nativeCurrency: {
+                                        name: 'BNB',
+                                        symbol: 'BNB',
+                                        decimals: 18
+                                    },
+                                    rpcUrls: ['https://bsc-dataseed.binance.org/'],
+                                    blockExplorerUrls: ['https://bscscan.com/']
+                                }]
+                            });
+                        } else {
+                            throw switchError;
+                        }
                     }
                 }
+
+                // Set current wallet
+                currentWallet = accounts[0];
+                document.getElementById('walletAddress').textContent = `${currentWallet.slice(0, 6)}...${currentWallet.slice(-4)}`;
+
+                // Check admin status
+                const response = await fetch(`${API_BASE}/admin/check/${currentWallet}`);
+                const data = await response.json();
+
+                isAdmin = data.isAdmin;
+                document.getElementById('adminStatus').textContent = isAdmin ? '✅ ADMIN' : '❌ NOT ADMIN';
+
+                if (isAdmin) {
+                    document.getElementById('walletInfo').style.display = 'block';
+                    document.getElementById('adminActions').style.display = 'flex';
+                    document.getElementById('statsGrid').style.display = 'grid';
+                    document.getElementById('connectBtn').style.display = 'none';
+
+                    await loadPendingMarkets();
+                    await loadStats();
+                } else {
+                    alert('Access denied: Admin wallet required');
+                }
+
+                // Add event listeners for account and network changes
+                window.ethereum.on('accountsChanged', (newAccounts) => {
+                    if (newAccounts.length === 0) {
+                        // Wallet disconnected
+                        currentWallet = null;
+                        isAdmin = false;
+                        document.getElementById('connectBtn').style.display = 'block';
+                        document.getElementById('walletInfo').style.display = 'none';
+                        document.getElementById('adminActions').style.display = 'none';
+                        document.getElementById('statsGrid').style.display = 'none';
+                    } else {
+                        // Reconnect with new account
+                        connectWallet();
+                    }
+                });
+
+                window.ethereum.on('chainChanged', () => {
+                    // Reload to reset app state
+                    window.location.reload();
+                });
+
             } catch (error) {
                 console.error('Wallet connection error:', error);
-                alert('Failed to connect wallet: ' + error.message);
+
+                // Specific error handling
+                if (error.code === 4001) {
+                    alert('Connection request rejected. Please connect to proceed.');
+                } else if (error.code === -32002) {
+                    alert('Connection request is already pending. Please check your MetaMask.');
+                } else {
+                    alert(`Failed to connect wallet: ${error.message}`);
+                }
             }
         }
 

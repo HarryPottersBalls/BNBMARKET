@@ -6,12 +6,65 @@
     <title>BNBmarket Admin Dashboard</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        
+
+        html, body {
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .video-background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            opacity: 0.1;
+            z-index: -3;
+            filter: blur(5px) brightness(1.5);
+        }
+
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #0b0b0f 0%, #1a1a2e 50%, #16213e 100%);
-            color: #ffffff;
+            background: linear-gradient(135deg, rgba(0,0,0,0.9), rgba(0,0,0,0.95));
+            color: #e0e0e0;
             min-height: 100vh;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .yin-yang-overlay {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(45deg);
+            width: 300px;
+            height: 300px;
+            background:
+                radial-gradient(circle at 25% 25%, rgba(255,255,255,0.1) 0%, transparent 50%),
+                radial-gradient(circle at 75% 75%, rgba(0,0,0,0.2) 0%, transparent 50%);
+            mix-blend-mode: overlay;
+            opacity: 0.2;
+            z-index: -2;
+            animation: rotate 20s linear infinite;
+        }
+
+        @keyframes rotate {
+            0% { transform: translate(-50%, -50%) rotate(0deg); }
+            100% { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+
+        .dashboard-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background:
+                linear-gradient(45deg, rgba(0,0,0,0.7), rgba(0,0,0,0.5)),
+                linear-gradient(135deg, rgba(255,255,255,0.05), rgba(0,0,0,0.1));
+            mix-blend-mode: overlay;
+            z-index: -1;
         }
         
         .admin-header {
@@ -22,33 +75,49 @@
         }
         
         .admin-header h1 {
-            color: #9aff00;
+            color: #ffffff;
             font-size: 2em;
             margin-bottom: 10px;
+            text-shadow: 0 0 10px rgba(255,255,255,0.3);
+            letter-spacing: 1px;
         }
-        
+
         .wallet-connection {
-            background: rgba(154, 255, 0, 0.1);
-            padding: 15px;
-            border-radius: 10px;
+            background: linear-gradient(135deg, rgba(255,255,255,0.05), rgba(0,0,0,0.1));
+            padding: 20px;
+            border-radius: 15px;
             margin: 20px;
             text-align: center;
+            border: 1px solid rgba(255,255,255,0.1);
+            box-shadow:
+                0 4px 6px rgba(0,0,0,0.1),
+                inset 0 2px 4px rgba(255,255,255,0.05);
+        }
+
+        .wallet-connection p {
+            color: rgba(255,255,255,0.7);
         }
         
         .connect-btn {
-            background: linear-gradient(135deg, #9aff00, #7acc00);
-            color: #0b0b0f;
-            border: none;
+            background: linear-gradient(135deg, #ffffff, #e0e0e0);
+            color: #000000;
+            border: 2px solid rgba(255,255,255,0.2);
             padding: 12px 24px;
-            border-radius: 8px;
+            border-radius: 50px;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
+            box-shadow:
+                0 4px 6px rgba(0,0,0,0.1),
+                inset 0 2px 4px rgba(255,255,255,0.1);
         }
-        
+
         .connect-btn:hover {
             transform: scale(1.05);
-            box-shadow: 0 4px 12px rgba(154, 255, 0, 0.3);
+            box-shadow:
+                0 6px 12px rgba(0,0,0,0.2),
+                inset 0 2px 4px rgba(255,255,255,0.2);
+            background: linear-gradient(135deg, #f0f0f0, #ffffff);
         }
         
         .admin-actions {
@@ -264,9 +333,14 @@
     </style>
 </head>
 <body>
+    <video autoplay loop muted playsinline class="video-background">
+        <source src="cream.mp4" type="video/mp4">
+    </video>
+    <div class="yin-yang-overlay"></div>
+    <div class="dashboard-overlay"></div>
     <div class="admin-header">
-        <h1>🛡️ BNBmarket Admin Dashboard</h1>
-        <p>Review and manage prediction markets</p>
+        <h1>🌓 BNBmarket Admin Dashboard</h1>
+        <p>Balancing Prediction Markets</p>
     </div>
 
     <div class="wallet-connection" id="walletConnection">

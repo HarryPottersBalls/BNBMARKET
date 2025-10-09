@@ -9,9 +9,19 @@ const cloudinary = require('cloudinary').v2;
 const { Readable } = require('stream');
 const WebSocket = require('ws');
 const http = require('http');
+const crypto = require('crypto');
 
 // Polyfill fetch for Node.js
 const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
+
+// Initialize PostgreSQL connection pool
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false,
+    sslmode: 'require'
+  },
+});
 
 const app = express();
 const path = require('path');
@@ -52,14 +62,6 @@ function broadcastMarketUpdate(marketId, updateData) {
   };
 
   wsManager.broadcastMarketUpdate(marketId, enhancedUpdateData);
-}
-
-// Initialize Secure WebSocket Manager
-const wsManager = new SecureWebSocketManager(wss);
-
-// Global Broadcast Function
-function broadcastMarketUpdate(marketId, updateData) {
-  wsManager.broadcastMarketUpdate(marketId, updateData);
 }
 
 // Production CORS configuration

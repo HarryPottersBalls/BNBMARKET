@@ -4,9 +4,44 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>BNB Market - Professional Prediction Markets</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+font-family: Inter, system-ui, -apple-system, sans-serif;
+background: linear-gradient(135deg, #111827 0%, #374151 50%, #111827 100%) !important;
+color: #f3f4f6 !important;
+line-height: 1.4;
+min-height: 100vh;
+position: relative;
+overflow: hidden;
+}
+
+/* Video background */
+.video-background {
+position: fixed;
+top: 0;
+left: 0;
+width: 100%;
+height: 100%;
+object-fit: cover;
+opacity: 0.03;
+z-index: -3;
+filter: blur(10px) brightness(1.2);
+pointer-events: none;
+}
+
+/* Professional background pattern */
+body::before {
+content: "";
+position: fixed;
+inset: 0;
+background:
+radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.03) 0%, transparent 50%),
+radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.03) 0%, transparent 50%),
+radial-gradient(circle at 40% 40%, rgba(120, 119, 198, 0.02) 0%, transparent 50%);
+z-index: -2;
+pointer-events: none;
+}    body {
       font-family: Inter, system-ui, -apple-system, sans-serif;
       background: linear-gradient(135deg, #111827 0%, #374151 50%, #111827 100%) !important;
       color: #f3f4f6 !important;
@@ -59,16 +94,189 @@
       transform: rotate(180deg);
     }
 
-    .header {
-      background: linear-gradient(to right, #111827, #1e293b) !important;
-      backdrop-filter: blur(8px);
-      border-bottom: 2px solid #374151 !important;
-      padding: 16px 20px;
-      position: sticky;
-      top: 0;
-      z-index: 40;
-    }
-    
+.header {
+display: flex;
+justify-content: space-between;
+align-items: center;
+padding: 20px;
+max-width: 1400px;
+margin: 0 auto;
+background: rgba(255, 255, 255, 0.05);
+border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+.header .header-inner {
+display: flex;
+align-items: center;
+width: 100%;
+gap: 40px;
+}
+.header .brand {
+display: flex;
+align-items: center;
+gap: 15px;
+margin-right: auto;
+}
+.header .nav {
+.header .nav .nav-link.home {
+display: flex;
+align-items: center;
+gap: 8px;
+color: rgba(255,255,255,0.7);
+transition: color 0.3s ease;
+}
+.header .nav .nav-link.home svg {
+width: 20px;
+height: 20px;
+stroke: rgba(255,255,255,0.6);
+transition: stroke 0.3s ease;
+}
+.header .nav .nav-link.home:hover {
+color: rgba(255,255,255,0.9);
+}
+.header .nav .nav-link.home:hover svg {
+stroke: rgba(255,255,255,0.9);
+}display: flex;
+gap: 20px;
+align-items: center;
+margin: 0 auto;
+}
+.header .wallet-group {
+display: flex;
+align-items: center;
+gap: 15px;
+margin-left: auto;
+}.header .header-inner {
+display: flex;
+justify-content: space-between;
+align-items: center;
+width: 100%;
+}
+.header .brand {
+display: flex;
+align-items: center;
+gap: 15px;
+}
+.header .nav {
+.header .nav .nav-link.home {
+display: flex;
+align-items: center;
+gap: 8px;
+color: rgba(255,255,255,0.7);
+transition: color 0.3s ease;
+}
+.header .nav .nav-link.home svg {
+width: 20px;
+height: 20px;
+stroke: rgba(255,255,255,0.6);
+transition: stroke 0.3s ease;
+}
+.header .nav .nav-link.home:hover {
+color: rgba(255,255,255,0.9);
+}
+.header .nav .nav-link.home:hover svg {
+stroke: rgba(255,255,255,0.9);
+}display: flex;
+gap: 20px;
+align-items: center;
+}
+.header .wallet-group {
+display: flex;
+align-items: center;
+gap: 15px;
+}.header::before {
+content: "";
+position: absolute;
+top: 0;
+left: 0;
+right: 0;
+bottom: 0;
+background: 
+linear-gradient(135deg, 
+rgba(255, 255, 255, 0.02), 
+rgba(255, 255, 255, 0.01));
+opacity: 0.5;
+z-index: -1;
+transition: all 0.3s ease;
+}
+.header:hover::before {
+opacity: 0.7;
+background: 
+linear-gradient(135deg, 
+rgba(255, 255, 255, 0.03), 
+rgba(255, 255, 255, 0.02));
+}.header:hover {
+}
+
+/* Modern Glassmorphism Effects */
+.brand .logo {
+background: linear-gradient(135deg, rgba(255,255,255,0.2), rgba(255,255,255,0.1));
+backdrop-filter: blur(10px);
+border: 1px solid rgba(255,255,255,0.1);
+box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+transition: all 0.3s ease;
+}
+
+.brand .logo:hover {
+transform: scale(1.05);
+box-shadow: 0 8px 12px rgba(0,0,0,0.15);
+}
+
+.nav a {
+color: rgba(255, 255, 255, 0.7);
+padding: 10px 16px;
+border-radius: 12px;
+transition: all 0.3s ease;
+position: relative;
+overflow: hidden;
+background: rgba(255, 255, 255, 0.02);
+border: 1px solid rgba(255, 255, 255, 0.05);
+}
+.nav a:hover {
+color: rgba(255, 255, 255, 0.9);
+background: rgba(255, 255, 255, 0.05);
+border-color: rgba(255, 255, 255, 0.1);
+box-shadow: 
+0 4px 6px rgba(0, 0, 0, 0.05), 
+0 2px 4px rgba(0, 0, 0, 0.03);
+}
+.nav a::before {
+content: "";
+position: absolute;
+top: 0;
+left: -100%;
+width: 100%;
+height: 100%;
+background: linear-gradient(120deg, transparent, rgba(255,255,255,0.1), transparent);
+transition: all 0.5s ease;
+}
+
+.nav a:hover::before {
+left: 100%;
+}
+
+.wallet-btn {
+position: relative;
+z-index: 1;
+overflow: hidden;
+}
+
+.wallet-btn::before {
+content: "";
+position: absolute;
+top: 0;
+left: -100%;
+width: 100%;
+height: 100%;
+background: linear-gradient(120deg, transparent, rgba(255,255,255,0.2), transparent);
+transition: all 0.5s ease;
+z-index: -1;
+}
+
+.wallet-btn:hover::before {
+left: 100%;
+}background: linear-gradient(135deg, rgba(31, 41, 55, 0.9), rgba(55, 65, 81, 0.9)) !important;
+box-shadow: 0 10px 15px rgba(0, 0, 0, 0.15), 0 4px 6px rgba(0, 0, 0, 0.1);
+}    
     .header-inner {
       max-width: 1200px;
       margin: 0 auto;
@@ -133,18 +341,24 @@
       gap: 8px;
     }
 
-    .nav a {
-      padding: 10px 16px;
-      border-radius: 8px;
-      color: #9ca3af;
-      font-size: 14px;
-      font-weight: 500;
-      cursor: pointer;
-      text-decoration: none;
-      transition: all 0.2s;
-      position: relative;
-    }
-
+.nav a {
+color: rgba(255, 255, 255, 0.7);
+padding: 10px 16px;
+border-radius: 12px;
+transition: all 0.3s ease;
+position: relative;
+overflow: hidden;
+background: rgba(255, 255, 255, 0.02);
+border: 1px solid rgba(255, 255, 255, 0.05);
+}
+.nav a:hover {
+color: rgba(255, 255, 255, 0.9);
+background: rgba(255, 255, 255, 0.05);
+border-color: rgba(255, 255, 255, 0.1);
+box-shadow: 
+0 4px 6px rgba(0, 0, 0, 0.05), 
+0 2px 4px rgba(0, 0, 0, 0.03);
+}
     .nav a.active, .nav a:hover {
       color: white;
       background: linear-gradient(135deg, #374151, #4b5563);
@@ -739,7 +953,9 @@
   </style>
 </head>
 <body>
-
+<video autoplay loop muted playsinline class="video-background">
+<source src="/Users/rayarroyo/BNBMARKET/cream.mp4" type="video/mp4">
+</video>
   <header class="header">
     <div class="header-inner">
       <div class="brand">
@@ -749,8 +965,15 @@
           <div style="font-size: 12px; color: #9ca3af; font-weight: 400;">Balance • Harmony • Truth</div>
         </div>
       </div>
-      <nav class="nav">
-  <a href="#" class="nav-link active" data-section="markets" data-i18n="markets">Markets</a>
+<nav class="nav">
+<a href="/" class="nav-link home" data-section="home" data-i18n="home">
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+<path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+<polyline points="9 22 9 12 15 12 15 22"/>
+</svg>
+Home
+</a>
+<a href="#" class="nav-link active" data-section="markets" data-i18n="markets">Markets</a>  <a href="#" class="nav-link active" data-section="markets" data-i18n="markets">Markets</a>
   <a href="#" class="nav-link" data-section="mybets" id="myBetsNavLink" data-i18n="myBets">My Positions</a>
   <a href="#" class="nav-link" data-section="claim" id="claimNavLink" style="display:none" data-i18n="claimWinnings">Claim Winnings</a>
         <a href="#" class="nav-link" data-section="treasury" data-i18n="treasury">Treasury</a>

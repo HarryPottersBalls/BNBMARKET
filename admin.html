@@ -334,7 +334,7 @@
 </head>
 <body>
     <video autoplay loop muted playsinline class="video-background">
-        <source src="cream.mp4" type="video/mp4">
+        <source src="/Users/rayarroyo/BNBMARKET/cream.mp4" type="video/mp4">
     </video>
     <div class="yin-yang-overlay"></div>
     <div class="dashboard-overlay"></div>
@@ -342,6 +342,20 @@
         <h1>🌓 BNBmarket Admin Dashboard</h1>
         <p>Balancing Prediction Markets</p>
     </div>
+
+    <style>
+        .video-background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            opacity: 0.05;
+            z-index: -3;
+            filter: blur(10px) brightness(1.2);
+        }
+    </style>
 
     <div class="wallet-connection" id="walletConnection">
         <button class="connect-btn" id="connectBtn" onclick="connectWallet()">

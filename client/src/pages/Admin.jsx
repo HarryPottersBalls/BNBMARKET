@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import MarketCard from './components/MarketCard';
-import './Admin.css';
+import MarketCard from '../components/MarketCard.jsx';
+import '../styles/Admin.css';
 
 const API_BASE = '/api';
 

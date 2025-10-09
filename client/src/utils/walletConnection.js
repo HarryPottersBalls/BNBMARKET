@@ -1,87 +1,90 @@
-import Web3 from 'web3';
+import { MetaMaskSDK } from '@metamask/sdk';
 
-class WalletConnectionManager {
-  constructor() {
-    this.web3 = null;
-    this.account = null;
+const MMSDK = new MetaMaskSDK({
+  useDeeplink: false,
+  communicationMode: 'webview',
+  checkInstallationImmediately: false,
+  dappMetadata: {
+    name: 'BNBMARKET',
+    url: window.location.origin,
   }
+});
 
-  async connectMetaMask() {
-    if (typeof window.ethereum !== 'undefined') {
-      try {
-        // Request account access
-        const accounts = await window.ethereum.request({
-          method: 'eth_requestAccounts',
-        });
+const connectWallet = async (preferredProvider = null) => {
+  try {
+    // Request account access
+    const accounts = await MMSDK.connect();
 
-        this.web3 = new Web3(window.ethereum);
-        this.account = accounts[0];
-
-        return {
-          connected: true,
-          address: this.account,
-          provider: 'MetaMask',
-        };
-      } catch (error) {
-        console.error('MetaMask connection failed', error);
-        return {
-          connected: false,
-          error: error.message,
-        };
-      }
+    if (!accounts || accounts.length === 0) {
+      return {
+        connected: false,
+        error: 'Connection failed or no accounts found'
+      };
     }
+
+    return {
+      address: accounts[0],
+      connected: true,
+      provider: 'MetaMask',
+      error: null
+    };
+  } catch (error) {
     return {
       connected: false,
-      error: 'MetaMask not detected',
+      error: error.message
     };
   }
+};
 
-  async switchToBSC() {
-    if (!this.web3) {
-      return {
-        switched: false,
-        error: 'Not connected to a wallet',
-      };
-    }
+const disconnectWallet = async () => {
+  try {
+    MMSDK.disconnect();
+    return {
+      disconnected: true,
+      message: 'Wallet disconnected'
+    };
+  } catch (error) {
+    return {
+      disconnected: false,
+      error: error.message
+    };
+  }
+};
 
+const switchToBSC = async () => {
+  try {
     const chainId = '0x38'; // BSC Mainnet
-    const chainName = 'Binance Smart Chain';
-    const nativeCurrency = {
-      name: 'BNB',
-      symbol: 'BNB',
-      decimals: 18,
+    await MMSDK.ethereum.request({
+      method: 'wallet_addEthereumChain',
+      params: [{
+        chainId: chainId,
+        chainName: 'Binance Smart Chain',
+        nativeCurrency: {
+          name: 'BNB',
+          symbol: 'BNB',
+          decimals: 18
+        },
+        rpcUrls: ['https://bsc-dataseed.binance.org/'],
+        blockExplorerUrls: ['https://bscscan.com/']
+      }]
+    });
+
+    return {
+      switched: true,
+      network: 'BSC'
     };
-    const rpcUrls = ['https://bsc-dataseed.binance.org/'];
-    const blockExplorerUrls = ['https://bscscan.com'];
-
-    try {
-      await window.ethereum.request({
-        method: 'wallet_addEthereumChain',
-        params: [
-          {
-            chainId,
-            chainName,
-            nativeCurrency,
-            rpcUrls,
-            blockExplorerUrls,
-          },
-        ],
-      });
-      return { switched: true };
-    } catch (error) {
-      console.error('Failed to switch network', error);
-      return {
-        switched: false,
-        error: error.message,
-      };
-    }
+  } catch (error) {
+    return {
+      switched: false,
+      error: error.message
+    };
   }
+};
 
-  async disconnectWallet() {
-    this.web3 = null;
-    this.account = null;
-    return { disconnected: true };
-  }
-}
+const walletConnection = {
+  connectWallet,
+  disconnectWallet,
+  switchToBSC
+};
 
-export default new WalletConnectionManager();
+export default walletConnection;

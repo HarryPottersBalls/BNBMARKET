@@ -1,4 +1,3 @@
-import React, { useState } from 'react';
 import WalletConnect from './WalletConnect';
 import { colors } from '../theme/colorscheme';
 

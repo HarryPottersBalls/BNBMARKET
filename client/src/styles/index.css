@@ -1,3 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
@@ -14,17 +18,17 @@ code {
 
 :root {
   /* Primary Colors */
-  --color-primary-dark: #2D3748;
-  --color-primary-light: #F7FAFC;
+  --color-primary-dark: #2d3748;
+  --color-primary-light: #f7fafc;
 
   /* Accent Colors */
-  --color-accents-yin: #4A5568;
-  --color-accents-yang: #E53E3E;
-  --color-accents-balanced: #38A169;
+  --color-accents-yin: #4a5568;
+  --color-accents-yang: #e53e3e;
+  --color-accents-balanced: #38a169;
   --color-accents-neutral: #718096;
 
   /* Background & Text */
-  --color-background: #1A202C;
-  --color-text-light: #FFFFFF;
-  --color-text-dark: #1A202C;
+  --color-background: #1a202c;
+  --color-text-light: #ffffff;
+  --color-text-dark: #1a202c;
 }

@@ -1,48 +1,32 @@
-import React, { useState } from 'react';
-import walletConnection from '../utils/walletConnection';
+import React from 'react';
+import { useWalletConnection } from '../hooks/useWalletConnection';
 
-export function WalletConnect() {
-  const [wallet, setWallet] = useState({
-    connected: false,
-    address: null,
-    error: null,
-  });
+const WalletConnect = () => {
+  const { wallet, connectWallet, disconnectWallet, switchToBSC } = useWalletConnection();
 
-  const connectWallet = async () => {
-    const result = await walletConnection.connectMetaMask();
-    setWallet(result);
-  };
-
-  const switchToBSC = async () => {
-    const result = await walletConnection.switchToBSC();
-    if (result.switched) {
-      console.log('Switched to BSC successfully');
-    } else {
-      console.error('Failed to switch network', result.error);
-    }
-  };
-
-  const disconnectWallet = async () => {
-    await walletConnection.disconnectWallet();
-    setWallet({
-      connected: false,
-      address: null,
-      error: null,
-    });
+  const handleConnect = async (provider = null) => {
+    await connectWallet(provider);
   };
 
   return (
     <div>
       {!wallet.connected ? (
-        <button onClick={connectWallet}>Connect Wallet</button>
+        <div>
+          <button onClick={() => handleConnect('MetaMask')}>Connect MetaMask</button>
+          <button onClick={() => handleConnect('WalletConnect')}>Connect WalletConnect</button>
+          <button onClick={() => handleConnect('TrustWallet')}>Connect Trust Wallet</button>
+        </div>
       ) : (
         <div>
           <p>Connected: {wallet.address}</p>
-          <button onClick={switchToBSC}>Switch to BSC</button>
+          <p>Provider: {wallet.provider}</p>
           <button onClick={disconnectWallet}>Disconnect</button>
+          <button onClick={switchToBSC}>Switch to BSC</button>
         </div>
       )}
       {wallet.error && <p style={{ color: 'red' }}>{wallet.error}</p>}
     </div>
   );
-}
+};
+
+export default WalletConnect;

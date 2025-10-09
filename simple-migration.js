@@ -1,134 +1,174 @@
 #!/usr/bin/env node
 
-// Simple Database Migration Runner
-// This script runs each migration step individually
+// Advanced Database Migration Runner
+// Robust migration script with comprehensive error handling and logging
 
 require('dotenv').config();
 const { Pool } = require('pg');
+const fs = require('fs').promises;
+const path = require('path');
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? {
-    rejectUnauthorized: false,
-    sslmode: 'require'
-  } : false,
-});
+// Enhanced logging utility
+const logger = {
+  info: (message) => console.log(`[INFO] ${message}`),
+  warn: (message) => console.warn(`[WARN] ${message}`),
+  error: (message) => console.error(`[ERROR] ${message}`),
+  success: (message) => console.log(`[✅] ${message}`)
+};
 
-async function runSimpleMigration() {
+// Centralized database connection configuration
+function createDatabasePool() {
   try {
-    console.log('🚀 Starting step-by-step migration...');
-    
-    // Test connection
-    await pool.query('SELECT 1');
-    console.log('✅ Database connected');
-    
-    // Check existing columns
-    console.log('🔍 Checking existing table structure...');
-    const betsColumns = await pool.query(`
-      SELECT column_name 
-      FROM information_schema.columns 
-      WHERE table_name = 'bets'
-    `);
-    console.log('📊 Bets table columns:', betsColumns.rows.map(r => r.column_name));
-    
-    const marketsColumns = await pool.query(`
-      SELECT column_name 
-      FROM information_schema.columns 
-      WHERE table_name = 'markets'
-    `);
-    console.log('📊 Markets table columns:', marketsColumns.rows.map(r => r.column_name));
-    
-    // Migration steps
-    const steps = [
-      {
-        name: 'Add platform_fees_collected to markets',
-        sql: 'ALTER TABLE markets ADD COLUMN IF NOT EXISTS platform_fees_collected DECIMAL(20,8) DEFAULT 0'
-      },
-      {
-        name: 'Add total_bets to markets', 
-        sql: 'ALTER TABLE markets ADD COLUMN IF NOT EXISTS total_bets INTEGER DEFAULT 0'
-      },
-      {
-        name: 'Add platform_fee_taken to bets',
-        sql: 'ALTER TABLE bets ADD COLUMN IF NOT EXISTS platform_fee_taken DECIMAL(20,8) DEFAULT 0'
-      },
-      {
-        name: 'Add payout_fee_taken to bets',
-        sql: 'ALTER TABLE bets ADD COLUMN IF NOT EXISTS payout_fee_taken DECIMAL(20,8) DEFAULT 0'
-      },
-      {
-        name: 'Initialize platform_fees_collected',
-        sql: 'UPDATE markets SET platform_fees_collected = 0 WHERE platform_fees_collected IS NULL'
-      },
-      {
-        name: 'Initialize platform_fee_taken',
-        sql: 'UPDATE bets SET platform_fee_taken = 0 WHERE platform_fee_taken IS NULL'
-      },
-      {
-        name: 'Initialize payout_fee_taken',
-        sql: 'UPDATE bets SET payout_fee_taken = 0 WHERE payout_fee_taken IS NULL'
-      },
-      {
-        name: 'Update total_bets count',
-        sql: 'UPDATE markets SET total_bets = (SELECT COUNT(*) FROM bets WHERE market_id = markets.id) WHERE total_bets = 0 OR total_bets IS NULL'
-      },
-      {
-        name: 'Create index on platform_fees_collected',
-        sql: 'CREATE INDEX IF NOT EXISTS idx_markets_platform_fees ON markets(platform_fees_collected)'
-      },
-      {
-        name: 'Create index on platform_fee_taken',
-        sql: 'CREATE INDEX IF NOT EXISTS idx_bets_platform_fee ON bets(platform_fee_taken)'
-      },
-      {
-        name: 'Create index on payout_fee_taken',
-        sql: 'CREATE INDEX IF NOT EXISTS idx_bets_payout_fee ON bets(payout_fee_taken)'
-      }
-    ];
-    
-    // Execute each step
-    for (let i = 0; i < steps.length; i++) {
-      const step = steps[i];
-      console.log(`⚡ Step ${i + 1}/${steps.length}: ${step.name}`);
-      
+    return new Pool({
+      connectionString: process.env.DATABASE_URL,
+      ssl: process.env.NODE_ENV === 'production' ? {
+        rejectUnauthorized: false,
+        sslmode: 'require'
+      } : false,
+      max: 10,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 10000
+    });
+  } catch (error) {
+    logger.error(`Database pool configuration failed: ${error.message}`);
+    process.exit(1);
+  }
+}
+
+// Enhanced transaction management
+async function runMigrationWithTransaction(pool, steps) {
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+
+    for (const [index, step] of steps.entries()) {
+      logger.info(`Running migration step ${index + 1}: ${step.name}`);
+
       try {
-        await pool.query(step.sql);
-        console.log(`   ✅ Success`);
-      } catch (error) {
-        if (error.message.includes('already exists') || error.message.includes('already has')) {
-          console.log(`   ⚠️  Skipped (already exists)`);
+        await client.query(step.sql);
+        logger.success(`Completed: ${step.name}`);
+      } catch (stepError) {
+        if (
+          stepError.message.includes('already exists') ||
+          stepError.message.includes('already has')
+        ) {
+          logger.warn(`Skipped (already exists): ${step.name}`);
         } else {
-          console.error(`   ❌ Failed: ${error.message}`);
-          throw error;
+          throw stepError;
         }
       }
     }
-    
-    // Final verification
-    console.log('🔍 Final verification...');
+
+    await client.query('COMMIT');
+    logger.success('Migration transaction completed successfully');
+  } catch (error) {
+    await client.query('ROLLBACK');
+    logger.error(`Migration failed: ${error.message}`);
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+// Migration step generator
+function generateMigrationSteps() {
+  return [
+    {
+      name: 'Add platform_fees_collected to markets',
+      sql: `
+        ALTER TABLE markets
+        ADD COLUMN IF NOT EXISTS platform_fees_collected DECIMAL(20,8) DEFAULT 0,
+        ADD COLUMN IF NOT EXISTS platform_fees_strategy JSONB DEFAULT '{"version": 1, "type": "standard"}'
+      `
+    },
+    {
+      name: 'Add advanced bet tracking to markets',
+      sql: `
+        ALTER TABLE markets
+        ADD COLUMN IF NOT EXISTS total_bets INTEGER DEFAULT 0,
+        ADD COLUMN IF NOT EXISTS unique_bettors INTEGER DEFAULT 0,
+        ADD COLUMN IF NOT EXISTS market_health_score DECIMAL(5,2) DEFAULT 100
+      `
+    },
+    {
+      name: 'Enhance bets table with advanced fee tracking',
+      sql: `
+        ALTER TABLE bets
+        ADD COLUMN IF NOT EXISTS platform_fee_taken DECIMAL(20,8) DEFAULT 0,
+        ADD COLUMN IF NOT EXISTS payout_fee_taken DECIMAL(20,8) DEFAULT 0,
+        ADD COLUMN IF NOT EXISTS bet_risk_score DECIMAL(5,2) DEFAULT 50
+      `
+    },
+    {
+      name: 'Update total_bets and unique bettors',
+      sql: `
+        WITH bet_stats AS (
+          SELECT
+            market_id,
+            COUNT(*) as total_bets,
+            COUNT(DISTINCT bettor_address) as unique_bettors
+          FROM bets
+          GROUP BY market_id
+        )
+        UPDATE markets m
+        SET
+          total_bets = COALESCE(bs.total_bets, 0),
+          unique_bettors = COALESCE(bs.unique_bettors, 0)
+        FROM bet_stats bs
+        WHERE m.id = bs.market_id
+      `
+    },
+    {
+      name: 'Optimize indexes for performance',
+      sql: `
+        CREATE INDEX IF NOT EXISTS idx_markets_platform_fees ON markets(platform_fees_collected);
+        CREATE INDEX IF NOT EXISTS idx_bets_platform_fee ON bets(platform_fee_taken);
+        CREATE INDEX IF NOT EXISTS idx_bets_payout_fee ON bets(payout_fee_taken);
+        CREATE INDEX IF NOT EXISTS idx_markets_unique_bettors ON markets(unique_bettors);
+      `
+    }
+  ];
+}
+
+async function runMigration() {
+  const pool = createDatabasePool();
+
+  try {
+    logger.info('🚀 Starting advanced database migration...');
+    await pool.query('SELECT 1'); // Verify connection
+    logger.success('Database connection established');
+
+    const migrationSteps = generateMigrationSteps();
+    await runMigrationWithTransaction(pool, migrationSteps);
+
+    // Comprehensive final verification
     const finalCheck = await pool.query(`
-      SELECT 
+      SELECT
+        COUNT(DISTINCT market_id) as total_markets,
         COUNT(*) as total_bets,
         COALESCE(SUM(platform_fee_taken), 0) as total_bid_fees,
-        COALESCE(SUM(payout_fee_taken), 0) as total_payout_fees
-      FROM bets
+        COALESCE(SUM(payout_fee_taken), 0) as total_payout_fees,
+        COALESCE(AVG(market_health_score), 0) as avg_market_health
+      FROM markets m
+      JOIN bets b ON m.id = b.market_id
     `);
-    
+
     const stats = finalCheck.rows[0];
-    console.log('📊 Migration results:');
-    console.log(`   ✅ Total bets: ${stats.total_bets}`);
-    console.log(`   ✅ Bid fees tracked: ${stats.total_bid_fees} BNB`);
-    console.log(`   ✅ Payout fees tracked: ${stats.total_payout_fees} BNB`);
-    
-    console.log('🎉 Database migration completed successfully!');
-    console.log('💡 Your 1% bid + 1% payout fee system is now active!');
-    
+    logger.info('📊 Migration Results:');
+    logger.info(`Total Markets: ${stats.total_markets}`);
+    logger.info(`Total Bets: ${stats.total_bets}`);
+    logger.info(`Total Bid Fees: ${stats.total_bid_fees} BNB`);
+    logger.info(`Total Payout Fees: ${stats.total_payout_fees} BNB`);
+    logger.info(`Avg Market Health: ${stats.avg_market_health.toFixed(2)}%`);
+
+    logger.success('🎉 Advanced Database Migration Completed Successfully!');
   } catch (error) {
-    console.error('❌ Migration failed:', error.message);
+    logger.error(`Migration process failed: ${error.message}`);
     process.exit(1);
   } finally {
     await pool.end();
   }
 }
 
-runSimpleMigration();
+runMigration();

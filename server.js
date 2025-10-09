@@ -106,21 +106,215 @@ if (process.env.NODE_ENV === 'production') {
   });
 }
 
+const rateLimit = require('express-rate-limit');
+
+// Advanced Rate Limiting Configuration
+const rateLimitConfig = {
+  standardLimiter: rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // Limit each IP to 100 requests per window
+    standardHeaders: true, // Return rate limit info in `RateLimit-*` headers
+    legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+    message: 'Too many requests, please try again later.',
+    handler: (req, res) => {
+      res.status(429).json({
+        error: 'Too Many Requests',
+        message: 'You have exceeded the rate limit. Please try again later.',
+        retryAfter: Math.ceil(15 * 60 / 100) // Estimated time to reset
+      });
+    }
+  }),
+
+  heavyApiLimiter: rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 50, // More restrictive for heavy API endpoints
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: 'Too many requests for this endpoint.',
+    handler: (req, res) => {
+      res.status(429).json({
+        error: 'Rate Limit Exceeded',
+        message: 'You have exceeded the rate limit for this resource.',
+        retryAfter: Math.ceil(15 * 60 / 50)
+      });
+    }
+  }),
+
+  authLimiter: rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 10, // Very restrictive for authentication attempts
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: 'Too many authentication attempts.',
+    handler: (req, res) => {
+      res.status(429).json({
+        error: 'Authentication Rate Limit',
+        message: 'Too many authentication attempts. Please wait and try again.',
+        retryAfter: Math.ceil(15 * 60 / 10)
+      });
+    }
+  })
+};
+
+// Global middleware for rate limiting
+app.use(rateLimitConfig.standardLimiter);
+
+// Specific rate limiting for sensitive routes
+app.use('/api/admin', rateLimitConfig.heavyApiLimiter);
+app.use('/api/bets', rateLimitConfig.heavyApiLimiter);
+app.use('/api/claim', rateLimitConfig.heavyApiLimiter);
+app.use('/api/markets', rateLimitConfig.heavyApiLimiter);
+
+// Authentication routes with strict rate limiting
+app.use('/api/login', rateLimitConfig.authLimiter);
+
 app.use(express.json({ limit: '10mb' }));
+
+// Expose rate limit configuration for admin monitoring
+app.get('/api/admin/rate-limit-config', (req, res) => {
+  const { address } = req.query;
+
+  if (!isAdminAddress(address)) {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+
+  res.json({
+    standard_limiter: {
+      windowMs: rateLimitConfig.standardLimiter.windowMs,
+      max: rateLimitConfig.standardLimiter.max
+    },
+    heavy_api_limiter: {
+      windowMs: rateLimitConfig.heavyApiLimiter.windowMs,
+      max: rateLimitConfig.heavyApiLimiter.max
+    },
+    auth_limiter: {
+      windowMs: rateLimitConfig.authLimiter.windowMs,
+      max: rateLimitConfig.authLimiter.max
+    }
+  });
+});
 
 const PORT = process.env.PORT || 10000;
 
-// PostgreSQL configuration with production-ready SSL
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? {
-    rejectUnauthorized: false,
-    sslmode: 'require'
-  } : false,
-  max: process.env.NODE_ENV === 'production' ? 10 : 20, // Lower connection pool for production
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 10000, // Increased timeout for production
-  query_timeout: 30000,
+// Enhanced PostgreSQL Connection Pooling
+class DatabaseConnectionPool {
+  constructor() {
+    this.pool = null;
+    this.connectionStats = {
+      totalConnections: 0,
+      idleConnections: 0,
+      activeConnections: 0,
+      connectionAttempts: 0,
+      connectionErrors: 0
+    };
+    this.initializePool();
+  }
+
+  initializePool() {
+    const poolConfig = {
+      connectionString: process.env.DATABASE_URL,
+      ssl: process.env.NODE_ENV === 'production' ? {
+        rejectUnauthorized: false,
+        sslmode: 'require'
+      } : false,
+
+      // Dynamic pool sizing based on environment
+      max: process.env.DB_MAX_CONNECTIONS ||
+           (process.env.NODE_ENV === 'production' ? 20 : 10),
+
+      // Enhanced timeout configurations
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 10000,
+      query_timeout: 30000,
+
+      // Retry mechanism for connection failures
+      retry: {
+        retries: 3,
+        factor: 2,
+        minTimeout: 1000,
+        maxTimeout: 5000
+      }
+    };
+
+    this.pool = new Pool(poolConfig);
+
+    // Connection event monitoring
+    this.pool.on('connect', (client) => {
+      this.connectionStats.totalConnections++;
+      this.connectionStats.activeConnections++;
+      this.connectionStats.connectionAttempts++;
+    });
+
+    this.pool.on('remove', (client) => {
+      this.connectionStats.totalConnections--;
+      this.connectionStats.activeConnections--;
+    });
+
+    this.pool.on('error', (err) => {
+      console.error('Unexpected PostgreSQL client error', err);
+      this.connectionStats.connectionErrors++;
+    });
+  }
+
+  async query(text, params) {
+    const startTime = Date.now();
+    try {
+      const result = await this.pool.query(text, params);
+
+      // Log slow queries
+      const duration = Date.now() - startTime;
+      if (duration > 1000) {
+        console.warn('Slow Database Query', {
+          query: text,
+          duration,
+          params
+        });
+      }
+
+      return result;
+    } catch (error) {
+      console.error('Database Query Error', {
+        query: text,
+        params,
+        error: error.message
+      });
+      throw error;
+    }
+  }
+
+  async getConnectionStats() {
+    const poolStats = await this.pool.totalCount();
+    return {
+      ...this.connectionStats,
+      poolStats
+    };
+  }
+
+  async end() {
+    await this.pool.end();
+  }
+}
+
+// Initialize global database connection
+const dbPool = new DatabaseConnectionPool();
+
+// Expose connection stats endpoint
+app.get('/api/admin/db-connection-stats', async (req, res) => {
+  const { address } = req.query;
+
+  if (!isAdminAddress(address)) {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+
+  try {
+    const connectionStats = await dbPool.getConnectionStats();
+    res.json(connectionStats);
+  } catch (error) {
+    res.status(500).json({
+      error: 'Failed to retrieve connection stats',
+      details: error.message
+    });
+  }
 });
 
 // Test database connection
@@ -164,77 +358,94 @@ function isAdminAddress(address) {
 }
 
 // Enhanced LMSR (Logarithmic Market Scoring Rule) Functions
-function calculateLMSRProbabilities(bets, numOutcomes, liquidity = 50) {
-  console.log('🧮 Calculating Enhanced LMSR Probabilities...');
-  
-  // Calculate total bet amounts per outcome
+function calculateLMSRProbabilities(bets, numOutcomes, liquidity = 50, marketMetadata = {}) {
+  console.log('🧮 Calculating Advanced LMSR Probabilities...');
+
+  // Configuration parameters with optional override from market metadata
+  const config = {
+    volumeWeight: marketMetadata.volumeWeight || 0.6,
+    diversityWeight: marketMetadata.diversityWeight || 0.4,
+    minProbability: marketMetadata.minProbability || 0.01,
+    maxProbability: marketMetadata.maxProbability || 0.99,
+    smoothingFactor: marketMetadata.smoothingFactor || 0.75,
+    dynamicLiquidityFactor: marketMetadata.dynamicLiquidityFactor || 0.15
+  };
+
+  // Enhanced type safety and input validation
+  if (!Array.isArray(bets) || numOutcomes <= 0) {
+    console.warn('Invalid input for LMSR calculation');
+    return Array(numOutcomes).fill(1 / numOutcomes);
+  }
+
+  // Time-decay factor for older bets
+  const timeDecayFunction = (timestamp) => {
+    const currentTime = Date.now();
+    const betAge = currentTime - new Date(timestamp).getTime();
+    const halfLife = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
+    return Math.exp(-Math.log(2) * betAge / halfLife);
+  };
+
+  // Calculate total bet amounts per outcome with time decay
   const outcomeTotals = Array(numOutcomes).fill(0);
-  const betCounts = Array(numOutcomes).fill(0); // Number of bets per outcome
-  
-  bets.forEach(bet => {
-    if (bet.option_id < numOutcomes) {
-      outcomeTotals[bet.option_id] += parseFloat(bet.amount || 0);
-      betCounts[bet.option_id] += 1;
-    }
+  const betCounts = Array(numOutcomes).fill(0);
+  const timeDecayedBets = bets.filter(bet => bet.option_id < numOutcomes);
+
+  timeDecayedBets.forEach(bet => {
+    const decayFactor = timeDecayFunction(bet.created_at);
+    const adjustedAmount = parseFloat(bet.amount || 0) * decayFactor;
+
+    outcomeTotals[bet.option_id] += adjustedAmount;
+    betCounts[bet.option_id] += 1;
   });
-  
-  console.log('📊 Raw bet totals:', outcomeTotals);
-  console.log('👥 Bet counts per option:', betCounts);
-  
-  // IMPROVEMENT 1: Weight by both volume AND number of bets (wisdom of crowds)
-  const diversityWeights = betCounts.map(count => Math.log(count + 1)); // Log of bet count
-  const volumeWeights = outcomeTotals.map(total => total);
-  
-  // Combine volume and diversity (60% volume, 40% diversity for balanced influence)
-  const maxVolume = Math.max(...volumeWeights) || 1;
-  const combinedWeights = volumeWeights.map((volume, i) => 
-    0.6 * volume + 0.4 * diversityWeights[i] * (volume > 0 ? volume / maxVolume : 0)
-  );
-  
-  console.log('🏋️ Combined weights (volume + crowd wisdom):', combinedWeights);
-  
-  // IMPROVEMENT 2: Dynamic liquidity based on market activity
+
+  // Advanced Diversity Weighting with Entropy Calculation
+  const diversityWeights = betCounts.map(count => {
+    const probability = count / timeDecayedBets.length;
+    return probability > 0 ? -probability * Math.log2(probability) : 0;
+  });
+
+  // Combine volume and diversity with dynamic weighting
+  const maxVolume = Math.max(...outcomeTotals) || 1;
+  const combinedWeights = outcomeTotals.map((volume, i) => {
+    const normalizedVolume = volume / maxVolume;
+    return (
+      config.volumeWeight * normalizedVolume +
+      config.diversityWeight * diversityWeights[i]
+    );
+  });
+
+  // Dynamic Liquidity Calculation
   const totalVolume = outcomeTotals.reduce((sum, total) => sum + total, 0);
-  const dynamicLiquidity = Math.max(liquidity, totalVolume * 0.15); // At least 15% of total volume
-  
-  // IMPROVEMENT 3: Add base liquidity with equal probability bias
+  const dynamicLiquidity = Math.max(
+    liquidity,
+    totalVolume * config.dynamicLiquidityFactor
+  );
+
+  // Base Liquidity with Entropy-based Distribution
   const baseLiquidity = dynamicLiquidity / numOutcomes;
   const adjustedTotals = combinedWeights.map(weight => weight + baseLiquidity);
-  
-  console.log('💧 Dynamic liquidity:', dynamicLiquidity);
-  console.log('⚖️ Adjusted totals:', adjustedTotals);
-  
-  // IMPROVEMENT 4: Better scaling factor to prevent overflow and maintain sensitivity
-  const maxTotal = Math.max(...adjustedTotals);
-  const scaleFactor = maxTotal > 100 ? maxTotal / 100 : 1; // Keep sensitivity for small markets
-  
-  // IMPROVEMENT 5: Enhanced exponential calculation with smoothing
-  const expValues = adjustedTotals.map(total => {
-    const scaledValue = total / scaleFactor;
-    // Apply smoothing for more realistic probability curves
-    return Math.exp(scaledValue * 0.75); // 0.75 factor creates gradual, realistic changes
-  });
-  
-  console.log('📈 Exponential values:', expValues);
-  
-  // Calculate raw probabilities
+
+  // Exponential Transformation with Enhanced Smoothing
+  const expValues = adjustedTotals.map(total =>
+    Math.exp(total * config.smoothingFactor)
+  );
+
+  // Calculate Probabilities
   const sumExp = expValues.reduce((sum, exp) => sum + exp, 0);
   const rawProbabilities = expValues.map(exp => exp / sumExp);
-  
-  // IMPROVEMENT 6: Realistic probability bounds (no outcome should go below 1% or above 99%)
-  const minProbability = 0.01; // 1% minimum
-  const maxProbability = 0.99; // 99% maximum
-  
-  const clampedProbabilities = rawProbabilities.map(prob => 
-    Math.max(minProbability, Math.min(maxProbability, prob))
+
+  // Realistic Probability Bounds and Normalization
+  const clampedProbabilities = rawProbabilities.map(prob =>
+    Math.max(config.minProbability, Math.min(config.maxProbability, prob))
   );
-  
-  // Renormalize after clamping to ensure probabilities sum to 1
+
   const clampedSum = clampedProbabilities.reduce((sum, prob) => sum + prob, 0);
   const finalProbabilities = clampedProbabilities.map(prob => prob / clampedSum);
-  
-  console.log('🎯 Final market probabilities:', finalProbabilities.map(p => `${(p * 100).toFixed(1)}%`));
-  
+
+  console.log('🎯 Final Market Probabilities:',
+    finalProbabilities.map(p => `${(p * 100).toFixed(1)}%`)
+  );
+
   return finalProbabilities;
 }
 
@@ -379,18 +590,112 @@ async function initializeDatabase() {
   }
 }
 
-// Utility function
-async function queryDatabase(query, params = []) {
-  try {
-    const result = await pool.query(query, params);
-    return result;
-  } catch (error) {
-    console.error('Database query error:', error.message);
-    console.error('Query:', query);
-    console.error('Params:', params);
-    throw error;
+// Advanced Query Optimization Utility
+const queryOptimizer = {
+  // Query execution time tracking
+  queryExecutionTimes: [],
+  slowQueryThreshold: 500, // ms
+
+  // Cache for frequently accessed queries
+  queryCache: new Map(),
+  queryCacheDuration: 60000, // 1 minute cache
+
+  async executeQuery(query, params = [], options = {}) {
+    const startTime = Date.now();
+    const cacheKey = JSON.stringify({ query, params });
+
+    // Check cache first
+    if (options.useCache) {
+      const cachedResult = this.queryCache.get(cacheKey);
+      if (cachedResult && (Date.now() - cachedResult.timestamp) < this.queryCacheDuration) {
+        return cachedResult.data;
+      }
+    }
+
+    try {
+      // Analyze query plan for complex queries
+      const explainQuery = `EXPLAIN (FORMAT JSON) ${query}`;
+      const explainResult = await pool.query(explainQuery, params);
+
+      const result = await pool.query(query, params);
+      const executionTime = Date.now() - startTime;
+
+      // Track query performance
+      this.trackQueryPerformance(query, params, executionTime, explainResult.rows[0]);
+
+      // Cache result if requested
+      if (options.useCache) {
+        this.queryCache.set(cacheKey, {
+          data: result,
+          timestamp: Date.now()
+        });
+      }
+
+      return result;
+    } catch (error) {
+      console.error('Database query optimization error:', {
+        message: error.message,
+        query,
+        params,
+        timestamp: new Date().toISOString()
+      });
+      throw error;
+    }
+  },
+
+  trackQueryPerformance(query, params, executionTime, explainPlan) {
+    // Log slow queries
+    if (executionTime > this.slowQueryThreshold) {
+      console.warn('Slow Query Detected:', {
+        query,
+        params,
+        executionTime,
+        explainPlan
+      });
+    }
+
+    // Maintain a rolling window of query execution times
+    this.queryExecutionTimes.push({
+      query,
+      executionTime,
+      timestamp: Date.now()
+    });
+
+    // Keep only recent query times (last 1000 queries)
+    if (this.queryExecutionTimes.length > 1000) {
+      this.queryExecutionTimes.shift();
+    }
+  },
+
+  // Get performance statistics
+  getQueryPerformanceStats() {
+    const recentQueries = this.queryExecutionTimes;
+    return {
+      averageExecutionTime: recentQueries.reduce((sum, q) => sum + q.executionTime, 0) / recentQueries.length,
+      slowQueries: recentQueries.filter(q => q.executionTime > this.slowQueryThreshold),
+      totalQueries: recentQueries.length
+    };
   }
+};
+
+// Replacement for previous queryDatabase function
+async function queryDatabase(query, params = [], options = {}) {
+  return queryOptimizer.executeQuery(query, params, options);
 }
+
+// Expose query performance endpoint for admin monitoring
+app.get('/api/admin/query-performance', (req, res) => {
+  const { address } = req.query;
+
+  if (!isAdminAddress(address)) {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+
+  res.json({
+    performance_stats: queryOptimizer.getQueryPerformanceStats(),
+    slow_query_threshold: queryOptimizer.slowQueryThreshold
+  });
+});
 
 // Helper function to properly parse JSONB fields
 function parseJSONBField(field, fieldName = 'field') {

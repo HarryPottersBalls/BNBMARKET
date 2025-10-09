@@ -14,7 +14,6 @@
     "postinstall": "echo 'Dependencies installed successfully'"
   },
   "dependencies": {
-    "web3": "^4.2.2",
     "@binance-chain/bsc-connector": "^1.0.0",
     "cloudinary": "^1.41.0",
     "cors": "^2.8.5",
@@ -22,10 +21,12 @@
     "express": "^4.18.2",
     "express-rate-limit": "^7.1.5",
     "helmet": "^7.1.0",
+    "ioredis": "^5.8.1",
     "multer": "^1.4.5-lts.1",
     "node-fetch": "^3.3.2",
     "pg": "^8.11.3",
-    "tweetnacl": "^1.0.3"
+    "tweetnacl": "^1.0.3",
+    "web3": "^4.2.2"
   },
   "devDependencies": {
     "jest": "^29.7.0",

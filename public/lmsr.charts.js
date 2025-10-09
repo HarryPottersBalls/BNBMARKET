@@ -8,17 +8,49 @@ class ErrorHandler {
       /token/i,
       /key/i
     ];
-  }
 
-  sanitizeError(error) {
-    const sanitizedMessage = this.sanitizeMessage(error.message || 'Unknown error');
-    return {
-      message: sanitizedMessage,
-      name: error.name || 'Error',
-      stack: this.sanitizeStackTrace(error.stack || '')
+    // Advanced error tracking
+    this.errorLog = [];
+    this.maxErrorLogSize = 50;
+
+    // Performance tracking
+    this.performanceMetrics = {
+      totalErrors: 0,
+      errorTypes: {},
+      lastErrorTimestamp: null
     };
   }
 
+  // Enhanced error sanitization with more context
+  sanitizeError(error) {
+    const sanitizedMessage = this.sanitizeMessage(error.message || 'Unknown error');
+
+    return {
+      id: this.generateErrorId(),
+      message: sanitizedMessage,
+      name: error.name || 'Error',
+      stack: this.sanitizeStackTrace(error.stack || ''),
+      browserInfo: this.getBrowserInfo(),
+      timestamp: new Date().toISOString()
+    };
+  }
+
+  // Generate unique error ID
+  generateErrorId() {
+    return Math.random().toString(36).substr(2, 9);
+  }
+
+  // Collect browser information for context
+  getBrowserInfo() {
+    return {
+      userAgent: navigator.userAgent,
+      platform: navigator.platform,
+      language: navigator.language,
+      screenResolution: `${window.screen.width}x${window.screen.height}`
+    };
+  }
+
+  // Advanced message sanitization
   sanitizeMessage(message) {
     return this.sensitivePatterns.reduce(
       (msg, pattern) => msg.replace(pattern, '***'),
@@ -26,6 +58,7 @@ class ErrorHandler {
     );
   }
 
+  // Improved stack trace sanitization
   sanitizeStackTrace(stack) {
     return stack.split('\n')
       .filter(line =>
@@ -33,38 +66,150 @@ class ErrorHandler {
         !line.includes('internal/') &&
         line.trim() !== ''
       )
-      .map(line => line.replace(/\/.*\//, ''))
+      .map(line => {
+        // Remove full file paths, keep function names and line numbers
+        const pathStripped = line.replace(/\/.*\//, '');
+        return pathStripped.length > 200 ? pathStripped.substr(0, 200) + '...' : pathStripped;
+      })
       .slice(0, 10)
       .join('\n');
   }
 
+  // Track performance metrics
+  trackErrorMetrics(error) {
+    this.performanceMetrics.totalErrors++;
+
+    const errorType = error.name || 'UnknownError';
+    this.performanceMetrics.errorTypes[errorType] =
+      (this.performanceMetrics.errorTypes[errorType] || 0) + 1;
+
+    this.performanceMetrics.lastErrorTimestamp = new Date().toISOString();
+  }
+
+  // Store error in local log
+  logError(sanitizedError, context) {
+    this.errorLog.push({
+      ...sanitizedError,
+      context
+    });
+
+    // Maintain maximum log size
+    if (this.errorLog.length > this.maxErrorLogSize) {
+      this.errorLog.shift();
+    }
+  }
+
+  // Advanced error reporting with fallback mechanisms
   async reportError(error, context = {}) {
     const sanitizedError = this.sanitizeError(error);
 
-    console.error('Captured Error', {
+    // Track error metrics
+    this.trackErrorMetrics(error);
+
+    // Log error locally
+    this.logError(sanitizedError, context);
+
+    // Detailed console logging
+    console.error('Captured Advanced Error', {
       ...sanitizedError,
       context,
-      timestamp: new Date().toISOString()
+      performanceMetrics: this.performanceMetrics
     });
 
     try {
-      await fetch(this.reportEndpoint, {
+      const response = await fetch(this.reportEndpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Error-Source': 'client'
+          'X-Error-Source': 'client',
+          'X-Error-ID': sanitizedError.id
         },
         body: JSON.stringify({
           error: sanitizedError,
           context,
-          timestamp: new Date().toISOString()
+          performanceMetrics: this.performanceMetrics
         })
       });
+
+      if (!response.ok) {
+        throw new Error('Error reporting failed');
+      }
     } catch (reportError) {
-      console.warn('Error reporting failed', reportError);
+      // Fallback error reporting
+      this.fallbackErrorReporting(sanitizedError, context, reportError);
     }
+
+    return sanitizedError.id;
+  }
+
+  // Fallback error reporting mechanism
+  fallbackErrorReporting(sanitizedError, context, reportError) {
+    console.warn('Primary error reporting failed. Attempting fallback...', reportError);
+
+    // Option 1: Local Storage Backup
+    try {
+      const errorBackup = localStorage.getItem('error_backup') || '[]';
+      const errorArray = JSON.parse(errorBackup);
+
+      errorArray.push({
+        error: sanitizedError,
+        context,
+        timestamp: new Date().toISOString()
+      });
+
+      // Limit local storage backup
+      if (errorArray.length > 20) {
+        errorArray.shift();
+      }
+
+      localStorage.setItem('error_backup', JSON.stringify(errorArray));
+    } catch (storageError) {
+      console.error('Fallback error storage failed', storageError);
+    }
+
+    // Option 2: Retry with reduced payload
+    setTimeout(() => {
+      try {
+        navigator.sendBeacon(this.reportEndpoint, JSON.stringify({
+          errorId: sanitizedError.id,
+          message: sanitizedError.message,
+          timestamp: sanitizedError.timestamp
+        }));
+      } catch (beaconError) {
+        console.error('Beacon error reporting failed', beaconError);
+      }
+    }, 1000);
+  }
+
+  // Method to retrieve error logs (for debugging)
+  getErrorLogs() {
+    return this.errorLog;
+  }
+
+  // Method to retrieve performance metrics
+  getPerformanceMetrics() {
+    return this.performanceMetrics;
   }
 }
+
+// Enhanced global error handling
+window.addEventListener('error', (event) => {
+  const errorHandler = window.errorHandler || new ErrorHandler();
+  errorHandler.reportError(event.error || new Error(event.message), {
+    source: 'global-error-handler',
+    filename: event.filename,
+    lineno: event.lineno,
+    colno: event.colno
+  });
+});
+
+// Unhandled promise rejection tracking
+window.addEventListener('unhandledrejection', (event) => {
+  const errorHandler = window.errorHandler || new ErrorHandler();
+  errorHandler.reportError(event.reason || new Error('Unhandled Promise Rejection'), {
+    source: 'unhandled-promise-rejection'
+  });
+});
 
 // WebSocket Connection Manager
 class WebSocketManager {

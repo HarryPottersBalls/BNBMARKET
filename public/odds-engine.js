@@ -107,29 +107,83 @@ class OddsEngine {
   }
 
   // Calculate LMSR probabilities from bets
-  calculateLMSRProbabilities(bets, numOutcomes, liquidity = this.liquidity) {
-    // Calculate total bet amounts per outcome
+  calculateLMSRProbabilities(bets, numOutcomes, liquidity = this.liquidity, marketMetadata = {}) {
+    const config = {
+      volumeWeight: marketMetadata.volumeWeight || 0.6,
+      diversityWeight: marketMetadata.diversityWeight || 0.4,
+      minProbability: marketMetadata.minProbability || 0.01,
+      maxProbability: marketMetadata.maxProbability || 0.99,
+      smoothingFactor: marketMetadata.smoothingFactor || 0.75,
+      dynamicLiquidityFactor: marketMetadata.dynamicLiquidityFactor || 0.15,
+      timeDecayHalfLife: marketMetadata.timeDecayHalfLife || (7 * 24 * 60 * 60 * 1000) // 7 days
+    };
+
+    // Time decay function
+    const timeDecayFunction = (timestamp) => {
+      const currentTime = Date.now();
+      const betAge = currentTime - new Date(timestamp).getTime();
+      return Math.exp(-Math.log(2) * betAge / config.timeDecayHalfLife);
+    };
+
+    // Calculate total bet amounts per outcome with time decay
     const outcomeTotals = Array(numOutcomes).fill(0);
-    
-    bets.forEach(bet => {
-      if (bet.option_id < numOutcomes) {
-        outcomeTotals[bet.option_id] += parseFloat(bet.amount || 0);
-      }
+    const betCounts = Array(numOutcomes).fill(0);
+
+    const timeDecayedBets = bets.filter(bet => bet.option_id < numOutcomes);
+
+    timeDecayedBets.forEach(bet => {
+      const decayFactor = timeDecayFunction(bet.created_at || Date.now());
+      const adjustedAmount = parseFloat(bet.amount || 0) * decayFactor;
+
+      outcomeTotals[bet.option_id] += adjustedAmount;
+      betCounts[bet.option_id] += 1;
     });
-    
-    // Add small initial liquidity to prevent division by zero
-    const initialLiquidity = liquidity / numOutcomes;
-    const adjustedTotals = outcomeTotals.map(total => total + initialLiquidity);
-    
-    // Calculate exponentials (scaled down to prevent overflow)
-    const scaleFactor = Math.max(...adjustedTotals) / 10;
-    const expValues = adjustedTotals.map(total => Math.exp(total / Math.max(scaleFactor, 1)));
-    
-    // Calculate probabilities
+
+    // Advanced Diversity Weighting with Entropy Calculation
+    const diversityWeights = betCounts.map(count => {
+      const probability = count / timeDecayedBets.length;
+      return probability > 0 ? -probability * Math.log2(probability) : 0;
+    });
+
+    // Combine volume and diversity with dynamic weighting
+    const maxVolume = Math.max(...outcomeTotals) || 1;
+    const combinedWeights = outcomeTotals.map((volume, i) => {
+      const normalizedVolume = volume / maxVolume;
+      return (
+        config.volumeWeight * normalizedVolume +
+        config.diversityWeight * diversityWeights[i]
+      );
+    });
+
+    // Dynamic Liquidity Calculation
+    const totalVolume = outcomeTotals.reduce((sum, total) => sum + total, 0);
+    const dynamicLiquidity = Math.max(
+      liquidity,
+      totalVolume * config.dynamicLiquidityFactor
+    );
+
+    // Base Liquidity with Entropy-based Distribution
+    const baseLiquidity = dynamicLiquidity / numOutcomes;
+    const adjustedTotals = combinedWeights.map(weight => weight + baseLiquidity);
+
+    // Exponential Transformation with Enhanced Smoothing
+    const expValues = adjustedTotals.map(total =>
+      Math.exp(total * config.smoothingFactor)
+    );
+
+    // Calculate Probabilities
     const sumExp = expValues.reduce((sum, exp) => sum + exp, 0);
-    const probabilities = expValues.map(exp => exp / sumExp);
-    
-    return probabilities;
+    const rawProbabilities = expValues.map(exp => exp / sumExp);
+
+    // Realistic Probability Bounds and Normalization
+    const clampedProbabilities = rawProbabilities.map(prob =>
+      Math.max(config.minProbability, Math.min(config.maxProbability, prob))
+    );
+
+    const clampedSum = clampedProbabilities.reduce((sum, prob) => sum + prob, 0);
+    const finalProbabilities = clampedProbabilities.map(prob => prob / clampedSum);
+
+    return finalProbabilities;
   }
 
   // Convert probability to odds
